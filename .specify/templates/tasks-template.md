@@ -2,6 +2,7 @@
 
 **Input**: Design documents from `/specs/[###-feature-name]/`
 **Prerequisites**: plan.md (required), research.md, data-model.md, contracts/
+**Language**: Brazilian Portuguese (pt-BR) - per Constitution Principle VI
 
 ## Execution Flow (main)
 ```

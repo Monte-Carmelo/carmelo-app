@@ -1,9 +1,10 @@
 # Feature Specification: [FEATURE NAME]
 
-**Feature Branch**: `[###-feature-name]`  
-**Created**: [DATE]  
-**Status**: Draft  
+**Feature Branch**: `[###-feature-name]`
+**Created**: [DATE]
+**Status**: Draft
 **Input**: User description: "$ARGUMENTS"
+**Language**: Brazilian Portuguese (pt-BR) - per Constitution Principle VI
 
 ## Execution Flow (main)
 ```

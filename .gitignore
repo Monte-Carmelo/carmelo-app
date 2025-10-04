@@ -1,0 +1,9 @@
+# genAI Agents
+.claude
+.codex
+.gemini
+.github
+
+# env
+.env
+.envrc

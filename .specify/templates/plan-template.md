@@ -3,6 +3,7 @@
 
 **Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
 **Input**: Feature specification from `/specs/[###-feature-name]/spec.md`
+**Language**: Brazilian Portuguese (pt-BR) - per Constitution Principle VI
 
 ## Execution Flow (/plan command scope)
 ```
@@ -152,7 +153,7 @@ directories captured above]
    - Quickstart test = story validation steps
 
 5. **Update agent file incrementally** (O(1) operation):
-   - Run `.specify/scripts/bash/update-agent-context.sh claude`
+   - Run `.specify/scripts/bash/update-agent-context.sh`
      **IMPORTANT**: Execute it exactly as specified above. Do not add or remove any arguments.
    - If exists: Add only NEW tech from current plan
    - Preserve manual additions between markers
@@ -216,4 +217,4 @@ directories captured above]
 - [ ] Complexity deviations documented
 
 ---
-*Based on Constitution v2.1.1 - See `/memory/constitution.md`*
+*Based on Constitution v1.1.0 - See `/memory/constitution.md`*
