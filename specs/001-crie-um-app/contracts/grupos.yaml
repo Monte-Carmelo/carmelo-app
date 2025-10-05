@@ -1,0 +1,411 @@
+openapi: 3.0.0
+info:
+  title: Growth Groups API Contracts
+  version: 1.0.0
+  description: Contratos para gestão de Grupos de Crescimento
+
+servers:
+  - url: https://{project}.supabase.co/rest/v1
+    variables:
+      project:
+        default: your-project
+
+security:
+  - bearerAuth: []
+
+paths:
+  /growth_groups:
+    get:
+      summary: Listar grupos de crescimento
+      operationId: listGrowthGroups
+      parameters:
+        - name: select
+          in: query
+          schema:
+            type: string
+            default: "*,gc_leaders(*,user:users(*)),gc_supervisors(*,user:users(*))"
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [ativo, inativo, multiplicando]
+      responses:
+        '200':
+          description: Lista de GCs (filtrada por RLS)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/GrowthGroup'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      summary: Criar novo grupo de crescimento
+      operationId: createGrowthGroup
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GrowthGroupCreate'
+      responses:
+        '201':
+          description: GC criado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GrowthGroup'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /growth_groups/{id}:
+    get:
+      summary: Obter detalhes de um GC
+      operationId: getGrowthGroup
+      parameters:
+        - $ref: '#/components/parameters/GrowthGroupId'
+        - name: select
+          in: query
+          schema:
+            type: string
+            default: "*,gc_leaders(*,user:users(*)),gc_supervisors(*,user:users(*)),members(count)"
+      responses:
+        '200':
+          description: Detalhes do GC
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GrowthGroupDetailed'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    patch:
+      summary: Atualizar grupo de crescimento
+      operationId: updateGrowthGroup
+      parameters:
+        - $ref: '#/components/parameters/GrowthGroupId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GrowthGroupUpdate'
+      responses:
+        '200':
+          description: GC atualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GrowthGroup'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      summary: Desativar grupo de crescimento (soft delete)
+      operationId: deleteGrowthGroup
+      parameters:
+        - $ref: '#/components/parameters/GrowthGroupId'
+      responses:
+        '204':
+          description: GC desativado
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /growth_groups/{id}/membros:
+    get:
+      summary: Listar membros de um GC
+      operationId: listGrowthGroupMembers
+      parameters:
+        - $ref: '#/components/parameters/GrowthGroupId'
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [ativo, inativo, transferido]
+            default: ativo
+      responses:
+        '200':
+          description: Lista de membros
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Member'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+components:
+  parameters:
+    GrowthGroupId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+  schemas:
+    GrowthGroup:
+      type: object
+      required:
+        - id
+        - nome
+        - modalidade
+        - status
+      properties:
+        id:
+          type: string
+          format: uuid
+        nome:
+          type: string
+          maxLength: 255
+          example: "GC Esperança"
+        modalidade:
+          type: string
+          enum: [presencial, online]
+        endereco:
+          type: string
+          nullable: true
+          example: "Rua das Flores, 123 - Bairro Centro"
+        dia_semana:
+          type: integer
+          minimum: 0
+          maximum: 6
+          nullable: true
+          description: "0=domingo, 6=sábado"
+        horario:
+          type: string
+          format: time
+          nullable: true
+          example: "19:30"
+        status:
+          type: string
+          enum: [ativo, inativo, multiplicando]
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    GrowthGroupDetailed:
+      allOf:
+        - $ref: '#/components/schemas/GrowthGroup'
+        - type: object
+          properties:
+            gc_leaders:
+              type: array
+              items:
+                $ref: '#/components/schemas/GCLeader'
+            gc_supervisors:
+              type: array
+              items:
+                $ref: '#/components/schemas/GCSupervisor'
+            members:
+              type: array
+              items:
+                $ref: '#/components/schemas/Member'
+
+    GrowthGroupCreate:
+      type: object
+      required:
+        - nome
+        - modalidade
+        - leader_ids
+        - supervisor_ids
+      properties:
+        nome:
+          type: string
+          maxLength: 255
+        modalidade:
+          type: string
+          enum: [presencial, online]
+        endereco:
+          type: string
+          description: "Obrigatório se modalidade=presencial"
+        dia_semana:
+          type: integer
+          minimum: 0
+          maximum: 6
+        horario:
+          type: string
+          format: time
+        leader_ids:
+          type: array
+          items:
+            type: object
+            required:
+              - user_id
+            properties:
+              user_id:
+                type: string
+                format: uuid
+              role:
+                type: string
+                enum: [leader, co-leader]
+                default: leader
+          minItems: 1
+          description: "Pelo menos 1 líder obrigatório"
+        supervisor_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+          minItems: 1
+          description: "Pelo menos 1 supervisor obrigatório"
+
+    GrowthGroupUpdate:
+      type: object
+      properties:
+        nome:
+          type: string
+          maxLength: 255
+        modalidade:
+          type: string
+          enum: [presencial, online]
+        endereco:
+          type: string
+          nullable: true
+        dia_semana:
+          type: integer
+          minimum: 0
+          maximum: 6
+          nullable: true
+        horario:
+          type: string
+          format: time
+          nullable: true
+        status:
+          type: string
+          enum: [ativo, inativo, multiplicando]
+
+    Member:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        nome:
+          type: string
+        email:
+          type: string
+          format: email
+          nullable: true
+        telefone:
+          type: string
+          nullable: true
+        gc_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [ativo, inativo, transferido]
+        joined_at:
+          type: string
+          format: date-time
+
+    GCLeader:
+      type: object
+      properties:
+        gc_id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        role:
+          type: string
+          enum: [leader, co-leader]
+        added_at:
+          type: string
+          format: date-time
+        user:
+          $ref: '#/components/schemas/UserBasic'
+
+    GCSupervisor:
+      type: object
+      properties:
+        gc_id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        added_at:
+          type: string
+          format: date-time
+        user:
+          $ref: '#/components/schemas/UserBasic'
+
+    UserBasic:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        nome:
+          type: string
+        email:
+          type: string
+          format: email
+
+    Error:
+      type: object
+      properties:
+        message:
+          type: string
+        hint:
+          type: string
+        details:
+          type: string
+        code:
+          type: string
+
+  responses:
+    Unauthorized:
+      description: Não autenticado
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Forbidden:
+      description: Sem permissão (RLS bloqueou)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: Recurso não encontrado
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    BadRequest:
+      description: Dados inválidos
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

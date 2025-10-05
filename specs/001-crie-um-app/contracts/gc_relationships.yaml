@@ -1,0 +1,362 @@
+openapi: 3.0.0
+info:
+  title: GC Relationships API Contracts
+  version: 1.0.0
+  description: Contratos para gestão de líderes e supervisores de Grupos de Crescimento
+
+servers:
+  - url: https://{project}.supabase.co/rest/v1
+    variables:
+      project:
+        default: your-project
+
+security:
+  - bearerAuth: []
+
+paths:
+  /gc_leaders:
+    get:
+      summary: Listar relacionamentos de líderes
+      operationId: listGCLeaders
+      parameters:
+        - name: gc_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+          description: Filtrar por grupo específico
+        - name: user_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+          description: Filtrar por usuário específico
+        - name: select
+          in: query
+          schema:
+            type: string
+            default: "*,user:users(*),gc:growth_groups(nome)"
+      responses:
+        '200':
+          description: Lista de relacionamentos líder-GC
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/GCLeader'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      summary: Adicionar líder a um GC
+      operationId: addGCLeader
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GCLeaderCreate'
+      responses:
+        '201':
+          description: Líder adicionado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GCLeader'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          description: Líder já existe para este GC
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /gc_leaders/{gc_id}/{user_id}/{role}:
+    delete:
+      summary: Remover líder de um GC
+      operationId: removeGCLeader
+      parameters:
+        - name: gc_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: role
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [leader, co-leader]
+      responses:
+        '204':
+          description: Líder removido com sucesso
+        '400':
+          description: Não é possível remover o último líder
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /gc_supervisors:
+    get:
+      summary: Listar relacionamentos de supervisores
+      operationId: listGCSupervisors
+      parameters:
+        - name: gc_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+          description: Filtrar por grupo específico
+        - name: user_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+          description: Filtrar por usuário específico
+        - name: select
+          in: query
+          schema:
+            type: string
+            default: "*,user:users(*),gc:growth_groups(nome)"
+      responses:
+        '200':
+          description: Lista de relacionamentos supervisor-GC
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/GCSupervisor'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      summary: Adicionar supervisor a um GC
+      operationId: addGCSupervisor
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GCSupervisorCreate'
+      responses:
+        '201':
+          description: Supervisor adicionado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GCSupervisor'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          description: Supervisor já existe para este GC
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /gc_supervisors/{gc_id}/{user_id}:
+    delete:
+      summary: Remover supervisor de um GC
+      operationId: removeGCSupervisor
+      parameters:
+        - name: gc_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Supervisor removido com sucesso
+        '400':
+          description: Não é possível remover o último supervisor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+components:
+  schemas:
+    GCLeader:
+      type: object
+      required:
+        - gc_id
+        - user_id
+        - role
+      properties:
+        gc_id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        role:
+          type: string
+          enum: [leader, co-leader]
+          description: "leader = líder principal, co-leader = co-líder (ex: cônjuge)"
+        added_at:
+          type: string
+          format: date-time
+        added_by_user_id:
+          type: string
+          format: uuid
+          nullable: true
+        user:
+          $ref: '#/components/schemas/UserBasic'
+        gc:
+          $ref: '#/components/schemas/GrowthGroupBasic'
+
+    GCLeaderCreate:
+      type: object
+      required:
+        - gc_id
+        - user_id
+      properties:
+        gc_id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        role:
+          type: string
+          enum: [leader, co-leader]
+          default: leader
+
+    GCSupervisor:
+      type: object
+      required:
+        - gc_id
+        - user_id
+      properties:
+        gc_id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        added_at:
+          type: string
+          format: date-time
+        added_by_user_id:
+          type: string
+          format: uuid
+          nullable: true
+        user:
+          $ref: '#/components/schemas/UserBasic'
+        gc:
+          $ref: '#/components/schemas/GrowthGroupBasic'
+
+    GCSupervisorCreate:
+      type: object
+      required:
+        - gc_id
+        - user_id
+      properties:
+        gc_id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+
+    UserBasic:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        nome:
+          type: string
+        email:
+          type: string
+          format: email
+
+    GrowthGroupBasic:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        nome:
+          type: string
+        status:
+          type: string
+          enum: [ativo, inativo, multiplicando]
+
+    Error:
+      type: object
+      properties:
+        message:
+          type: string
+        hint:
+          type: string
+        details:
+          type: string
+        code:
+          type: string
+
+  responses:
+    Unauthorized:
+      description: Não autenticado
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Forbidden:
+      description: Sem permissão (RLS bloqueou)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: Recurso não encontrado
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    BadRequest:
+      description: Dados inválidos
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
