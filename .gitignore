@@ -2,8 +2,16 @@
 .claude
 .codex
 .gemini
-.github
+.github/prompts
 
 # env
 .env
 .envrc
+
+# OS-generated files
+.DS_Store
+Thumbs.db
+
+# Supabase
+supabase/.branches
+supabase/.temp

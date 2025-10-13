@@ -7,6 +7,7 @@
 ## Visão Geral
 
 Este modelo suporta:
+- **Entidade `people` (pessoas) normalizada**: Evita duplicação de dados pessoais (nome, email, telefone) entre users, members e visitors
 - Hierarquia organizacional expansível (N níveis via adjacency list + materialized path)
 - Gestão de GCs com membros e visitantes
 - Registro de reuniões com presença
@@ -15,7 +16,11 @@ Este modelo suporta:
 - Métricas agregadas para dashboards
 
 **Princípios de Design**:
-1. Normalização até 3NF (reduz redundância)
+1. **Normalização até 3NF** (reduz redundância):
+   - `people` (pessoas) = entidade base com dados pessoais
+   - `users` = autenticação + hierarquia (referencia `people`)
+   - `members` = membership em GC (referencia `people`)
+   - `visitors` = tracking de visitas (referencia `people`)
 2. Indexes em FKs e campos de busca frequente
 3. Row Level Security (RLS) em todas as tabelas
 4. Timestamps (created_at, updated_at) para auditoria
@@ -25,9 +30,90 @@ Este modelo suporta:
 
 ## Entidades Principais
 
-### 1. users (Usuários)
+### 1. people (Pessoas) - ENTIDADE BASE
 
-Representa todas as pessoas que acessam o sistema. Combina autenticação (via Supabase Auth) com hierarquia organizacional.
+Representa qualquer pessoa no sistema (visitante, membro, usuário do app). **Normaliza dados pessoais** para evitar duplicação.
+
+```sql
+CREATE TABLE people (
+  -- Identificação
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  name TEXT NOT NULL CHECK (char_length(name) > 0 AND char_length(name) <= 255),
+  email TEXT,
+  phone TEXT,
+  birth_date DATE,
+
+  -- Auditoria
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  deleted_at TIMESTAMPTZ,
+
+  -- Constraint: Pelo menos email OU telefone
+  CONSTRAINT person_has_contact CHECK (email IS NOT NULL OR phone IS NOT NULL)
+);
+
+-- Indexes
+CREATE INDEX idx_people_email ON people(email) WHERE email IS NOT NULL AND deleted_at IS NULL;
+CREATE INDEX idx_people_phone ON people(phone) WHERE phone IS NOT NULL AND deleted_at IS NULL;
+CREATE INDEX idx_people_name ON people USING GIN(to_tsvector('portuguese', name)) WHERE deleted_at IS NULL;
+
+-- Trigger
+CREATE TRIGGER update_people_updated_at
+BEFORE UPDATE ON people
+FOR EACH ROW EXECUTE FUNCTION update_timestamp();
+
+-- RLS Policies
+ALTER TABLE people ENABLE ROW LEVEL SECURITY;
+
+-- Líderes veem pessoas de seus GCs (members + visitors via meetings)
+CREATE POLICY "leaders_view_people_in_gc" ON people
+FOR SELECT USING (
+  id IN (
+    SELECT person_id FROM members WHERE gc_id IN (SELECT gc_id FROM gc_leaders WHERE user_id = auth.uid())
+  )
+  OR
+  id IN (
+    SELECT person_id FROM visitors WHERE id IN (
+      SELECT visitor_id FROM meeting_attendance WHERE meeting_id IN (
+        SELECT id FROM meetings WHERE gc_id IN (SELECT gc_id FROM gc_leaders WHERE user_id = auth.uid())
+      )
+    )
+  )
+);
+
+-- Supervisores veem pessoas de GCs supervisionados
+CREATE POLICY "supervisors_view_people" ON people
+FOR SELECT USING (
+  id IN (
+    SELECT person_id FROM members WHERE gc_id IN (SELECT gc_id FROM gc_supervisors WHERE user_id = auth.uid())
+  )
+  OR
+  id IN (
+    SELECT person_id FROM visitors WHERE id IN (
+      SELECT visitor_id FROM meeting_attendance WHERE meeting_id IN (
+        SELECT id FROM meetings WHERE gc_id IN (SELECT gc_id FROM gc_supervisors WHERE user_id = auth.uid())
+      )
+    )
+  )
+);
+
+-- Admins veem todos
+CREATE POLICY "admins_see_all_people" ON people
+FOR ALL USING (
+  EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND is_admin = TRUE)
+);
+```
+
+**Regras de Validação**:
+- `name` (nome): Não vazio, máximo 255 caracteres
+- `email` OU `phone` (telefone): Pelo menos um deve estar preenchido
+- `email`: Formato válido (validado por app)
+
+---
+
+### 2. users (Usuários do App)
+
+Representa pessoas que **acessam o sistema** (autenticação). Referencia `people` (pessoas) para dados pessoais. Inclui hierarquia organizacional.
 
 **IMPORTANTE**: Papéis (líder, supervisor, coordenador) **NÃO são exclusivos**. Um usuário pode ser simultaneamente:
 - Líder de um GC
@@ -38,10 +124,9 @@ Os papéis são **derivados de relacionamentos**, não armazenados como campo es
 
 ```sql
 CREATE TABLE users (
-  -- Identificação
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  email TEXT UNIQUE NOT NULL,
-  nome TEXT NOT NULL,
+  -- Identificação (sincronizado com Supabase Auth)
+  id UUID PRIMARY KEY, -- Mesmo ID do Supabase Auth
+  person_id UUID NOT NULL UNIQUE REFERENCES people(id) ON DELETE CASCADE,
 
   -- Hierarquia Organizacional (parent/child tree)
   hierarchy_parent_id UUID REFERENCES users(id) ON DELETE SET NULL,
@@ -58,10 +143,10 @@ CREATE TABLE users (
 );
 
 -- Indexes
+CREATE INDEX idx_users_person ON users(person_id);
 CREATE INDEX idx_users_parent ON users(hierarchy_parent_id) WHERE deleted_at IS NULL;
 CREATE INDEX idx_users_path ON users USING GIN(hierarchy_path gin_trgm_ops);
 CREATE INDEX idx_users_depth ON users(hierarchy_depth) WHERE deleted_at IS NULL;
-CREATE INDEX idx_users_email ON users(email) WHERE deleted_at IS NULL;
 
 -- Trigger para auto-atualizar hierarchy_path e hierarchy_depth
 CREATE OR REPLACE FUNCTION update_hierarchy_path() RETURNS TRIGGER AS $$
@@ -117,10 +202,10 @@ FOR ALL USING (
 ```
 
 **Regras de Validação**:
-- `email`: Formato válido (validado por Supabase Auth)
-- `nome`: Não vazio, máximo 255 caracteres
+- `person_id` (pessoa_id): Deve referenciar uma pessoa válida em `people` (pessoas)
 - `hierarchy_depth`: >= 0 (calculado automaticamente)
 - `is_admin`: Apenas admins podem setar is_admin=true em outros usuários (via RLS policy)
+- **Dados pessoais** (nome, email, telefone): Acessados via JOIN com `people` (pessoas)
 
 **Como Papéis são Determinados** (queries derivadas):
 
@@ -164,29 +249,29 @@ SELECT EXISTS (
 CREATE TABLE growth_groups (
   -- Identificação
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  nome TEXT NOT NULL,
+  name TEXT NOT NULL,
 
   -- Modalidade e Localização
-  modalidade TEXT NOT NULL CHECK (modalidade IN ('presencial', 'online')),
-  endereco TEXT, -- Obrigatório se presencial
-  dia_semana INT CHECK (dia_semana BETWEEN 0 AND 6), -- 0=domingo, 6=sábado
-  horario TIME,
+  mode TEXT NOT NULL CHECK (mode IN ('in_person', 'online')),
+  address TEXT, -- Obrigatório se presencial
+  weekday INT CHECK (weekday BETWEEN 0 AND 6), -- 0=domingo, 6=sábado
+  time TIME,
 
   -- Estado
-  status TEXT NOT NULL DEFAULT 'ativo' CHECK (status IN ('ativo', 'inativo', 'multiplicando')),
+  status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'inactive', 'multiplying')),
 
   -- Auditoria
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   deleted_at TIMESTAMPTZ,
 
-  CONSTRAINT endereco_se_presencial CHECK (
-    modalidade = 'online' OR (modalidade = 'presencial' AND endereco IS NOT NULL)
+  CONSTRAINT address_if_in_person CHECK (
+    mode = 'online' OR (mode = 'in_person' AND address IS NOT NULL)
   )
 );
 
 -- Indexes
-CREATE INDEX idx_gc_nome ON growth_groups(nome) WHERE deleted_at IS NULL;
+CREATE INDEX idx_gc_name ON growth_groups(name) WHERE deleted_at IS NULL;
 CREATE INDEX idx_gc_status ON growth_groups(status) WHERE deleted_at IS NULL;
 
 -- Triggers
@@ -198,25 +283,25 @@ FOR EACH ROW EXECUTE FUNCTION update_timestamp();
 ALTER TABLE growth_groups ENABLE ROW LEVEL SECURITY;
 
 -- Líderes veem GCs que lideram (via gc_leaders)
-CREATE POLICY "lideres_veem_proprios_gcs" ON growth_groups
+CREATE POLICY "leaders_view_own_gcs" ON growth_groups
 FOR SELECT USING (
   id IN (SELECT gc_id FROM gc_leaders WHERE user_id = auth.uid())
 );
 
 -- Líderes podem editar GCs que lideram
-CREATE POLICY "lideres_editam_proprios_gcs" ON growth_groups
+CREATE POLICY "leaders_edit_own_gcs" ON growth_groups
 FOR UPDATE USING (
   id IN (SELECT gc_id FROM gc_leaders WHERE user_id = auth.uid())
 );
 
 -- Supervisores veem GCs que supervisionam (via gc_supervisors)
-CREATE POLICY "supervisores_veem_gcs" ON growth_groups
+CREATE POLICY "supervisors_view_gcs" ON growth_groups
 FOR SELECT USING (
   id IN (SELECT gc_id FROM gc_supervisors WHERE user_id = auth.uid())
 );
 
 -- Supervisores veem GCs supervisionados por subordinados (via hierarchy)
-CREATE POLICY "supervisores_veem_subordinados_gcs" ON growth_groups
+CREATE POLICY "supervisors_view_subordinate_gcs" ON growth_groups
 FOR SELECT USING (
   id IN (
     SELECT gc_id FROM gc_supervisors
@@ -230,7 +315,7 @@ FOR SELECT USING (
 );
 
 -- Coordenadores podem criar GCs (atribuindo líderes/supervisores subordinados)
-CREATE POLICY "coordenadores_criam_gcs" ON growth_groups
+CREATE POLICY "coordinators_create_gcs" ON growth_groups
 FOR INSERT WITH CHECK (
   EXISTS (
     SELECT 1 FROM users
@@ -251,9 +336,9 @@ FOR ALL USING (
 ```
 
 **Regras de Validação**:
-- `nome`: Não vazio, máximo 255 caracteres
-- `modalidade`: 'presencial' ou 'online'
-- `endereco`: Obrigatório se modalidade='presencial'
+- `name` (nome): Não vazio, máximo 255 caracteres
+- `mode` (modalidade): 'in_person' (presencial) ou 'online'
+- `address` (endereco): Obrigatório se mode='in_person' (presencial)
 - **Líderes**: Definidos em `gc_leaders` (mínimo 1 líder obrigatório - validado via constraint)
 - **Supervisores**: Definidos em `gc_supervisors` (mínimo 1 supervisor obrigatório - validado via constraint)
 
@@ -270,7 +355,7 @@ CREATE TABLE gc_leaders (
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
 
   -- Tipo de liderança
-  role TEXT NOT NULL DEFAULT 'leader' CHECK (role IN ('leader', 'co-leader')),
+  role TEXT NOT NULL DEFAULT 'leader' CHECK (role IN ('leader', 'co_leader')),
 
   -- Auditoria
   added_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -341,9 +426,9 @@ FOR ALL USING (
 
 **Regras de Negócio**:
 - Um GC **deve** ter pelo menos 1 líder (enforced por trigger)
-- Um usuário pode ser `leader` e `co-leader` do mesmo GC (ex: casal)
+- Um usuário pode ser `leader` e `co_leader` do mesmo GC (ex: casal)
 - `role = 'leader'`: Líder principal (primeiro a ser adicionado, ou mais experiente)
-- `role = 'co-leader'`: Co-líder (normalmente cônjuge ou líder em treinamento)
+- `role = 'co_leader'`: Co-líder (normalmente cônjuge ou líder em treinamento)
 
 ---
 
@@ -430,21 +515,21 @@ FOR ALL USING (
 
 ---
 
-### 3. members (Membros)
+### 3. members (Membros de GC)
+
+Representa **pessoas que são membros ativos** de um GC específico. Referencia `people` (pessoas) para dados pessoais.
 
 ```sql
 CREATE TABLE members (
   -- Identificação
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  nome TEXT NOT NULL,
-  email TEXT,
-  telefone TEXT,
+  person_id UUID NOT NULL REFERENCES people(id) ON DELETE CASCADE,
 
   -- Relacionamento com GC
   gc_id UUID NOT NULL REFERENCES growth_groups(id) ON DELETE CASCADE,
 
   -- Estado
-  status TEXT NOT NULL DEFAULT 'ativo' CHECK (status IN ('ativo', 'inativo', 'transferido')),
+  status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'inactive', 'transferred')),
   joined_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
   -- Origem (se convertido de visitante)
@@ -453,13 +538,15 @@ CREATE TABLE members (
   -- Auditoria
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  deleted_at TIMESTAMPTZ
+  deleted_at TIMESTAMPTZ,
+
+  -- Constraint: Uma pessoa não pode ser membro ativo de 2 GCs simultaneamente
+  UNIQUE(person_id, gc_id)
 );
 
 -- Indexes
-CREATE INDEX idx_members_gc ON members(gc_id) WHERE deleted_at IS NULL AND status = 'ativo';
-CREATE INDEX idx_members_email ON members(email) WHERE email IS NOT NULL;
-CREATE INDEX idx_members_telefone ON members(telefone) WHERE telefone IS NOT NULL;
+CREATE INDEX idx_members_person ON members(person_id);
+CREATE INDEX idx_members_gc ON members(gc_id) WHERE deleted_at IS NULL AND status = 'active';
 
 -- Triggers
 CREATE TRIGGER update_members_updated_at
@@ -469,18 +556,20 @@ FOR EACH ROW EXECUTE FUNCTION update_timestamp();
 -- RLS Policies
 ALTER TABLE members ENABLE ROW LEVEL SECURITY;
 
--- Líderes veem membros de seus GCs
-CREATE POLICY "lideres_veem_membros_gc" ON members
+-- Líderes veem e gerenciam membros de seus GCs
+CREATE POLICY "leaders_manage_gc_members" ON members
 FOR ALL USING (
-  gc_id IN (SELECT id FROM growth_groups WHERE lider_id = auth.uid())
+  gc_id IN (SELECT gc_id FROM gc_leaders WHERE user_id = auth.uid())
 );
 
--- Supervisores veem membros de GCs subordinados
-CREATE POLICY "supervisores_veem_membros" ON members
+-- Supervisores veem membros de GCs que supervisionam
+CREATE POLICY "supervisors_view_members" ON members
 FOR SELECT USING (
+  gc_id IN (SELECT gc_id FROM gc_supervisors WHERE user_id = auth.uid())
+  OR
   gc_id IN (
-    SELECT gc.id FROM growth_groups gc
-    WHERE gc.supervisor_id IN (
+    SELECT gc_id FROM gc_supervisors
+    WHERE user_id IN (
       SELECT id FROM users
       WHERE hierarchy_path LIKE (
         SELECT hierarchy_path || '%' FROM users WHERE id = auth.uid()
@@ -488,24 +577,31 @@ FOR SELECT USING (
     )
   )
 );
+
+-- Admins gerenciam todos
+CREATE POLICY "admins_manage_members" ON members
+FOR ALL USING (
+  EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND is_admin = TRUE)
+);
 ```
 
 **Regras de Validação**:
-- `nome`: Não vazio, máximo 255 caracteres
-- `email` OU `telefone`: Pelo menos um deve estar preenchido
-- `status`: 'ativo', 'inativo', 'transferido'
+- `person_id` (pessoa_id): Deve referenciar uma pessoa válida em `people` (pessoas)
+- `status`: 'active' (ativo), 'inactive' (inativo), 'transferred' (transferido)
+- **Dados pessoais** (nome, email, telefone): Acessados via JOIN com `people` (pessoas)
+- **Constraint UNIQUE**: Uma pessoa não pode ser membro ativo de múltiplos GCs (mas pode ser transferida)
 
 ---
 
 ### 4. visitors (Visitantes)
 
+Representa **pessoas que visitaram reuniões** mas ainda não são membros. Referencia `people` (pessoas) para dados pessoais.
+
 ```sql
 CREATE TABLE visitors (
   -- Identificação
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  nome TEXT NOT NULL,
-  email TEXT,
-  telefone TEXT,
+  person_id UUID NOT NULL UNIQUE REFERENCES people(id) ON DELETE CASCADE,
 
   -- Tracking de Visitas
   visit_count INT NOT NULL DEFAULT 0,
@@ -523,8 +619,7 @@ CREATE TABLE visitors (
 );
 
 -- Indexes
-CREATE INDEX idx_visitors_email ON visitors(email) WHERE email IS NOT NULL;
-CREATE INDEX idx_visitors_telefone ON visitors(telefone) WHERE telefone IS NOT NULL;
+CREATE INDEX idx_visitors_person ON visitors(person_id);
 CREATE INDEX idx_visitors_not_converted ON visitors(visit_count) WHERE converted_to_member_at IS NULL;
 
 -- Triggers
@@ -535,22 +630,38 @@ FOR EACH ROW EXECUTE FUNCTION update_timestamp();
 -- RLS Policies
 ALTER TABLE visitors ENABLE ROW LEVEL SECURITY;
 
--- Líderes veem visitantes que foram às suas reuniões
-CREATE POLICY "lideres_veem_visitantes_suas_reunioes" ON visitors
+-- Líderes veem e gerenciam visitantes que foram às suas reuniões
+CREATE POLICY "leaders_manage_visitors_in_meetings" ON visitors
 FOR ALL USING (
   id IN (
     SELECT ma.visitor_id FROM meeting_attendance ma
     JOIN meetings m ON m.id = ma.meeting_id
-    JOIN growth_groups gc ON gc.id = m.gc_id
-    WHERE gc.lider_id = auth.uid()
+    WHERE m.gc_id IN (SELECT gc_id FROM gc_leaders WHERE user_id = auth.uid())
   )
+);
+
+-- Supervisores veem visitantes de reuniões de GCs supervisionados
+CREATE POLICY "supervisors_view_visitors" ON visitors
+FOR SELECT USING (
+  id IN (
+    SELECT ma.visitor_id FROM meeting_attendance ma
+    JOIN meetings m ON m.id = ma.meeting_id
+    WHERE m.gc_id IN (SELECT gc_id FROM gc_supervisors WHERE user_id = auth.uid())
+  )
+);
+
+-- Admins gerenciam todos
+CREATE POLICY "admins_manage_visitors" ON visitors
+FOR ALL USING (
+  EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND is_admin = TRUE)
 );
 ```
 
 **Regras de Validação**:
-- `nome`: Não vazio, máximo 255 caracteres
+- `person_id` (pessoa_id): Deve referenciar uma pessoa válida em `people` (pessoas) (UNIQUE: uma pessoa só pode ser visitor uma vez)
 - `visit_count`: >= 0
 - `converted_to_member_at`: Se preenchido, `converted_by_user_id` também deve estar
+- **Dados pessoais** (nome, email, telefone): Acessados via JOIN com `people` (pessoas)
 
 ---
 
@@ -563,14 +674,14 @@ CREATE TABLE meetings (
 
   -- Relacionamento
   gc_id UUID NOT NULL REFERENCES growth_groups(id) ON DELETE CASCADE,
-  licao_id UUID REFERENCES lessons(id) ON DELETE SET NULL,
+  lesson_id UUID REFERENCES lessons(id) ON DELETE SET NULL,
 
   -- Dados da Reunião
-  data_hora TIMESTAMPTZ NOT NULL,
-  observacoes TEXT,
+  datetime TIMESTAMPTZ NOT NULL,
+  notes TEXT,
 
   -- Registro
-  registrado_por_user_id UUID NOT NULL REFERENCES users(id),
+  registered_by_user_id UUID NOT NULL REFERENCES users(id),
 
   -- Auditoria
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -580,8 +691,8 @@ CREATE TABLE meetings (
 
 -- Indexes
 CREATE INDEX idx_meetings_gc ON meetings(gc_id) WHERE deleted_at IS NULL;
-CREATE INDEX idx_meetings_data ON meetings(data_hora DESC) WHERE deleted_at IS NULL;
-CREATE INDEX idx_meetings_licao ON meetings(licao_id) WHERE licao_id IS NOT NULL;
+CREATE INDEX idx_meetings_datetime ON meetings(datetime DESC) WHERE deleted_at IS NULL;
+CREATE INDEX idx_meetings_lesson ON meetings(lesson_id) WHERE lesson_id IS NOT NULL;
 
 -- Triggers
 CREATE TRIGGER update_meetings_updated_at
@@ -592,17 +703,19 @@ FOR EACH ROW EXECUTE FUNCTION update_timestamp();
 ALTER TABLE meetings ENABLE ROW LEVEL SECURITY;
 
 -- Líderes veem reuniões de seus GCs
-CREATE POLICY "lideres_veem_reunioes_gc" ON meetings
+CREATE POLICY "leaders_view_gc_meetings" ON meetings
 FOR ALL USING (
-  gc_id IN (SELECT id FROM growth_groups WHERE lider_id = auth.uid())
+  gc_id IN (SELECT gc_id FROM gc_leaders WHERE user_id = auth.uid())
 );
 
 -- Supervisores veem reuniões de GCs subordinados
-CREATE POLICY "supervisores_veem_reunioes" ON meetings
+CREATE POLICY "supervisors_view_meetings" ON meetings
 FOR SELECT USING (
+  gc_id IN (SELECT gc_id FROM gc_supervisors WHERE user_id = auth.uid())
+  OR
   gc_id IN (
-    SELECT gc.id FROM growth_groups gc
-    WHERE gc.supervisor_id IN (
+    SELECT gc_id FROM gc_supervisors
+    WHERE user_id IN (
       SELECT id FROM users
       WHERE hierarchy_path LIKE (
         SELECT hierarchy_path || '%' FROM users WHERE id = auth.uid()
@@ -610,11 +723,17 @@ FOR SELECT USING (
     )
   )
 );
+
+-- Admins gerenciam todos
+CREATE POLICY "admins_manage_meetings" ON meetings
+FOR ALL USING (
+  EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND is_admin = TRUE)
+);
 ```
 
 **Regras de Validação**:
-- `data_hora`: Não pode ser futuro (> NOW())
-- `registrado_por_user_id`: Deve ser líder ou superior do GC
+- `datetime` (data_hora): Não pode ser futuro (> NOW())
+- `registered_by_user_id` (registrado_por_user_id): Deve ser líder ou superior do GC
 
 ---
 
@@ -685,7 +804,11 @@ BEGIN
 
       UPDATE visitors
       SET converted_to_member_at = NOW(),
-          converted_by_user_id = (SELECT lider_id FROM growth_groups WHERE id = gc_id_var)
+          converted_by_user_id = (
+            SELECT user_id FROM gc_leaders
+            WHERE gc_id = gc_id_var AND role = 'leader'
+            LIMIT 1
+          )
       WHERE id = NEW.visitor_id
         AND converted_to_member_at IS NULL; -- Apenas se ainda não convertido
 
@@ -706,13 +829,27 @@ FOR EACH ROW EXECUTE FUNCTION auto_convert_visitor();
 ALTER TABLE meeting_attendance ENABLE ROW LEVEL SECURITY;
 
 -- Líderes gerenciam presenças de suas reuniões
-CREATE POLICY "lideres_gerenciam_presencas" ON meeting_attendance
+CREATE POLICY "leaders_manage_attendance" ON meeting_attendance
 FOR ALL USING (
   meeting_id IN (
     SELECT m.id FROM meetings m
-    JOIN growth_groups gc ON gc.id = m.gc_id
-    WHERE gc.lider_id = auth.uid()
+    WHERE m.gc_id IN (SELECT gc_id FROM gc_leaders WHERE user_id = auth.uid())
   )
+);
+
+-- Supervisores veem presenças de GCs supervisionados
+CREATE POLICY "supervisors_view_attendance" ON meeting_attendance
+FOR SELECT USING (
+  meeting_id IN (
+    SELECT m.id FROM meetings m
+    WHERE m.gc_id IN (SELECT gc_id FROM gc_supervisors WHERE user_id = auth.uid())
+  )
+);
+
+-- Admins gerenciam todos
+CREATE POLICY "admins_manage_attendance" ON meeting_attendance
+FOR ALL USING (
+  EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND is_admin = TRUE)
 );
 ```
 
@@ -723,11 +860,11 @@ FOR ALL USING (
 ```sql
 CREATE TABLE lesson_series (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  nome TEXT NOT NULL UNIQUE,
-  descricao TEXT,
+  name TEXT NOT NULL UNIQUE,
+  description TEXT,
 
   -- Quem criou (deve ser admin)
-  criado_por_user_id UUID NOT NULL REFERENCES users(id),
+  created_by_user_id UUID NOT NULL REFERENCES users(id),
 
   -- Auditoria
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -736,7 +873,7 @@ CREATE TABLE lesson_series (
 );
 
 -- Indexes
-CREATE INDEX idx_series_nome ON lesson_series(nome) WHERE deleted_at IS NULL;
+CREATE INDEX idx_series_name ON lesson_series(name) WHERE deleted_at IS NULL;
 
 -- Triggers
 CREATE TRIGGER update_lesson_series_updated_at
@@ -766,17 +903,17 @@ CREATE TABLE lessons (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
 
   -- Dados da Lição
-  titulo TEXT NOT NULL,
-  descricao TEXT,
-  referencias_biblicas TEXT,
+  title TEXT NOT NULL,
+  description TEXT,
+  bible_references TEXT,
   link TEXT, -- Link para material externo (PDF, vídeo, etc.)
 
   -- Relacionamento com Série
-  serie_id UUID REFERENCES lesson_series(id) ON DELETE CASCADE,
-  ordem_na_serie INT, -- Ordem dentro da série (nullable se lição avulsa)
+  series_id UUID REFERENCES lesson_series(id) ON DELETE CASCADE,
+  order_in_series INT, -- Ordem dentro da série (nullable se lição avulsa)
 
   -- Quem criou
-  criado_por_user_id UUID NOT NULL REFERENCES users(id),
+  created_by_user_id UUID NOT NULL REFERENCES users(id),
 
   -- Auditoria
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -784,19 +921,19 @@ CREATE TABLE lessons (
   deleted_at TIMESTAMPTZ,
 
   -- Constraint: Se tem série, deve ter ordem
-  CONSTRAINT serie_requer_ordem CHECK (
-    (serie_id IS NULL AND ordem_na_serie IS NULL)
+  CONSTRAINT series_requires_order CHECK (
+    (series_id IS NULL AND order_in_series IS NULL)
     OR
-    (serie_id IS NOT NULL AND ordem_na_serie IS NOT NULL)
+    (series_id IS NOT NULL AND order_in_series IS NOT NULL)
   ),
 
   -- Constraint: Ordem única dentro da série
-  UNIQUE(serie_id, ordem_na_serie)
+  UNIQUE(series_id, order_in_series)
 );
 
 -- Indexes
-CREATE INDEX idx_lessons_serie ON lessons(serie_id, ordem_na_serie) WHERE deleted_at IS NULL;
-CREATE INDEX idx_lessons_titulo ON lessons(titulo) WHERE deleted_at IS NULL;
+CREATE INDEX idx_lessons_series ON lessons(series_id, order_in_series) WHERE deleted_at IS NULL;
+CREATE INDEX idx_lessons_title ON lessons(title) WHERE deleted_at IS NULL;
 
 -- Triggers
 CREATE TRIGGER update_lessons_updated_at
@@ -852,42 +989,40 @@ FOR ALL USING (
 
 ## Views para Dashboards
 
-### dashboard_metricas
+### dashboard_metrics (dashboard_metricas)
 
 ```sql
-CREATE OR REPLACE VIEW dashboard_metricas AS
+CREATE OR REPLACE VIEW dashboard_metrics AS
 WITH gc_stats AS (
   SELECT
     gc.id as gc_id,
-    gc.nome as gc_nome,
-    gc.lider_id,
-    gc.supervisor_id,
+    gc.name as gc_name,
 
     -- Total de reuniões no mês atual
-    COUNT(DISTINCT m.id) FILTER (WHERE m.data_hora >= DATE_TRUNC('month', NOW())) as reunioes_mes_atual,
+    COUNT(DISTINCT m.id) FILTER (WHERE m.datetime >= DATE_TRUNC('month', NOW())) as meetings_current_month,
 
     -- Média de presença
-    AVG(attendance_count.count) FILTER (WHERE m.data_hora >= NOW() - INTERVAL '30 days') as media_presenca_30d,
+    AVG(attendance_count.count) FILTER (WHERE m.datetime >= NOW() - INTERVAL '30 days') as avg_attendance_30d,
 
     -- Total de membros ativos
-    (SELECT COUNT(*) FROM members WHERE gc_id = gc.id AND status = 'ativo') as total_membros_ativos,
+    (SELECT COUNT(*) FROM members WHERE gc_id = gc.id AND status = 'active') as total_active_members,
 
     -- Crescimento de membros (últimos 30 dias)
     (SELECT COUNT(*) FROM members
      WHERE gc_id = gc.id
-       AND joined_at >= NOW() - INTERVAL '30 days') as novos_membros_30d,
+       AND joined_at >= NOW() - INTERVAL '30 days') as new_members_30d,
 
     -- Conversões de visitantes (últimos 30 dias)
     (SELECT COUNT(*) FROM visitors v
      WHERE v.converted_to_member_id IN (SELECT id FROM members WHERE gc_id = gc.id)
-       AND v.converted_to_member_at >= NOW() - INTERVAL '30 days') as conversoes_30d,
+       AND v.converted_to_member_at >= NOW() - INTERVAL '30 days') as conversions_30d,
 
     -- Taxa de conversão (visitantes únicos vs conversões)
     (SELECT COUNT(DISTINCT v.id) FROM visitors v
      JOIN meeting_attendance ma ON ma.visitor_id = v.id
      JOIN meetings m2 ON m2.id = ma.meeting_id
      WHERE m2.gc_id = gc.id
-       AND ma.created_at >= NOW() - INTERVAL '30 days') as visitantes_unicos_30d
+       AND ma.created_at >= NOW() - INTERVAL '30 days') as unique_visitors_30d
 
   FROM growth_groups gc
   LEFT JOIN meetings m ON m.gc_id = gc.id
@@ -901,19 +1036,17 @@ WITH gc_stats AS (
 )
 SELECT
   gc_id,
-  gc_nome,
-  lider_id,
-  supervisor_id,
-  reunioes_mes_atual,
-  ROUND(media_presenca_30d, 1) as frequencia_media,
-  total_membros_ativos,
-  novos_membros_30d as crescimento_30d,
-  conversoes_30d,
-  visitantes_unicos_30d,
+  gc_name,
+  meetings_current_month,
+  ROUND(avg_attendance_30d, 1) as average_attendance,
+  total_active_members,
+  new_members_30d as growth_30d,
+  conversions_30d,
+  unique_visitors_30d,
   CASE
-    WHEN visitantes_unicos_30d > 0 THEN ROUND((conversoes_30d::DECIMAL / visitantes_unicos_30d) * 100, 1)
+    WHEN unique_visitors_30d > 0 THEN ROUND((conversions_30d::DECIMAL / unique_visitors_30d) * 100, 1)
     ELSE 0
-  END as taxa_conversao_pct
+  END as conversion_rate_pct
 FROM gc_stats;
 
 -- RLS na view herda das tabelas base
@@ -938,8 +1071,14 @@ $$ LANGUAGE plpgsql;
 ## Diagrama Relacional (Simplified)
 
 ```
-users (hierarchy tree)
-  ↓ 1:N
+people (pessoas - entidade base - dados pessoais)
+  ↓ 1:1           ↓ 1:1           ↓ 1:1
+users          members         visitors
+(auth +         (GC             (tracking de
+hierarquia)     membership)     visitas)
+  ↓ N:M (gc_leaders)
+  ↓ N:M (gc_supervisors)
+      ↓
 growth_groups
   ↓ 1:N         ↓ 1:N
 members      meetings
@@ -959,17 +1098,19 @@ meetings
 
 ## Migrações Supabase (Ordem de Criação)
 
-1. Extensões e funções base
-2. `users` (base da hierarquia)
-3. `config`
-4. `growth_groups`
-5. `members`
-6. `visitors`
-7. `lesson_series`
-8. `lessons`
-9. `meetings`
-10. `meeting_attendance` (com triggers de conversão)
-11. Views (`dashboard_metricas`)
+1. Extensões e funções base (`uuid-ossp`, `pg_trgm`, `update_timestamp()`)
+2. **`people`** (pessoas - entidade base - dados pessoais)
+3. `users` (referencia `people`, hierarquia organizacional)
+4. `config`
+5. `growth_groups`
+6. `gc_leaders` e `gc_supervisors` (many-to-many com `growth_groups`)
+7. `members` (referencia `people` e `growth_groups`)
+8. `visitors` (referencia `people`)
+9. `lesson_series`
+10. `lessons`
+11. `meetings`
+12. `meeting_attendance` (com triggers de conversão de visitors)
+13. Views (`dashboard_metrics`)
 
 ---
 
@@ -977,12 +1118,17 @@ meetings
 
 | Tabela | Constraint Chave | Propósito |
 |--------|------------------|-----------|
-| users | hierarchy_path auto-gerado | Queries eficientes de subárvore |
-| growth_groups | endereco_se_presencial | Garantir endereço se modalidade presencial |
-| members | email OU telefone | Pelo menos um contato obrigatório |
-| meeting_attendance | attendance_xor | Presença é de membro OU visitante, nunca ambos |
-| lessons | serie_requer_ordem | Lições em série devem ter ordem |
-| visitors | auto_convert trigger | Conversão automática após N visitas |
+| **people** (pessoas) | `person_has_contact` | Email OU telefone obrigatório (pelo menos um) |
+| users | `person_id UNIQUE` | Um usuário = uma pessoa (1:1) |
+| users | `hierarchy_path` auto-gerado | Queries eficientes de subárvore hierárquica |
+| growth_groups | `address_if_in_person` | Garantir endereço se mode=in_person (presencial) |
+| gc_leaders | `ensure_gc_has_leader` trigger | GC deve ter pelo menos 1 líder |
+| gc_supervisors | `ensure_gc_has_supervisor` trigger | GC deve ter pelo menos 1 supervisor |
+| members | `person_id, gc_id UNIQUE` | Pessoa não pode ser membro de 2 GCs simultaneamente |
+| visitors | `person_id UNIQUE` | Pessoa só pode ser visitor uma vez (depois vira member) |
+| meeting_attendance | `attendance_xor` | Presença é de membro OU visitante, nunca ambos |
+| lessons | `series_requires_order` | Lições em série devem ter ordem |
+| visitors | `auto_convert_visitor()` trigger | Conversão automática após N visitas |
 
 ---
 
@@ -1008,15 +1154,14 @@ João = {
 ### Como Papéis são Determinados
 
 #### 1. **Líder** (is_leader)
-Usuário que aparece como `lider_id` em pelo menos 1 GC ativo.
+Usuário que aparece em `gc_leaders` para pelo menos 1 GC ativo.
 
 ```sql
 -- Flutter: Verificar se user é líder
 final isLeader = await supabase
-  .from('growth_groups')
-  .select('id')
-  .eq('lider_id', userId)
-  .eq('status', 'ativo')
+  .from('gc_leaders')
+  .select('gc_id')
+  .eq('user_id', userId)
   .limit(1)
   .maybeSingle();
 
@@ -1024,15 +1169,14 @@ final isLeader = await supabase
 ```
 
 #### 2. **Supervisor** (is_supervisor)
-Usuário que aparece como `supervisor_id` em pelo menos 1 GC ativo.
+Usuário que aparece em `gc_supervisors` para pelo menos 1 GC ativo.
 
 ```sql
 -- Flutter: Verificar se user é supervisor
 final isSupervisor = await supabase
-  .from('growth_groups')
-  .select('id')
-  .eq('supervisor_id', userId)
-  .eq('status', 'ativo')
+  .from('gc_supervisors')
+  .select('gc_id')
+  .eq('user_id', userId)
   .limit(1)
   .maybeSingle();
 ```
@@ -1062,14 +1206,20 @@ Hierarquia:
     ├─ Maria (líder do GC Paz)
     └─ Pedro (líder do GC Luz)
 
-GCs:
-  - GC Esperança: lider_id=João, supervisor_id=Coordenador X
-  - GC Fé: lider_id=Maria, supervisor_id=João
-  - GC Amor: lider_id=Pedro, supervisor_id=João
+GCs + Relacionamentos:
+  - GC Esperança:
+      gc_leaders: João (leader)
+      gc_supervisors: Coordenador X
+  - GC Fé:
+      gc_leaders: Maria (leader)
+      gc_supervisors: João
+  - GC Amor:
+      gc_leaders: Pedro (leader)
+      gc_supervisors: João
 
 Papéis de João:
-  ✅ is_leader: true (lidera "GC Esperança")
-  ✅ is_supervisor: true (supervisiona "GC Fé" e "GC Amor")
+  ✅ is_leader: true (lidera "GC Esperança" via gc_leaders)
+  ✅ is_supervisor: true (supervisiona "GC Fé" e "GC Amor" via gc_supervisors)
   ✅ is_coordinator: true (tem Maria e Pedro como subordinados)
 ```
 
@@ -1086,12 +1236,14 @@ Hierarquia:
   João
     └─ Maria
 
-GCs:
-  - GC Paz: lider_id=Maria, supervisor_id=João
+GCs + Relacionamentos:
+  - GC Paz:
+      gc_leaders: Maria (leader)
+      gc_supervisors: João
 
 Papéis de Maria:
-  ✅ is_leader: true
-  ❌ is_supervisor: false (não supervisiona nenhum GC)
+  ✅ is_leader: true (lidera "GC Paz" via gc_leaders)
+  ❌ is_supervisor: false (não supervisiona nenhum GC via gc_supervisors)
   ❌ is_coordinator: false (não tem subordinados)
 ```
 
@@ -1105,24 +1257,27 @@ Papéis de Maria:
 #### Growth Groups - Quem Vê O Quê?
 
 ```sql
--- Líder vê seus próprios GCs
-WHERE lider_id = auth.uid()
+-- Líder vê GCs que lidera (via gc_leaders)
+WHERE id IN (SELECT gc_id FROM gc_leaders WHERE user_id = auth.uid())
 
--- Supervisor vê GCs que supervisiona diretamente
-WHERE supervisor_id = auth.uid()
+-- Supervisor vê GCs que supervisiona (via gc_supervisors)
+WHERE id IN (SELECT gc_id FROM gc_supervisors WHERE user_id = auth.uid())
 
--- Coordenador vê GCs de subordinados (via hierarchy_path)
-WHERE supervisor_id IN (
-  SELECT id FROM users
-  WHERE hierarchy_path LIKE (
-    SELECT hierarchy_path || '%' FROM users WHERE id = auth.uid()
+-- Coordenador vê GCs de subordinados (via hierarchy_path + gc_supervisors)
+WHERE id IN (
+  SELECT gc_id FROM gc_supervisors
+  WHERE user_id IN (
+    SELECT id FROM users
+    WHERE hierarchy_path LIKE (
+      SELECT hierarchy_path || '%' FROM users WHERE id = auth.uid()
+    )
   )
 )
 ```
 
 **Exemplo com João**:
-- João vê "GC Esperança" via policy 1 (líder)
-- João vê "GC Fé" e "GC Amor" via policy 2 (supervisor)
+- João vê "GC Esperança" via policy 1 (líder via gc_leaders)
+- João vê "GC Fé" e "GC Amor" via policy 2 (supervisor via gc_supervisors)
 - Se Maria tivesse GCs como supervisora, João também veria via policy 3 (coordenador → subordinados)
 
 ### View Helper: user_roles
@@ -1133,41 +1288,46 @@ Para facilitar queries no app, pode-se criar uma view:
 CREATE VIEW user_roles AS
 SELECT
   u.id as user_id,
-  u.nome,
-  u.email,
+  p.name,
+  p.email,
   u.is_admin,
 
-  -- Papel: Líder
+  -- Papel: Líder (via gc_leaders)
   EXISTS (
-    SELECT 1 FROM growth_groups gc
-    WHERE gc.lider_id = u.id AND gc.deleted_at IS NULL
+    SELECT 1 FROM gc_leaders gl
+    JOIN growth_groups gc ON gc.id = gl.gc_id
+    WHERE gl.user_id = u.id AND gc.deleted_at IS NULL
   ) AS is_leader,
 
-  -- Papel: Supervisor
+  -- Papel: Supervisor (via gc_supervisors)
   EXISTS (
-    SELECT 1 FROM growth_groups gc
-    WHERE gc.supervisor_id = u.id AND gc.deleted_at IS NULL
+    SELECT 1 FROM gc_supervisors gs
+    JOIN growth_groups gc ON gc.id = gs.gc_id
+    WHERE gs.user_id = u.id AND gc.deleted_at IS NULL
   ) AS is_supervisor,
 
-  -- Papel: Coordenador
+  -- Papel: Coordenador (tem subordinados na hierarquia)
   EXISTS (
     SELECT 1 FROM users u2
     WHERE u2.hierarchy_parent_id = u.id AND u2.deleted_at IS NULL
   ) AS is_coordinator,
 
   -- Count de GCs liderados
-  (SELECT COUNT(*) FROM growth_groups gc
-   WHERE gc.lider_id = u.id AND gc.deleted_at IS NULL) AS total_gcs_liderados,
+  (SELECT COUNT(DISTINCT gl.gc_id) FROM gc_leaders gl
+   JOIN growth_groups gc ON gc.id = gl.gc_id
+   WHERE gl.user_id = u.id AND gc.deleted_at IS NULL) AS total_gcs_led,
 
   -- Count de GCs supervisionados
-  (SELECT COUNT(*) FROM growth_groups gc
-   WHERE gc.supervisor_id = u.id AND gc.deleted_at IS NULL) AS total_gcs_supervisionados,
+  (SELECT COUNT(DISTINCT gs.gc_id) FROM gc_supervisors gs
+   JOIN growth_groups gc ON gc.id = gs.gc_id
+   WHERE gs.user_id = u.id AND gc.deleted_at IS NULL) AS total_gcs_supervised,
 
   -- Count de subordinados
   (SELECT COUNT(*) FROM users u2
-   WHERE u2.hierarchy_parent_id = u.id AND u2.deleted_at IS NULL) AS total_subordinados
+   WHERE u2.hierarchy_parent_id = u.id AND u2.deleted_at IS NULL) AS total_subordinates
 
 FROM users u
+JOIN people p ON p.id = u.person_id
 WHERE u.deleted_at IS NULL;
 ```
 

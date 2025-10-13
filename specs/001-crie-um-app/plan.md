@@ -1,8 +1,8 @@
 
-# Plano de Implementação: App de Gestão de Grupos de Crescimento
+# Implementation Plan: App de Gestão de Grupos de Crescimento
 
-**Branch**: `001-crie-um-app` | **Data**: 2025-10-04 | **Spec**: [spec.md](./spec.md)
-**Input**: Especificação de funcionalidade em `/specs/001-crie-um-app/spec.md`
+**Branch**: `001-crie-um-app` | **Date**: 2025-10-04 | **Spec**: [spec.md](./spec.md)
+**Input**: Feature specification from `/specs/001-crie-um-app/spec.md`
 **Language**: Brazilian Portuguese (pt-BR) - per Constitution Principle VI
 
 ## Execution Flow (/plan command scope)
@@ -27,261 +27,330 @@
 9. STOP - Ready for /tasks command
 ```
 
-**IMPORTANT**: The /plan command STOPS at step 8. Phases 2-4 are executed by other commands:
+**IMPORTANT**: The /plan command STOPS at step 7. Phases 2-4 are executed by other commands:
 - Phase 2: /tasks command creates tasks.md
 - Phase 3-4: Implementation execution (manual or via tools)
 
-## Resumo
-App móvel multiplataforma (iOS/Android) para gestão de Grupos de Crescimento (células) de igreja. Permite líderes registrarem reuniões com presença e lições, supervisores visualizarem redes de GCs com métricas (frequência, crescimento, conversão de visitantes), e suporte a hierarquia organizacional expansível com N níveis. Inclui catálogo de lições gerenciado por perfil administrativo independente.
+## Summary
+Sistema mobile para gestão de Grupos de Crescimento (células) de igrejas, permitindo que líderes registrem reuniões e gerenciem membros, supervisores acompanhem múltiplos GCs, e coordenadores tenham visão hierárquica expansível da rede. Inclui autenticação, controle de permissões por nível hierárquico, catálogo de lições padrão, conversão automática de visitantes para membros, e dashboards com métricas de frequência, crescimento e conversão.
 
-## Contexto Técnico
+## Technical Context
 **Language/Version**: Dart 3.x+ com Flutter 3.x+
 **Primary Dependencies**: Flutter SDK, Supabase Flutter SDK, Provider/Riverpod (state management)
-**Storage**: Supabase (PostgreSQL managed) com Row Level Security (RLS)
+**Storage**: PostgreSQL via Supabase (gerenciado) com Row Level Security (RLS)
 **Testing**: Flutter test framework, integration_test, mockito para unit tests
-**Target Platform**: Mobile (iOS 13+, Android API 21+)
-**Project Type**: mobile (Flutter app + Supabase backend)
-**Performance Goals**: <500ms para carregamento de listas, <200ms para ações locais, 60fps UI
-**Constraints**: Suporte offline-first para registro de reuniões, sincronização automática quando online, <100MB storage local inicial
-**Scale/Scope**: ~20 telas principais, suporte inicial para 1000 usuários/5000 membros, hierarquia com até 10 níveis
+**Target Platform**: iOS 15+ e Android 8.0+ (mobile multiplataforma)
+**Project Type**: mobile - app Flutter + backend Supabase
+**Performance Goals**: Sincronização offline-first com sync em background, <500ms para operações CRUD locais, 60 fps em listas de GCs/membros
+**Constraints**: Suporte offline para registro de reuniões (sync posterior), <50MB footprint do app, compatível com dispositivos básicos (2GB RAM)
+**Scale/Scope**: ~100-500 usuários ativos por instância, ~50-200 GCs por rede, hierarquia até 5-7 níveis, ~20-30 screens principais
 
 ## Constitution Check
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-### Princípio I: Specification-Driven Delivery
-✅ **PASS** - Especificação completa em `specs/001-crie-um-app/spec.md` com esclarecimentos documentados (5 perguntas respondidas). Apenas 2 itens diferidos (FR-016 notificações, FR-017 exportação) que não bloqueiam implementação core.
+**Principle I - Specification-Driven Delivery**:
+- ✅ Feature spec exists at `/specs/001-crie-um-app/spec.md`
+- ✅ Spec has Clarifications section (Session 2025-10-04, 5 questions answered)
+- ⚠️  2 NEEDS CLARIFICATION remain (FR-016: notificações, FR-017: exportação) - diferidos para features futuras, não bloqueiam MVP
+- ✅ Business value clearly defined (gestão de GCs, acompanhamento hierárquico)
 
-### Princípio II: Plan Before Implementation
-✅ **PASS** - Este plano será gerado antes de `/tasks`. Constitution Check presente e documentado.
+**Principle II - Plan Before Implementation**:
+- ✅ /plan being executed before /tasks
+- ✅ Constitution Check presente neste documento
+- ✅ Structure decisions documentados abaixo (Flutter + Supabase)
 
-### Princípio III: Test-Driven Delivery
-✅ **PASS** - Plano inclui geração de contract tests (Phase 1) antes de implementação. Integration tests serão derivados dos cenários de aceitação. Quickstart.md conterá passos de verificação executáveis.
+**Principle III - Test-Driven Delivery**:
+- ✅ Planejamento de contract tests (Phase 1: contratos OpenAPI → failing tests)
+- ✅ Integration tests planejados (cada user story → test scenario)
+- ✅ quickstart.md planejado como verificação executável
 
-### Princípio IV: Traceable Artifacts & Documentation
-✅ **PASS** - Linkagem direta: spec.md → plan.md → data-model.md/contracts/ → tasks.md → commits. Desvios serão documentados em Complexity Tracking.
+**Principle IV - Traceable Artifacts & Documentation**:
+- ✅ Linkage spec → plan → tasks (tasks.md será gerado por /tasks)
+- ✅ research.md, data-model.md, contracts/, quickstart.md planejados
+- ✅ Complexity Tracking section presente (vazia se sem violações)
 
-### Princípio V: Operational Readiness & Observability
-✅ **PASS** - Supabase fornece logging integrado. Métricas de negócio (frequência, crescimento, conversão) definidas em FR-015. Rollback via Supabase migrations. Failure modes serão documentados em quickstart.md (offline scenarios, sync conflicts).
+**Principle V - Operational Readiness & Observability**:
+- ✅ Logging: Flutter logging framework (developer logs + error tracking)
+- ✅ Metrics: Supabase analytics (queries, auth events), Firebase Analytics (app usage)
+- ✅ Rollback: Supabase migrations reversíveis, feature flags via Supabase config table
+- ✅ Failure modes: Offline sync recovery, RLS policy violations handling, network retry logic
 
-### Princípio VI: Brazilian Portuguese Documentation
-✅ **PASS** - Todos os artefatos (plan.md, research.md, data-model.md, quickstart.md, tasks.md) em pt-BR. Código e commits em inglês.
+**Principle VI - Brazilian Portuguese Documentation**:
+- ✅ Spec, plan, e artifacts em pt-BR
+- ✅ Code comments e user-facing strings em pt-BR
+- ✅ Commit messages em inglês (convenção)
 
-## Estrutura do Projeto
+**Resultado**: ✅ PASS - Nenhuma violação constitucional. Os 2 NEEDS CLARIFICATION diferidos não bloqueiam MVP.
 
-### Documentação (esta funcionalidade)
+## Project Structure
+
+### Documentation (this feature)
 ```
-specs/001-crie-um-app/
-├── spec.md              # Especificação (completa)
-├── plan.md              # Este arquivo (/plan command output)
+specs/[###-feature]/
+├── plan.md              # This file (/plan command output)
 ├── research.md          # Phase 0 output (/plan command)
 ├── data-model.md        # Phase 1 output (/plan command)
 ├── quickstart.md        # Phase 1 output (/plan command)
 ├── contracts/           # Phase 1 output (/plan command)
-│   ├── auth.yaml
-│   ├── grupos.yaml
-│   ├── reunioes.yaml
-│   ├── membros.yaml
-│   ├── licoes.yaml
-│   └── dashboards.yaml
 └── tasks.md             # Phase 2 output (/tasks command - NOT created by /plan)
 ```
 
-### Código Fonte (repository root)
+### Source Code (repository root)
 ```
-# Mobile + Backend (Flutter + Supabase)
 app/
 ├── lib/
-│   ├── main.dart
-│   ├── models/           # Entities: User, GC, Meeting, Member, Visitor, Lesson
-│   ├── services/         # Supabase clients, auth, sync logic
-│   ├── screens/          # UI screens organized by feature
-│   │   ├── auth/
-│   │   ├── grupos/
-│   │   ├── reunioes/
-│   │   ├── membros/
-│   │   ├── licoes/
-│   │   └── dashboards/
-│   ├── widgets/          # Reusable components
-│   ├── providers/        # State management
-│   └── utils/            # Helpers, constants
-├── test/
-│   ├── unit/            # Model tests, service tests
-│   └── widget/          # Widget tests
-└── integration_test/    # E2E user flows
+│   ├── main.dart                 # App entry point
+│   ├── models/                   # Data models (User, GC, Meeting, Member, Visitor, Lesson)
+│   ├── services/                 # Business logic & Supabase clients
+│   │   ├── auth_service.dart     # Autenticação
+│   │   ├── gc_service.dart       # Gestão de GCs
+│   │   ├── meeting_service.dart  # Reuniões
+│   │   ├── member_service.dart   # Membros
+│   │   └── sync_service.dart     # Offline sync
+│   ├── screens/                  # UI screens (por feature)
+│   │   ├── auth/                 # Login, signup
+│   │   ├── gcs/                  # Lista, detalhes, criação de GCs
+│   │   ├── meetings/             # Registro de reuniões
+│   │   ├── members/              # Gestão de membros
+│   │   └── dashboard/            # Métricas e visão de rede
+│   ├── widgets/                  # Componentes reutilizáveis
+│   ├── providers/                # State management (Provider/Riverpod)
+│   └── utils/                    # Helpers, constants
+├── test/                         # Unit e widget tests
+├── integration_test/             # Integration tests
+└── pubspec.yaml                  # Dependencies
 
 supabase/
-├── migrations/          # SQL schema migrations
-├── seed.sql             # Initial data (lições padrão)
-└── functions/           # Edge functions (se necessário)
-
-tests/
-├── contract/            # API contract tests (validação de schemas Supabase)
-└── integration/         # Integration tests (Flutter + Supabase local)
+├── migrations/                   # Database schema (SQL)
+│   ├── 001_users_hierarchy.sql
+│   ├── 002_growth_groups.sql
+│   ├── 003_gc_relationships.sql  # gc_leaders, gc_supervisors (many-to-many)
+│   ├── 004_members.sql
+│   ├── 005_visitors.sql
+│   ├── 006_lessons.sql
+│   ├── 007_meetings.sql
+│   ├── 008_meeting_attendance.sql
+│   ├── 009_visitor_conversion_trigger.sql
+│   └── 010_dashboard_views.sql
+└── seed.sql                      # Initial test data
 ```
 
-**Decisão de Estrutura**: Mobile + API (Option 3 adaptada). Flutter app em `app/` com testes integrados. Supabase gerenciado remotamente com migrations versionadas em `supabase/`. Tests de contrato validam schemas PostgreSQL/RLS via Supabase client.
+**Structure Decision**: Mobile + API (Option 3).
+- **App**: Flutter app em `app/` seguindo arquitetura em camadas (models, services, screens, widgets, providers).
+- **Backend**: Supabase gerenciado (PostgreSQL + Auth + Storage), migrations SQL em `supabase/migrations/`.
+- **Testing**: Unit/widget tests em `app/test/`, integration tests em `app/integration_test/`.
+- **Rationale**: Flutter permite codebase único para iOS/Android, Supabase elimina necessidade de backend customizado, RLS policies implementam regras de negócio no DB.
 
-## Phase 0: Esboço & Pesquisa
+## Phase 0: Outline & Research ✅ COMPLETO
 
-Áreas de pesquisa identificadas:
+**Unknowns identificados no Technical Context**: Nenhum - stack já definido (Flutter + Supabase)
 
-1. **Flutter + Supabase Integration Best Practices**
-   - Autenticação com Supabase Auth (email/senha)
-   - Row Level Security (RLS) policies para hierarquia organizacional
-   - Offline-first com sincronização (sqflite + Supabase sync)
-   - State management (Provider vs Riverpod vs Bloc)
+**Decisões de pesquisa documentadas em** [research.md](./research.md):
 
-2. **Hierarquia Organizacional Expansível**
-   - Schema PostgreSQL para árvore N-níveis (adjacency list vs nested sets vs materialized path)
-   - Queries eficientes para "todos GCs sob coordenador X"
-   - Permissões em cascata via RLS
+1. **Flutter + Supabase Integration**: SDK oficial, auth email/senha, offline support
+2. **Hierarquia Expansível**: Adjacency List + Materialized Path (triggers auto-update)
+3. **State Management**: Riverpod 2.x (compile-time safety, testabilidade)
+4. **Offline-First**: Hive local storage + background sync strategy
+5. **Permissões**: Row Level Security (RLS) policies no PostgreSQL
+6. **Testing Strategy**: Contract + Integration + Unit tests (TDD)
+7. **Lições Padrão**: Modelo `lesson_series (1:N) lessons`
+8. **Conversão de Visitantes**: Trigger automático (threshold parametrizável) + manual
+9. **Dashboards**: Views agregadas com cache 5min (frequência, crescimento, conversão)
+10. **GC Leaders & Supervisors**: Many-to-many via `gc_leaders` e `gc_supervisors`
 
-3. **Conversão Automática de Visitantes**
-   - Trigger PostgreSQL ou edge function para contar visitas
-   - Parametrização (config table)
+**Alternativas consideradas e rejeitadas**:
+- Firebase (Firestore não suporta queries hierárquicas complexas)
+- Backend customizado (overhead de desenvolvimento)
+- BLoC/GetX state management (boilerplate excessivo ou service locator global)
+- SQLite local (Hive mais performático para cache de objetos)
 
-4. **Dashboards e Métricas**
-   - Queries agregadas no Supabase (views ou functions)
-   - Caching no app para performance
+**Status**: ✅ research.md completo, todas decisões técnicas documentadas
 
-5. **Flutter Testing Strategy**
-   - Mock Supabase client para unit tests
-   - Local Supabase instance para integration tests
-   - Golden tests para UI críticas
+## Phase 1: Design & Contracts ✅ COMPLETO
 
-**Output**: `research.md` será criado na próxima etapa com decisões consolidadas.
+**1. Entities extraídas** → [data-model.md](./data-model.md):
 
-## Phase 1: Design & Contratos
-*Prerequisites: research.md complete*
+Entidades principais documentadas:
+- `users` (hierarquia com `hierarchy_parent_id` + `hierarchy_path`)
+- `growth_groups` (GCs com modalidade, endereco, status)
+- `gc_leaders` (many-to-many: GC ↔ Leaders, role='leader'/'co-leader')
+- `gc_supervisors` (many-to-many: GC ↔ Supervisors)
+- `members` (vinculados a GC, status ativo/inativo/transferido)
+- `visitors` (visit_count, auto-conversão após threshold)
+- `meetings` (data_hora, licao_id, registrado_por_user_id)
+- `meeting_attendance` (presença de members ou visitors)
+- `lesson_series` e `lessons` (catálogo de lições)
+- `config` (parametrização: visitor_conversion_threshold, etc.)
 
-### Entidades (extraídas da spec):
-1. **User** (Usuário)
-   - id, email, password_hash, nome, hierarquia_nivel, hierarquia_parent_id, is_admin, created_at, updated_at
+**Validations & Constraints**:
+- RLS policies implementadas em todas as tabelas
+- Triggers: `hierarchy_path` auto-update, `visitor_conversion`, `ensure_gc_has_leader/supervisor`
+- Soft deletes via `deleted_at` onde aplicável
+- CHECK constraints: `endereco_se_presencial`, `attendance_xor`, `serie_requer_ordem`
 
-2. **GrowthGroup** (Grupo de Crescimento)
-   - id, nome, modalidade (presencial/online), endereco, dia_semana, horario, lider_id, supervisor_id, status, created_at, updated_at
+**2. API Contracts gerados** → [contracts/](./contracts/):
 
-3. **Member** (Membro)
-   - id, nome, email, telefone, gc_id, joined_at, status
+OpenAPI schemas para endpoints Supabase:
+- `auth.yaml`: Login, signup, refresh token
+- `grupos.yaml`: CRUD de GCs (GET /growth_groups, POST /growth_groups, PATCH /growth_groups/:id)
+- `gc_relationships.yaml`: Gestão de leaders/supervisors (POST /gc_leaders, DELETE /gc_leaders, etc.)
+- `reunioes.yaml`: CRUD de reuniões + presença (POST /meetings, POST /meeting_attendance)
 
-4. **Visitor** (Visitante)
-   - id, nome, email, telefone, visit_count, first_visit_date, converted_to_member_at, converted_by_user_id
+**3. Contract Tests**: Planejados em tasks.md (serão criados durante Phase 3)
 
-5. **Meeting** (Reunião)
-   - id, gc_id, data_hora, licao_id, registrado_por_user_id, created_at
+**4. Integration Test Scenarios** → [quickstart.md](./quickstart.md):
 
-6. **MeetingAttendance** (Presença em Reunião)
-   - id, meeting_id, member_id, visitor_id (nullable), attendance_type (member/visitor)
+5 cenários de aceitação mapeados:
+1. Líder registra reunião com presença e lição
+2. Supervisor visualiza lista de GCs da rede
+3. Líder adiciona novo membro ao GC
+4. Líder seleciona lição do catálogo padrão
+5. Supervisor filtra/ordena GCs por critérios
 
-7. **Lesson** (Lição)
-   - id, titulo, descricao, referencias_biblicas, serie_id, link, ordem_na_serie
+**5. Agent Context File**: Será atualizado a seguir via script `update-agent-context.sh`
 
-8. **LessonSeries** (Série de Lições)
-   - id, nome, descricao, criado_por_user_id (admin)
-
-### Contratos API (Supabase REST/Realtime):
-- **POST /auth/signup** - Cadastro de usuário
-- **POST /auth/login** - Login email/senha
-- **GET /grupos** - Listar GCs (filtrado por permissão RLS)
-- **POST /grupos** - Criar GC (coordenadores+)
-- **GET /grupos/{id}/membros** - Listar membros do GC
-- **POST /membros** - Adicionar membro (líder do GC)
-- **POST /reunioes** - Registrar reunião (líder do GC)
-- **GET /reunioes/{id}** - Detalhes da reunião
-- **GET /licoes** - Listar lições/séries
-- **POST /licoes** - Criar lição (admin only)
-- **GET /dashboards/metricas** - Métricas agregadas (frequência, crescimento, conversão)
-
-### Contract Tests:
-Cada endpoint terá test em `tests/contract/test_<endpoint>.dart` validando:
-- Schema da request
-- Schema da response
-- RLS policies (acesso negado para usuários não autorizados)
-
-### Quickstart Scenarios:
-1. Líder registra reunião com 5 membros + 2 visitantes
-2. Visitante atinge 3 visitas e é convertido automaticamente
-3. Supervisor visualiza métricas da rede (3 GCs)
-4. Admin cria série de 4 lições
-5. Coordenador promove líder a supervisor
-
-**Output**: data-model.md, contracts/*.yaml, quickstart.md, CLAUDE.md
-
-## Phase 2: Abordagem de Planejamento de Tarefas
-*Esta seção descreve o que o comando /tasks fará - NÃO execute durante /plan*
-
-**Estratégia de Geração de Tarefas**:
-1. **Setup** (5 tarefas):
-   - Inicializar projeto Flutter
-   - Configurar Supabase project e local dev
-   - Setup migrations e seed data
-   - Configurar CI/CD básico
-   - Setup testing infrastructure
-
-2. **Tests First (TDD)** (15 tarefas - [P] quando possível):
-   - Contract tests para cada endpoint [P]
-   - Integration tests para user stories principais
-   - Widget tests para telas críticas [P]
-
-3. **Core Implementation** (25 tarefas):
-   - Models (8 entities) [P]
-   - Supabase service layer (auth, CRUD)
-   - Screens principais (grupos, reuniões, membros, dashboards)
-   - State management (providers)
-   - RLS policies no Supabase
-
-4. **Integration** (8 tarefas):
-   - Offline sync logic
-   - Auto-conversão de visitantes (trigger/function)
-   - Dashboards com queries otimizadas
-   - Permission checks em todas telas
-
-5. **Polish** (7 tarefas):
-   - Error handling e loading states
-   - Unit tests para services [P]
-   - Performance optimization (caching)
-   - Quickstart validation manual
-   - Documentação de deployment
-
-**Ordenação**:
-- TDD: Tests antes de implementação
-- Dependência: Models → Services → Screens
-- [P] para tasks em arquivos independentes
-
-**Estimativa**: ~60 tarefas numeradas em tasks.md
-
-**IMPORTANTE**: Esta fase é executada pelo comando /tasks, NÃO pelo /plan
-
-## Phase 3+: Implementação Futura
-*Estas fases estão além do escopo do comando /plan*
-
-**Phase 3**: Execução de tarefas (comando /tasks cria tasks.md)
-**Phase 4**: Implementação (executar tasks.md seguindo princípios constitucionais)
-**Phase 5**: Validação (executar testes, quickstart.md, validação de performance)
-
-## Complexity Tracking
-*Preencher APENAS se Constitution Check tiver violações que precisam justificativa*
-
-| Violação | Por Que Necessário | Alternativa Mais Simples Rejeitada Porque |
-|----------|-------------------|------------------------------------------|
-| N/A | N/A | N/A |
-
-## Progress Tracking
-*Este checklist é atualizado durante execução do fluxo*
-
-**Phase Status**:
-- [x] Phase 0: Research complete (/plan command) - research.md criado
-- [x] Phase 1: Design complete (/plan command) - data-model.md, contracts/, quickstart.md, CLAUDE.md criados
-- [x] Phase 2: Task planning complete (/plan command - describe approach only) - Estratégia documentada
-- [ ] Phase 3: Tasks generated (/tasks command)
-- [ ] Phase 4: Implementation complete
-- [ ] Phase 5: Validation passed
-
-**Gate Status**:
-- [x] Initial Constitution Check: PASS
-- [x] Post-Design Constitution Check: PASS
-- [x] All NEEDS CLARIFICATION resolved (2 diferidos não bloqueantes)
-- [x] Complexity deviations documented (nenhum)
+**Status**: ✅ data-model.md, contracts/, quickstart.md completos
 
 ---
-*Baseado na Constitution v1.1.0 - Ver `/.specify/memory/constitution.md`*
+
+## Constitution Check (Post-Design Re-evaluation)
+
+**Re-validação após Phase 1**:
+
+✅ **Principle I - Specification-Driven Delivery**: Nenhuma nova ambiguidade surgiu. Design reflete os requisitos da spec.
+
+✅ **Principle II - Plan Before Implementation**: Design artifacts (data-model.md, contracts/) completos antes de tasks.md.
+
+✅ **Principle III - Test-Driven Delivery**:
+- Contract tests planejados (validação de schemas OpenAPI)
+- Integration tests mapeados (quickstart.md → 5 cenários)
+- Unit tests serão gerados por /tasks
+
+✅ **Principle IV - Traceable Artifacts**:
+- Linkage: spec.md → plan.md → research.md / data-model.md / contracts/ → quickstart.md
+- Próximo passo: /tasks gerará tasks.md rastreável
+
+✅ **Principle V - Operational Readiness**:
+- Logging: Flutter logging + Supabase logs
+- Metrics: Supabase Analytics + Firebase Analytics
+- Rollback: Migrations reversíveis (Supabase CLI)
+- Failure modes: Offline sync recovery documentado (research.md #4)
+
+✅ **Principle VI - Brazilian Portuguese**: Todos artifacts em pt-BR
+
+**Violações identificadas**: Nenhuma
+
+**Complexity deviations**: Nenhuma (Complexity Tracking vazio)
+
+**Resultado**: ✅ PASS - Design está constitutionalmente compliant, pronto para Phase 2
+
+---
+
+## Phase 2: Task Planning Approach ✅ DESCRITO
+
+*Nota: Esta seção descreve o que o /tasks command fará - NÃO executar durante /plan*
+
+**Task Generation Strategy para /tasks command**:
+
+1. **Database Layer** (Supabase migrations):
+   - Task por migration SQL (001_users_hierarchy.sql até 010_dashboard_views.sql)
+   - Seed data (seed.sql) com usuários/GCs/lições de teste
+   - Validação: `supabase db reset` sem erros
+
+2. **Models Layer** (app/lib/models/):
+   - Task por entity (User, GrowthGroup, GCLeader, GCSupervisor, Member, Visitor, Meeting, MeetingAttendance, Lesson, LessonSeries)
+   - Cada task: Model class + Hive adapter (offline) + JSON serialization
+   - [P] = Paralelo (models independentes)
+
+3. **Services Layer** (app/lib/services/):
+   - `auth_service.dart`: Login, signup, session management
+   - `gc_service.dart`: CRUD de GCs, fetch por role (líder/supervisor/coordenador)
+   - `meeting_service.dart`: Registro de reuniões + presença
+   - `member_service.dart`: CRUD de membros + visitor conversion
+   - `sync_service.dart`: Offline sync com Supabase
+   - Dependency order: auth_service primeiro → outros services
+
+4. **Contract Tests** (app/test/contract/):
+   - Task por contract OpenAPI (auth_test.dart, grupos_test.dart, reunioes_test.dart, gc_relationships_test.dart)
+   - Validar schemas de request/response
+   - **TDD**: Tests escritos antes de services, devem FAIL inicialmente
+
+5. **Providers** (app/lib/providers/):
+   - auth_provider.dart (user session, role detection)
+   - gc_list_provider.dart (GCs filtrados por role)
+   - meeting_detail_provider.dart (state de reunião)
+   - [P] após services completos
+
+6. **Screens & Widgets** (app/lib/screens/, app/lib/widgets/):
+   - auth/ (login, signup)
+   - gcs/ (lista, detalhes, criação)
+   - meetings/ (registro de reunião, presença)
+   - members/ (lista, adicionar, converter visitor)
+   - dashboard/ (métricas: frequência, crescimento, conversão)
+   - Dependency order: providers → screens
+
+7. **Integration Tests** (app/integration_test/):
+   - Task por cenário do quickstart.md (5 cenários)
+   - E2E flows: líder registra reunião, supervisor visualiza rede, etc.
+   - **TDD**: Tests antes de UI implementation
+
+**Ordering Strategy (TDD compliant)**:
+1. Migrations → Models → Contract Tests (failing) → Services (make tests pass)
+2. Providers → Integration Tests (failing) → Screens (make tests pass)
+3. Mark [P] for parallel execution where no dependencies
+
+**Estimated Output**: ~40-50 tasks em tasks.md (ordenados, numerados, com [P] markers)
+
+**IMPORTANTE**: Esta phase é executada pelo comando `/tasks`, NÃO pelo `/plan`
+
+## Phase 3+: Future Implementation
+*These phases are beyond the scope of the /plan command*
+
+**Phase 3**: Task execution (/tasks command creates tasks.md)  
+**Phase 4**: Implementation (execute tasks.md following constitutional principles)  
+**Phase 5**: Validation (run tests, execute quickstart.md, performance validation)
+
+## Complexity Tracking
+*Fill ONLY if Constitution Check has violations that must be justified*
+
+| Violation | Why Needed | Simpler Alternative Rejected Because |
+|-----------|------------|-------------------------------------|
+| [e.g., 4th project] | [current need] | [why 3 projects insufficient] |
+| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient] |
+
+
+## Progress Tracking
+*Checklist atualizado durante execution flow*
+
+**Phase Status**:
+- [x] Phase 0: Research complete (/plan command) ✅ research.md
+- [x] Phase 1: Design complete (/plan command) ✅ data-model.md, contracts/, quickstart.md
+- [x] Phase 2: Task planning approach documented (/plan command) ✅ Strategy descrita
+- [ ] Phase 3: Tasks generated (/tasks command) → **Próximo passo**: Run `/tasks`
+- [ ] Phase 4: Implementation complete (manual ou via /implement)
+- [ ] Phase 5: Validation passed (execute quickstart.md scenarios)
+
+**Gate Status**:
+- [x] Initial Constitution Check: PASS (nenhuma violação detectada)
+- [x] Post-Design Constitution Check: PASS (design compliant)
+- [x] All NEEDS CLARIFICATION resolved (2 diferidos: FR-016 notificações, FR-017 exportação - não bloqueiam MVP)
+- [x] Complexity deviations documented (nenhuma - Complexity Tracking vazio)
+
+**Artifacts Generated**:
+- ✅ `/specs/001-crie-um-app/plan.md` (este arquivo)
+- ✅ `/specs/001-crie-um-app/research.md` (10 decisões técnicas documentadas)
+- ✅ `/specs/001-crie-um-app/data-model.md` (10 entidades + RLS policies)
+- ✅ `/specs/001-crie-um-app/contracts/` (4 OpenAPI schemas: auth, grupos, reunioes, gc_relationships)
+- ✅ `/specs/001-crie-um-app/quickstart.md` (5 cenários de validação end-to-end)
+- ✅ `/CLAUDE.md` (agent context atualizado)
+- ⏳ `/specs/001-crie-um-app/tasks.md` (será gerado por `/tasks`)
+
+**Próximos Passos**:
+1. ✅ /plan completo (este comando)
+2. ⏭️  Run `/tasks` para gerar tasks.md a partir dos design artifacts
+3. ⏭️  Executar tasks em ordem (TDD: tests → implementation)
+4. ⏭️  Validar com quickstart.md end-to-end scenarios
+5. ⏭️  Criar PR referenciando spec.md e plan.md
+
+---
+*Based on Constitution v1.1.0 - See `/memory/constitution.md`*

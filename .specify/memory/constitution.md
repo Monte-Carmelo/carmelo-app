@@ -1,18 +1,20 @@
 <!--
 Sync Impact Report
-Version change: 1.0.0 → 1.1.0
+Version change: 1.1.0 → 1.2.0
 Modified principles:
-- none
+- Principle VI: Expanded to clarify code vs documentation language standards
 Added sections:
-- Principle VI: Brazilian Portuguese Documentation
+- Explicit requirement for English in all code, database schemas, and technical identifiers
 Removed sections:
 - none
 Templates requiring updates:
-- ✅ .specify/templates/plan-template.md (Added language requirement note)
-- ✅ .specify/templates/spec-template.md (Added language requirement note)
-- ✅ .specify/templates/tasks-template.md (Added language requirement note)
+- ✅ .specify/templates/plan-template.md (Language requirement note already present)
+- ✅ .specify/templates/spec-template.md (Language requirement note already present)
+- ✅ .specify/templates/tasks-template.md (Language requirement note already present)
 Follow-up TODOs:
-- none
+- Update all existing database migrations to use English table/column names
+- Update data-model.md to show English schema with Portuguese explanations
+- Update seed.sql to use English column names
 -->
 # Carmelo App Constitution
 
@@ -33,8 +35,8 @@ Rules: Maintain a one-to-one linkage between specification items, plan decisions
 ### V. Operational Readiness & Observability
 Rules: Every feature must declare logging, metrics, and rollback expectations in the plan; observability hooks and alerts ship with feature code; testing scope must include failure modes and recovery paths; release notes in docs capture operational impact. Rationale: Operational insight prevents silent failures and shortens incident response, aligning delivery with production reliability.
 
-### VI. Brazilian Portuguese Documentation
-Rules: All project documentation artifacts MUST be written in Brazilian Portuguese (pt-BR), including feature specifications (spec.md), implementation plans (plan.md), research documents (research.md), data models (data-model.md), quickstart guides (quickstart.md), and task lists (tasks.md); code comments and user-facing strings SHOULD follow pt-BR conventions; technical terms may retain English equivalents in parentheses when clarity demands; commit messages and code identifiers remain in English per industry convention. Rationale: Standardizing documentation language ensures consistent communication with Brazilian stakeholders, reduces translation overhead, and aligns artifacts with the primary user base.
+### VI. Language Standards: Documentation vs Code
+Rules: All project documentation artifacts MUST be written in Brazilian Portuguese (pt-BR), including feature specifications (spec.md), implementation plans (plan.md), research documents (research.md), data models (data-model.md), quickstart guides (quickstart.md), and task lists (tasks.md); ALL source code, database schemas, API contracts, and technical identifiers MUST be written in English, including: table names, column names, function names, variable names, class names, enum values, and API endpoints; code comments and user-facing strings SHOULD follow pt-BR conventions for clarity with Brazilian developers and end-users; technical terms in documentation may retain English equivalents in parentheses when clarity demands; commit messages remain in English per industry convention. Rationale: Standardizing documentation language ensures consistent communication with Brazilian stakeholders while maintaining English code follows global software engineering best practices, facilitates international collaboration, and aligns with industry standards for maintainability and tooling compatibility.
 
 ## Execution Constraints
 Feature work must follow the artifact order: `/specify` → `/plan` → `/tasks` → implementation. Tests belong under `tests/contract`, `tests/integration`, and `tests/unit` following tasks-template conventions, and code lives in the structure ratified by plan.md. Features with external dependencies require explicit entries in research.md and spec requirements for integration guarantees. No feature may bypass the Constitution Check gate in plan.md; violations must be resolved or formally justified before proceeding.
@@ -48,4 +50,4 @@ All feature branches derive from the branch created by `.specify/scripts/bash/cr
 - Compliance reviews occur during `/plan` Constitution Check, during PR review, and in a quarterly governance retrospective; findings feed into follow-up tasks.
 - Archived constitutions remain accessible via git history; current version must be referenced in every plan.md Constitution Check.
 
-**Version**: 1.1.0 | **Ratified**: 2025-10-04 | **Last Amended**: 2025-10-04
+**Version**: 1.2.0 | **Ratified**: 2025-10-04 | **Last Amended**: 2025-10-13
