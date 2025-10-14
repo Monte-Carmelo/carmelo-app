@@ -24,9 +24,7 @@ class DashboardService {
       }
 
       // Fetch from database
-      final response = await _supabase
-          .from('dashboard_metricas')
-          .select();
+      final response = await _supabase.from('dashboard_metrics').select();
 
       // Update cache
       _cachedMetricas = {'data': response};
@@ -119,7 +117,7 @@ class DashboardService {
   Future<Map<String, dynamic>?> getMetricasForGC(String gcId) async {
     try {
       final response = await _supabase
-          .from('dashboard_metricas')
+          .from('dashboard_metrics')
           .select()
           .eq('gc_id', gcId)
           .maybeSingle();
@@ -153,7 +151,7 @@ class DashboardService {
 
       // Get metrics for these GCs
       final response = await _supabase
-          .from('dashboard_metricas')
+          .from('dashboard_metrics')
           .select()
           .inFilter('gc_id', gcIds);
 

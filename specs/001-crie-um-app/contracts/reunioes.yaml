@@ -1,8 +1,8 @@
 openapi: 3.0.0
 info:
   title: Meetings API Contracts
-  version: 1.0.0
-  description: Contratos para gestão de Reuniões de GCs
+  version: 1.1.0
+  description: Contratos para gestão de Reuniões de GCs com presença de participantes e visitantes
 
 servers:
   - url: https://{project}.supabase.co/rest/v1
@@ -25,16 +25,16 @@ paths:
           schema:
             type: string
             format: uuid
-        - name: data_hora
+        - name: datetime
           in: query
-          description: "Filtro por data (gte, lte, etc.)"
+          description: "Filtros por data (`gte`, `lte`, etc.)"
           schema:
             type: string
         - name: order
           in: query
           schema:
             type: string
-            default: "data_hora.desc"
+            default: "datetime.desc"
         - name: limit
           in: query
           schema:
@@ -86,7 +86,7 @@ paths:
           in: query
           schema:
             type: string
-            default: "*,attendance:meeting_attendance(*,member:members(*),visitor:visitors(*))"
+            default: "*,members:meeting_member_attendance(*,participant:growth_group_participants(*,person:people(*))),visitors:meeting_visitor_attendance(*,visitor:visitors(*,person:people(*))),lesson_template:lessons(*)"
       responses:
         '200':
           description: Detalhes da reunião com lista de presença
@@ -118,32 +118,64 @@ paths:
               schema:
                 $ref: '#/components/schemas/Meeting'
 
-  /meeting_attendance:
+  /meeting_member_attendance:
     post:
-      summary: Registrar presença em reunião
-      operationId: createAttendance
-      description: "Registra presença de membro OU visitante. Trigger automático incrementa visit_count e converte visitante se atingir threshold."
+      summary: Registrar presença de participante
+      operationId: createMemberAttendance
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/AttendanceCreate'
+              $ref: '#/components/schemas/MemberAttendanceCreate'
       responses:
         '201':
           description: Presença registrada
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Attendance'
-        '400':
-          description: Dados inválidos (deve ter member_id OU visitor_id, não ambos)
+                $ref: '#/components/schemas/MemberAttendance'
         '409':
-          description: Presença já registrada (duplicata)
+          description: Participante já registrado nesta reunião
 
     delete:
-      summary: Remover presença
-      operationId: deleteAttendance
+      summary: Remover presença de participante
+      operationId: deleteMemberAttendance
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Presença removida
+
+  /meeting_visitor_attendance:
+    post:
+      summary: Registrar presença de visitante
+      operationId: createVisitorAttendance
+      description: Dispara trigger `auto_convert_visitor` para converter visitantes após N presenças.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VisitorAttendanceCreate'
+      responses:
+        '201':
+          description: Presença registrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VisitorAttendance'
+        '409':
+          description: Visitante já registrado nesta reunião
+
+    delete:
+      summary: Remover presença de visitante
+      operationId: deleteVisitorAttendance
       parameters:
         - name: id
           in: query
@@ -166,74 +198,96 @@ components:
         gc_id:
           type: string
           format: uuid
-        licao_id:
+        lesson_template_id:
           type: string
           format: uuid
           nullable: true
-        data_hora:
+        lesson_title:
+          type: string
+        datetime:
           type: string
           format: date-time
-          example: "2025-10-04T19:30:00Z"
-        observacoes:
+        comments:
           type: string
           nullable: true
-        registrado_por_user_id:
+        registered_by_user_id:
           type: string
           format: uuid
         created_at:
           type: string
           format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        deleted_at:
+          type: string
+          format: date-time
+          nullable: true
 
     MeetingDetailed:
       allOf:
         - $ref: '#/components/schemas/Meeting'
         - type: object
           properties:
-            attendance:
+            members:
               type: array
               items:
-                $ref: '#/components/schemas/Attendance'
-            licao:
+                $ref: '#/components/schemas/MemberAttendance'
+            visitors:
+              type: array
+              items:
+                $ref: '#/components/schemas/VisitorAttendance'
+            lesson_template:
               $ref: '#/components/schemas/LessonBasic'
 
     MeetingCreate:
       type: object
       required:
         - gc_id
-        - data_hora
-        - registrado_por_user_id
+        - lesson_title
+        - datetime
+        - registered_by_user_id
       properties:
         gc_id:
           type: string
           format: uuid
-        licao_id:
+        lesson_template_id:
           type: string
           format: uuid
           nullable: true
-        data_hora:
+        lesson_title:
+          type: string
+        datetime:
           type: string
           format: date-time
-        observacoes:
+        comments:
           type: string
-        registrado_por_user_id:
+          nullable: true
+        registered_by_user_id:
           type: string
           format: uuid
-          description: "Normalmente auth.uid() do líder"
+          description: Normalmente `auth.uid()` do líder/supervisor
 
     MeetingUpdate:
       type: object
       properties:
-        licao_id:
+        lesson_template_id:
           type: string
           format: uuid
           nullable: true
-        data_hora:
+        lesson_title:
+          type: string
+        datetime:
           type: string
           format: date-time
-        observacoes:
+        comments:
           type: string
+          nullable: true
+        registered_by_user_id:
+          type: string
+          format: uuid
 
-    Attendance:
+    MemberAttendance:
       type: object
       properties:
         id:
@@ -242,41 +296,54 @@ components:
         meeting_id:
           type: string
           format: uuid
-        member_id:
+        participant_id:
           type: string
           format: uuid
-          nullable: true
-        visitor_id:
-          type: string
-          format: uuid
-          nullable: true
-        attendance_type:
-          type: string
-          enum: [member, visitor]
         created_at:
           type: string
           format: date-time
 
-    AttendanceCreate:
+    MemberAttendanceCreate:
       type: object
       required:
         - meeting_id
-        - attendance_type
+        - participant_id
       properties:
         meeting_id:
           type: string
           format: uuid
-        member_id:
+        participant_id:
           type: string
           format: uuid
-          description: "Obrigatório se attendance_type=member"
+
+    VisitorAttendance:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        meeting_id:
+          type: string
+          format: uuid
         visitor_id:
           type: string
           format: uuid
-          description: "Obrigatório se attendance_type=visitor"
-        attendance_type:
+        created_at:
           type: string
-          enum: [member, visitor]
+          format: date-time
+
+    VisitorAttendanceCreate:
+      type: object
+      required:
+        - meeting_id
+        - visitor_id
+      properties:
+        meeting_id:
+          type: string
+          format: uuid
+        visitor_id:
+          type: string
+          format: uuid
 
     LessonBasic:
       type: object
@@ -284,12 +351,13 @@ components:
         id:
           type: string
           format: uuid
-        titulo:
+        title:
           type: string
-        descricao:
+        description:
           type: string
-        referencias_biblicas:
+        link:
           type: string
+          nullable: true
 
     Error:
       type: object

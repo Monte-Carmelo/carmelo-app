@@ -20,7 +20,6 @@ CREATE TABLE lessons (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   title TEXT NOT NULL CHECK (char_length(title) > 0 AND char_length(title) <= 255),
   description TEXT,
-  bible_references TEXT,
   series_id UUID REFERENCES lesson_series(id) ON DELETE SET NULL,
   link TEXT,
   order_in_series INT,

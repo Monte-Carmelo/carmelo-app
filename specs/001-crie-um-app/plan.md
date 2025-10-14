@@ -32,15 +32,15 @@
 - Phase 3-4: Implementation execution (manual or via tools)
 
 ## Summary
-Sistema mobile para gestão de Grupos de Crescimento (células) de igrejas, permitindo que líderes registrem reuniões e gerenciem membros, supervisores acompanhem múltiplos GCs, e coordenadores tenham visão hierárquica expansível da rede. Inclui autenticação, controle de permissões por nível hierárquico, catálogo de lições padrão, conversão automática de visitantes para membros, e dashboards com métricas de frequência, crescimento e conversão.
+Sistema web responsivo (mobile-first) para gestão de Grupos de Crescimento (células) de igrejas, permitindo que líderes registrem reuniões e gerenciem membros, supervisores acompanhem múltiplos GCs, e coordenadores tenham visão hierárquica expansível da rede. Inclui autenticação, controle de permissões por nível hierárquico, catálogo de lições padrão, conversão automática de visitantes para membros e dashboards com métricas de frequência, crescimento e conversão.
 
 ## Technical Context
-**Language/Version**: Dart 3.x+ com Flutter 3.x+
-**Primary Dependencies**: Flutter SDK, Supabase Flutter SDK, Provider/Riverpod (state management)
+**Language/Version**: TypeScript 5.x+ com Next.js 14+
+**Primary Dependencies**: Next.js, Supabase JS Client, TanStack Query, Zustand, React Hook Form + Zod
 **Storage**: PostgreSQL via Supabase (gerenciado) com Row Level Security (RLS)
-**Testing**: Flutter test framework, integration_test, mockito para unit tests
-**Target Platform**: iOS 15+ e Android 8.0+ (mobile multiplataforma)
-**Project Type**: mobile - app Flutter + backend Supabase
+**Testing**: Vitest + Testing Library, Playwright para E2E, Storybook Test Runner
+**Target Platform**: Navegadores modernos (Chrome, Firefox, Safari, Edge) com suporte mobile e desktop
+**Project Type**: web responsivo - Next.js + Supabase
 **Performance Goals**: Sincronização offline-first com sync em background, <500ms para operações CRUD locais, 60 fps em listas de GCs/membros
 **Constraints**: Suporte offline para registro de reuniões (sync posterior), <50MB footprint do app, compatível com dispositivos básicos (2GB RAM)
 **Scale/Scope**: ~100-500 usuários ativos por instância, ~50-200 GCs por rede, hierarquia até 5-7 níveis, ~20-30 screens principais
@@ -57,7 +57,7 @@ Sistema mobile para gestão de Grupos de Crescimento (células) de igrejas, perm
 **Principle II - Plan Before Implementation**:
 - ✅ /plan being executed before /tasks
 - ✅ Constitution Check presente neste documento
-- ✅ Structure decisions documentados abaixo (Flutter + Supabase)
+- ✅ Structure decisions documentados abaixo (Next.js + Supabase)
 
 **Principle III - Test-Driven Delivery**:
 - ✅ Planejamento de contract tests (Phase 1: contratos OpenAPI → failing tests)
@@ -70,7 +70,7 @@ Sistema mobile para gestão de Grupos de Crescimento (células) de igrejas, perm
 - ✅ Complexity Tracking section presente (vazia se sem violações)
 
 **Principle V - Operational Readiness & Observability**:
-- ✅ Logging: Flutter logging framework (developer logs + error tracking)
+- ✅ Logging: Next.js server logs + Sentry para erros
 - ✅ Metrics: Supabase analytics (queries, auth events), Firebase Analytics (app usage)
 - ✅ Rollback: Supabase migrations reversíveis, feature flags via Supabase config table
 - ✅ Failure modes: Offline sync recovery, RLS policy violations handling, network retry logic
@@ -97,72 +97,62 @@ specs/[###-feature]/
 
 ### Source Code (repository root)
 ```
-app/
-├── lib/
-│   ├── main.dart                 # App entry point
-│   ├── models/                   # Data models (User, GC, Meeting, Member, Visitor, Lesson)
-│   ├── services/                 # Business logic & Supabase clients
-│   │   ├── auth_service.dart     # Autenticação
-│   │   ├── gc_service.dart       # Gestão de GCs
-│   │   ├── meeting_service.dart  # Reuniões
-│   │   ├── member_service.dart   # Membros
-│   │   └── sync_service.dart     # Offline sync
-│   ├── screens/                  # UI screens (por feature)
-│   │   ├── auth/                 # Login, signup
-│   │   ├── gcs/                  # Lista, detalhes, criação de GCs
-│   │   ├── meetings/             # Registro de reuniões
-│   │   ├── members/              # Gestão de membros
-│   │   └── dashboard/            # Métricas e visão de rede
-│   ├── widgets/                  # Componentes reutilizáveis
-│   ├── providers/                # State management (Provider/Riverpod)
-│   └── utils/                    # Helpers, constants
-├── test/                         # Unit e widget tests
-├── integration_test/             # Integration tests
-└── pubspec.yaml                  # Dependencies
+web/
+├── package.json
+├── src/                            # Código-fonte Next.js
+│   ├── app/                        # Rotas (App Router)
+│   ├── components/                 # Componentes compartilhados
+│   ├── lib/                        # Serviços, hooks, utilitários
+│   └── tests/                      # Testes unitários (Vitest) e helpers
+├── public/                        # Assets estáticos
+├── vitest.config.ts                # Configuração de testes
+└── playwright.config.ts (a criar)
+
 
 supabase/
-├── migrations/                   # Database schema (SQL)
-│   ├── 001_users_hierarchy.sql
-│   ├── 002_growth_groups.sql
-│   ├── 003_gc_relationships.sql  # gc_leaders, gc_supervisors (many-to-many)
-│   ├── 004_members.sql
-│   ├── 005_visitors.sql
-│   ├── 006_lessons.sql
-│   ├── 007_meetings.sql
-│   ├── 008_meeting_attendance.sql
-│   ├── 009_visitor_conversion_trigger.sql
-│   └── 010_dashboard_views.sql
-└── seed.sql                      # Initial test data
+├── migrations/                    # Schema PostgreSQL (immutável)
+│   ├── 001_people.sql
+│   ├── 002_users_hierarchy.sql
+│   ├── 003_growth_groups.sql
+│   ├── 004_gc_relationships.sql
+│   ├── 005_members.sql
+│   ├── 006_visitors.sql
+│   ├── 007_lessons.sql
+│   ├── 008_meetings.sql
+│   ├── 009_meeting_attendance.sql
+│   ├── 010_visitor_conversion_trigger.sql
+│   └── 011_dashboard_views.sql
+└── seed.sql                       # Dados de seed para testes
 ```
 
-**Structure Decision**: Mobile + API (Option 3).
-- **App**: Flutter app em `app/` seguindo arquitetura em camadas (models, services, screens, widgets, providers).
+**Structure Decision**: Web + Supabase (Next.js + PostgreSQL).
+- **App**: Aplicação Next.js em `web/` organizada por rotas (`src/app`) e módulos (`src/lib`, `src/components`).
 - **Backend**: Supabase gerenciado (PostgreSQL + Auth + Storage), migrations SQL em `supabase/migrations/`.
-- **Testing**: Unit/widget tests em `app/test/`, integration tests em `app/integration_test/`.
-- **Rationale**: Flutter permite codebase único para iOS/Android, Supabase elimina necessidade de backend customizado, RLS policies implementam regras de negócio no DB.
+- **Testing**: Vitest para unidade/componentes (`web/src`), Playwright para E2E (`web/tests/e2e`).
+- **Rationale**: Next.js permite entrega web rápida (SSR + SSG), Supabase elimina backend customizado, RLS mantém regras no banco.
 
 ## Phase 0: Outline & Research ✅ COMPLETO
 
-**Unknowns identificados no Technical Context**: Nenhum - stack já definido (Flutter + Supabase)
+**Unknowns identificados no Technical Context**: Nenhum - stack já definido (Next.js + Supabase)
 
 **Decisões de pesquisa documentadas em** [research.md](./research.md):
 
-1. **Flutter + Supabase Integration**: SDK oficial, auth email/senha, offline support
+1. **Next.js + Supabase Integration**: Supabase JS Client, auth email/senha, SSR aware, cache com TanStack Query
 2. **Hierarquia Expansível**: Adjacency List + Materialized Path (triggers auto-update)
-3. **State Management**: Riverpod 2.x (compile-time safety, testabilidade)
-4. **Offline-First**: Hive local storage + background sync strategy
+3. **State Management**: TanStack Query + Zustand (cache + estado local leve)
+4. **Cache & Offline**: Persistência de queries via IndexedDB (TanStack Query persist) + fallback local
 5. **Permissões**: Row Level Security (RLS) policies no PostgreSQL
-6. **Testing Strategy**: Contract + Integration + Unit tests (TDD)
+6. **Testing Strategy**: Vitest + Testing Library, Playwright e contract tests (TDD)
 7. **Lições Padrão**: Modelo `lesson_series (1:N) lessons`
-8. **Conversão de Visitantes**: Trigger automático (threshold parametrizável) + manual
+8. **Conversão de Visitantes**: Trigger automático (threshold parametrizável) + registro manual
 9. **Dashboards**: Views agregadas com cache 5min (frequência, crescimento, conversão)
-10. **GC Leaders & Supervisors**: Many-to-many via `gc_leaders` e `gc_supervisors`
+10. **GC Roles**: Papéis acumulados via `growth_group_participants` (leader/co_leader/supervisor/member)
 
 **Alternativas consideradas e rejeitadas**:
 - Firebase (Firestore não suporta queries hierárquicas complexas)
 - Backend customizado (overhead de desenvolvimento)
-- BLoC/GetX state management (boilerplate excessivo ou service locator global)
-- SQLite local (Hive mais performático para cache de objetos)
+- Redux Toolkit (overhead e boilerplate para escopo atual)
+- Prisma + API custom (exigiria backend dedicado)
 
 **Status**: ✅ research.md completo, todas decisões técnicas documentadas
 
@@ -172,13 +162,12 @@ supabase/
 
 Entidades principais documentadas:
 - `users` (hierarquia com `hierarchy_parent_id` + `hierarchy_path`)
-- `growth_groups` (GCs com modalidade, endereco, status)
-- `gc_leaders` (many-to-many: GC ↔ Leaders, role='leader'/'co-leader')
-- `gc_supervisors` (many-to-many: GC ↔ Supervisors)
-- `members` (vinculados a GC, status ativo/inativo/transferido)
-- `visitors` (visit_count, auto-conversão após threshold)
-- `meetings` (data_hora, licao_id, registrado_por_user_id)
-- `meeting_attendance` (presença de members ou visitors)
+- `growth_groups` (GCs com modalidade, endereço, status)
+- `growth_group_participants` (papéis `leader`, `co_leader`, `supervisor`, `member`)
+- `visitors` (visit_count + status, vinculados a GC)
+- `meetings` (lesson template opcional, `lesson_title`, `comments`)
+- `meeting_member_attendance` e `meeting_visitor_attendance` (presenças separadas)
+- `visitor_conversion_events` (log de conversão)
 - `lesson_series` e `lessons` (catálogo de lições)
 - `config` (parametrização: visitor_conversion_threshold, etc.)
 
@@ -193,8 +182,8 @@ Entidades principais documentadas:
 OpenAPI schemas para endpoints Supabase:
 - `auth.yaml`: Login, signup, refresh token
 - `grupos.yaml`: CRUD de GCs (GET /growth_groups, POST /growth_groups, PATCH /growth_groups/:id)
-- `gc_relationships.yaml`: Gestão de leaders/supervisors (POST /gc_leaders, DELETE /gc_leaders, etc.)
-- `reunioes.yaml`: CRUD de reuniões + presença (POST /meetings, POST /meeting_attendance)
+- `gc_relationships.yaml`: Gestão de papéis no GC (POST growth_group_participants, etc.)
+- `reunioes.yaml`: CRUD de reuniões + presenças (`meeting_member_attendance`, `meeting_visitor_attendance`)
 
 **3. Contract Tests**: Planejados em tasks.md (serão criados durante Phase 3)
 
@@ -231,7 +220,7 @@ OpenAPI schemas para endpoints Supabase:
 - Próximo passo: /tasks gerará tasks.md rastreável
 
 ✅ **Principle V - Operational Readiness**:
-- Logging: Flutter logging + Supabase logs
+- Logging: Next.js logs + Supabase logs
 - Metrics: Supabase Analytics + Firebase Analytics
 - Rollback: Migrations reversíveis (Supabase CLI)
 - Failure modes: Offline sync recovery documentado (research.md #4)
@@ -252,61 +241,45 @@ OpenAPI schemas para endpoints Supabase:
 
 **Task Generation Strategy para /tasks command**:
 
-1. **Database Layer** (Supabase migrations):
-   - Task por migration SQL (001_users_hierarchy.sql até 010_dashboard_views.sql)
-   - Seed data (seed.sql) com usuários/GCs/lições de teste
-   - Validação: `supabase db reset` sem erros
+1. **Fundação Web (`web/`)**:
+   - Tarefas W001-W007 garantem scaffold Next.js, tooling, Storybook, Playwright e tipos Supabase.
+   - Validação: `npm run lint` + `npm run test` devem rodar antes de seguir.
 
-2. **Models Layer** (app/lib/models/):
-   - Task por entity (User, GrowthGroup, GCLeader, GCSupervisor, Member, Visitor, Meeting, MeetingAttendance, Lesson, LessonSeries)
-   - Cada task: Model class + Hive adapter (offline) + JSON serialization
-   - [P] = Paralelo (models independentes)
+2. **Tests First (TDD)**:
+   - W010-W014 criam testes de contrato (Node) espelhando `contracts/*.yaml`.
+   - W020-W021 escrevem testes Vitest para hooks/serviços críticos.
+   - W030-W031 adicionam cenários Playwright que iniciam falhando.
+   - Somente após todos falharem inicia-se implementação.
 
-3. **Services Layer** (app/lib/services/):
-   - `auth_service.dart`: Login, signup, session management
-   - `gc_service.dart`: CRUD de GCs, fetch por role (líder/supervisor/coordenador)
-   - `meeting_service.dart`: Registro de reuniões + presença
-   - `member_service.dart`: CRUD de membros + visitor conversion
-   - `sync_service.dart`: Offline sync com Supabase
-   - Dependency order: auth_service primeiro → outros services
+3. **Sprint 1 — Autenticação & Reuniões**:
+   - W100-W123 cobrem autenticação, layout autenticado, dashboard do líder e fluxo de registro de reuniões.
+   - Componentes em `web/src/components/**` devem ser acompanhados de testes Vitest.
 
-4. **Contract Tests** (app/test/contract/):
-   - Task por contract OpenAPI (auth_test.dart, grupos_test.dart, reunioes_test.dart, gc_relationships_test.dart)
-   - Validar schemas de request/response
-   - **TDD**: Tests escritos antes de services, devem FAIL inicialmente
+4. **Sprint 2 — Pessoas & Visitantes**:
+   - W200-W206 implementam CRUD de participantes/visitantes e conversão manual.
+   - W210-W211 fazem testes Vitest/Playwright passarem.
 
-5. **Providers** (app/lib/providers/):
-   - auth_provider.dart (user session, role detection)
-   - gc_list_provider.dart (GCs filtrados por role)
-   - meeting_detail_provider.dart (state de reunião)
-   - [P] após services completos
+5. **Sprint 3 — Supervisão & Lições**:
+   - W300-W305 constroem visões de supervisão e catálogo de lições.
+   - W310-W312 reforçam testes E2E, cobertura de componentes e documentação Storybook.
 
-6. **Screens & Widgets** (app/lib/screens/, app/lib/widgets/):
-   - auth/ (login, signup)
-   - gcs/ (lista, detalhes, criação)
-   - meetings/ (registro de reunião, presença)
-   - members/ (lista, adicionar, converter visitor)
-   - dashboard/ (métricas: frequência, crescimento, conversão)
-   - Dependency order: providers → screens
-
-7. **Integration Tests** (app/integration_test/):
-   - Task por cenário do quickstart.md (5 cenários)
-   - E2E flows: líder registra reunião, supervisor visualiza rede, etc.
-   - **TDD**: Tests antes de UI implementation
+6. **Observabilidade & QA**:
+   - W400-W403 configuram monitoramento e CI.
+   - W500-W505 tratam responsividade, acessibilidade, quickstart e lançamento.
 
 **Ordering Strategy (TDD compliant)**:
-1. Migrations → Models → Contract Tests (failing) → Services (make tests pass)
-2. Providers → Integration Tests (failing) → Screens (make tests pass)
-3. Mark [P] for parallel execution where no dependencies
+1. Phase 3.1 conclui scaffold → Phase 3.2 escreve testes que falham.
+2. Phase 3.3-3.5 implementam features até os testes passarem (Vitest/Playwright).
+3. Phase 3.6-3.7 fecham observabilidade e QA antes de marcar tarefa completa.
 
-**Estimated Output**: ~40-50 tasks em tasks.md (ordenados, numerados, com [P] markers)
+**Estimated Output**: ~55 tarefas em `tasks.md` (numeração W###, com markers [P] quando aplicável).
 
-**IMPORTANTE**: Esta phase é executada pelo comando `/tasks`, NÃO pelo `/plan`
+**IMPORTANTE**: Esta fase é executada pelo comando `/tasks`, NÃO pelo `/plan`.
 
 ## Phase 3+: Future Implementation
 *These phases are beyond the scope of the /plan command*
 
-**Phase 3**: Task execution (/tasks command creates tasks.md)  
+**Phase 3**: Task execution (seguir `tasks.md`)  
 **Phase 4**: Implementation (execute tasks.md following constitutional principles)  
 **Phase 5**: Validation (run tests, execute quickstart.md, performance validation)
 
@@ -343,7 +316,7 @@ OpenAPI schemas para endpoints Supabase:
 - ✅ `/specs/001-crie-um-app/contracts/` (4 OpenAPI schemas: auth, grupos, reunioes, gc_relationships)
 - ✅ `/specs/001-crie-um-app/quickstart.md` (5 cenários de validação end-to-end)
 - ✅ `/CLAUDE.md` (agent context atualizado)
-- ⏳ `/specs/001-crie-um-app/tasks.md` (será gerado por `/tasks`)
+- ✅ `/specs/001-crie-um-app/tasks.md` (gerado e alinhado ao frontend web)
 
 **Próximos Passos**:
 1. ✅ /plan completo (este comando)

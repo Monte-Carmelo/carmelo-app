@@ -22,11 +22,12 @@ class Member {
   });
 
   factory Member.fromJson(Map<String, dynamic> json) {
+    final person = json['person'] as Map<String, dynamic>?;
     return Member(
       id: json['id'] as String,
-      name: json['name'] as String,
-      email: json['email'] as String?,
-      phone: json['phone'] as String?,
+      name: (json['name'] ?? person?['name']) as String,
+      email: (json['email'] ?? person?['email']) as String?,
+      phone: (json['phone'] ?? person?['phone']) as String?,
       gcId: json['gc_id'] as String,
       status: json['status'] as String,
       joinedAt: DateTime.parse(json['joined_at'] as String),

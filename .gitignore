@@ -15,3 +15,7 @@ Thumbs.db
 # Supabase
 supabase/.branches
 supabase/.temp
+
+# Storybook
+web/storybook-static/
+web/.storybook-cache/

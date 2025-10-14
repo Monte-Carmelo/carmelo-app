@@ -9,6 +9,7 @@ class GrowthGroup {
   final DateTime createdAt;
   final DateTime updatedAt;
   final DateTime? deletedAt;
+  final int? totalActiveMembers;
 
   const GrowthGroup({
     required this.id,
@@ -21,6 +22,7 @@ class GrowthGroup {
     required this.createdAt,
     required this.updatedAt,
     this.deletedAt,
+    this.totalActiveMembers,
   });
 
   factory GrowthGroup.fromJson(Map<String, dynamic> json) {
@@ -37,6 +39,7 @@ class GrowthGroup {
       deletedAt: json['deleted_at'] != null
           ? DateTime.parse(json['deleted_at'] as String)
           : null,
+      totalActiveMembers: json['total_active_members'] as int?,
     );
   }
 
@@ -52,6 +55,7 @@ class GrowthGroup {
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
       'deleted_at': deletedAt?.toIso8601String(),
+      'total_active_members': totalActiveMembers,
     };
   }
 }

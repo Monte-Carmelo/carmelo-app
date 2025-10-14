@@ -16,12 +16,12 @@ final reunioesServiceProvider = Provider((ref) {
 final reunioesListProvider = FutureProvider.family<List<Meeting>, String>(
   (ref, gcId) async {
     final service = ref.watch(reunioesServiceProvider);
-    return await service.listMeetings(gcId);
+    return await service.listMeetings(gcId: gcId);
   },
 );
 
 // Provider para detalhes de uma reunião específica
-final reuniaoDetailsProvider = FutureProvider.family<Meeting, String>(
+final reuniaoDetailsProvider = FutureProvider.family<Map<String, dynamic>, String>(
   (ref, meetingId) async {
     final service = ref.watch(reunioesServiceProvider);
     return await service.getMeeting(meetingId);
@@ -125,13 +125,14 @@ class ReuniaoFormNotifier extends StateNotifier<ReuniaoFormState> {
   }) async {
     state = state.copyWith(isLoading: true, error: null);
     try {
+      // Observações serão suporte futuro; evita warning até implementação
+      final _ = observacoes;
       final meeting = await _service.createMeeting(
         gcId: gcId,
-        dataHora: dataHora,
-        licaoId: licaoId,
-        observacoes: observacoes,
-        registradoPorUserId: registradoPorUserId,
+        datetime: dataHora,
+        lessonId: licaoId,
         attendanceList: state.attendanceList,
+        registeredByUserId: registradoPorUserId,
       );
 
       state = state.copyWith(

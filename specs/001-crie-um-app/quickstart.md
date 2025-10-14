@@ -1,4 +1,4 @@
-# Quickstart: Validação Manual do App de GCs
+# Quickstart: Validação Manual do Site de GCs
 
 **Feature**: 001-crie-um-app
 **Data**: 2025-10-04
@@ -6,7 +6,7 @@
 
 ## Pré-requisitos
 
-- [ ] App Flutter rodando em emulador/device (iOS ou Android)
+- [ ] Aplicação web Next.js rodando localmente (`npm run dev` em http://localhost:3000)
 - [ ] Supabase project configurado com migrations aplicadas
 - [ ] Seed data carregado (usuários de teste, GCs, lições)
 - [ ] Conexão com internet ativa (para Supabase sync)
@@ -17,7 +17,7 @@ Executar antes dos cenários:
 
 ```sql
 -- Criar usuários de teste
-INSERT INTO users (id, email, nome, hierarchy_depth, is_admin) VALUES
+INSERT INTO users (id, email, name, hierarchy_depth, is_admin) VALUES
   ('lider-001', 'lider1@test.com', 'João Líder', 1, FALSE),
   ('lider-002', 'lider2@test.com', 'Ana Co-Líder', 1, FALSE),
   ('supervisor-001', 'supervisor1@test.com', 'Maria Supervisora', 2, FALSE),
@@ -31,42 +31,36 @@ UPDATE users SET hierarchy_parent_id = 'supervisor-001' WHERE id = 'lider-002';
 UPDATE users SET hierarchy_parent_id = 'coordenador-001' WHERE id = 'supervisor-001';
 UPDATE users SET hierarchy_parent_id = 'coordenador-001' WHERE id = 'supervisor-002';
 
--- Criar GCs de teste (SEM lider_id/supervisor_id - relacionamentos vêm de gc_leaders/gc_supervisors)
-INSERT INTO growth_groups (id, nome, modalidade, status) VALUES
-  ('gc-001', 'GC Esperança', 'presencial', 'ativo'),
-  ('gc-002', 'GC Fé', 'online', 'ativo'),
-  ('gc-003', 'GC Amor', 'presencial', 'ativo');
+-- Criar GCs de teste (papéis serão definidos em growth_group_participants)
+INSERT INTO growth_groups (id, name, mode, status) VALUES
+  ('gc-001', 'GC Esperança', 'in_person', 'active'),
+  ('gc-002', 'GC Fé', 'online', 'active'),
+  ('gc-003', 'GC Amor', 'in_person', 'active');
 
-UPDATE growth_groups SET endereco = 'Rua Teste 123', dia_semana = 3, horario = '19:30'
+UPDATE growth_groups SET address = 'Rua Teste 123', weekday = 3, time = '19:30'
 WHERE id = 'gc-001';
 
--- Atribuir líderes aos GCs (múltiplos líderes permitidos)
-INSERT INTO gc_leaders (gc_id, user_id, role) VALUES
-  ('gc-001', 'lider-001', 'leader'),      -- João é líder principal do GC Esperança
-  ('gc-001', 'lider-002', 'co-leader'),   -- Ana é co-líder do GC Esperança (ex: casal)
-  ('gc-002', 'lider-001', 'leader'),      -- João também lidera GC Fé
-  ('gc-003', 'lider-002', 'leader');      -- Ana lidera GC Amor
-
--- Atribuir supervisores aos GCs (múltiplos supervisores permitidos)
-INSERT INTO gc_supervisors (gc_id, user_id) VALUES
-  ('gc-001', 'supervisor-001'),  -- Maria supervisiona GC Esperança
-  ('gc-001', 'supervisor-002'),  -- Carlos também supervisiona GC Esperança (estrutura matricial)
-  ('gc-002', 'supervisor-001'),  -- Maria supervisiona GC Fé
-  ('gc-003', 'supervisor-002');  -- Carlos supervisiona GC Amor
-
--- Criar membros de teste
-INSERT INTO members (id, nome, email, gc_id, status) VALUES
-  ('membro-001', 'Ana Silva', 'ana@test.com', 'gc-001', 'ativo'),
-  ('membro-002', 'Carlos Santos', 'carlos@test.com', 'gc-001', 'ativo'),
-  ('membro-003', 'Beatriz Lima', 'beatriz@test.com', 'gc-001', 'ativo'),
-  ('membro-004', 'Daniel Costa', 'daniel@test.com', 'gc-001', 'ativo'),
-  ('membro-005', 'Elaine Rocha', 'elaine@test.com', 'gc-001', 'ativo');
+-- Atribuir papéis (líderes, supervisores, membros) usando growth_group_participants
+INSERT INTO growth_group_participants (id, gc_id, person_id, role, status, joined_at)
+VALUES
+  ('ggp-001', 'gc-001', 'pessoa-001', 'leader', 'active', NOW()),
+  ('ggp-002', 'gc-001', 'pessoa-002', 'co_leader', 'active', NOW()),
+  ('ggp-003', 'gc-002', 'pessoa-001', 'leader', 'active', NOW()),
+  ('ggp-004', 'gc-003', 'pessoa-002', 'leader', 'active', NOW()),
+  ('ggp-005', 'gc-001', 'pessoa-003', 'supervisor', 'active', NOW()),
+  ('ggp-006', 'gc-002', 'pessoa-003', 'supervisor', 'active', NOW()),
+  ('ggp-007', 'gc-003', 'pessoa-004', 'supervisor', 'active', NOW()),
+  ('ggp-101', 'gc-001', 'pessoa-011', 'member', 'active', NOW()),
+  ('ggp-102', 'gc-001', 'pessoa-012', 'member', 'active', NOW()),
+  ('ggp-103', 'gc-001', 'pessoa-013', 'member', 'active', NOW()),
+  ('ggp-104', 'gc-001', 'pessoa-014', 'member', 'active', NOW()),
+  ('ggp-105', 'gc-002', 'pessoa-015', 'member', 'active', NOW());
 
 -- Criar série de lições de teste
-INSERT INTO lesson_series (id, nome, descricao, criado_por_user_id) VALUES
+INSERT INTO lesson_series (id, name, description, created_by_user_id) VALUES
   ('serie-001', 'Fundamentos da Fé', 'Série introdutória para novos membros', 'admin-001');
 
-INSERT INTO lessons (id, titulo, descricao, serie_id, ordem_na_serie, criado_por_user_id) VALUES
+INSERT INTO lessons (id, title, description, series_id, order_in_series, created_by_user_id) VALUES
   ('licao-001', 'O que é um Grupo de Crescimento?', 'Introdução ao conceito de GCs', 'serie-001', 1, 'admin-001'),
   ('licao-002', 'A importância da Comunhão', 'Koinonia e relacionamentos', 'serie-001', 2, 'admin-001'),
   ('licao-003', 'Servindo uns aos Outros', 'Dons espirituais e serviço', 'serie-001', 3, 'admin-001'),
@@ -86,13 +80,13 @@ ON CONFLICT (key) DO UPDATE SET value = '3';
 ### Passos
 
 1. **Login como Líder**
-   - [ ] Abrir app
+   - [ ] Abrir o site
    - [ ] Fazer login com `lider1@test.com` / `senha123`
    - [ ] Verificar que aparece tela inicial do líder
 
 2. **Navegar para Registro de Reunião**
-   - [ ] Na home, tocar em "GC Esperança" (gc-001)
-   - [ ] Tocar em botão "Nova Reunião" (+ ou FAB)
+   - [ ] Na home, clicar em "GC Esperança" (gc-001)
+   - [ ] Clicar em botão "Nova Reunião" (+ ou FAB)
    - [ ] Verificar que abre formulário de registro
 
 3. **Preencher Dados da Reunião**
@@ -107,7 +101,7 @@ ON CONFLICT (key) DO UPDATE SET value = '3';
    - [ ] Verificar contagem: "5 membros presentes"
 
 5. **Adicionar Visitantes**
-   - [ ] Tocar em "Adicionar Visitante"
+   - [ ] Clicar em "Adicionar Visitante"
    - [ ] Preencher formulário:
      - Nome: "Fernanda Oliveira"
      - Telefone: "(11) 98765-4321"
@@ -120,7 +114,7 @@ ON CONFLICT (key) DO UPDATE SET value = '3';
    - [ ] Verificar contagem: "2 visitantes"
 
 6. **Salvar Reunião**
-   - [ ] Tocar em "Salvar Reunião"
+   - [ ] Clicar em "Salvar Reunião"
    - [ ] Verificar loading indicator
    - [ ] Verificar mensagem de sucesso: "Reunião registrada!"
    - [ ] Verificar redirecionamento para tela de detalhes da reunião
@@ -137,19 +131,27 @@ ON CONFLICT (key) DO UPDATE SET value = '3';
 -- Verificar que reunião foi criada
 SELECT * FROM meetings
 WHERE gc_id = 'gc-001'
-  AND DATE(data_hora) = CURRENT_DATE
-  AND licao_id = 'licao-001';
+  AND DATE(datetime) = CURRENT_DATE
+  AND lesson_title = 'Semana 1 - Fundamentos';
 
 -- Verificar presenças (deve ter 7 registros: 5 membros + 2 visitantes)
-SELECT ma.*, v.nome as visitor_nome, m.nome as member_nome
-FROM meeting_attendance ma
-LEFT JOIN visitors v ON v.id = ma.visitor_id
-LEFT JOIN members m ON m.id = ma.member_id
-WHERE ma.meeting_id = [id_da_reuniao_criada];
+SELECT mma.*, p.name AS participant_name
+FROM meeting_member_attendance mma
+JOIN growth_group_participants ggp ON ggp.id = mma.participant_id
+JOIN people p ON p.id = ggp.person_id
+WHERE mma.meeting_id = [id_da_reuniao_criada];
+
+SELECT mva.*, pv.name AS visitor_name
+FROM meeting_visitor_attendance mva
+JOIN visitors v ON v.id = mva.visitor_id
+JOIN people pv ON pv.id = v.person_id
+WHERE mva.meeting_id = [id_da_reuniao_criada];
 
 -- Verificar visit_count dos visitantes (deve ser 1 para ambos)
-SELECT nome, visit_count FROM visitors
-WHERE nome IN ('Fernanda Oliveira', 'Gabriel Mendes');
+SELECT pv.name, v.visit_count
+FROM visitors v
+JOIN people pv ON pv.id = v.person_id
+WHERE pv.name IN ('Fernanda Oliveira', 'Gabriel Mendes');
 ```
 
 **Critério de Aceite**: ✅ Reunião salva, 7 presenças registradas, visitantes com visit_count=1.
@@ -166,19 +168,28 @@ Assumir que "Fernanda Oliveira" visitou novamente em 2 reuniões anteriores (tot
 
 ```sql
 -- Simular 2 visitas anteriores
-INSERT INTO meetings (id, gc_id, data_hora, registrado_por_user_id) VALUES
-  ('meeting-prev-1', 'gc-001', NOW() - INTERVAL '7 days', 'lider-001'),
-  ('meeting-prev-2', 'gc-001', NOW() - INTERVAL '14 days', 'lider-001');
+INSERT INTO meetings (id, gc_id, lesson_title, datetime, registered_by_user_id) VALUES
+  ('meeting-prev-1', 'gc-001', 'Semana Especial', NOW() - INTERVAL '7 days', 'lider-001'),
+  ('meeting-prev-2', 'gc-001', 'Semana Especial', NOW() - INTERVAL '14 days', 'lider-001');
 
 -- Marcar presença de Fernanda nas 2 reuniões anteriores
-INSERT INTO meeting_attendance (meeting_id, visitor_id, attendance_type)
-SELECT 'meeting-prev-1', id, 'visitor' FROM visitors WHERE nome = 'Fernanda Oliveira';
+INSERT INTO meeting_visitor_attendance (meeting_id, visitor_id)
+SELECT 'meeting-prev-1', v.id
+FROM visitors v
+JOIN people p ON p.id = v.person_id
+WHERE p.name = 'Fernanda Oliveira';
 
-INSERT INTO meeting_attendance (meeting_id, visitor_id, attendance_type)
-SELECT 'meeting-prev-2', id, 'visitor' FROM visitors WHERE nome = 'Fernanda Oliveira';
+INSERT INTO meeting_visitor_attendance (meeting_id, visitor_id)
+SELECT 'meeting-prev-2', v.id
+FROM visitors v
+JOIN people p ON p.id = v.person_id
+WHERE p.name = 'Fernanda Oliveira';
 
 -- Verificar visit_count (deve ser 3 após setup)
-SELECT visit_count FROM visitors WHERE nome = 'Fernanda Oliveira';
+SELECT v.visit_count
+FROM visitors v
+JOIN people p ON p.id = v.person_id
+WHERE p.name = 'Fernanda Oliveira';
 -- Esperado: 3
 ```
 
@@ -199,15 +210,20 @@ SELECT visit_count FROM visitors WHERE nome = 'Fernanda Oliveira';
 
 ```sql
 -- Verificar que visitante foi marcado como convertido
-SELECT visit_count, converted_to_member_at, converted_by_user_id
-FROM visitors
-WHERE nome = 'Fernanda Oliveira';
--- Esperado: visit_count=3, converted_to_member_at NOT NULL
+SELECT v.visit_count, v.converted_at, v.converted_by_user_id, v.converted_to_participant_id
+FROM visitors v
+JOIN people p ON p.id = v.person_id
+WHERE p.name = 'Fernanda Oliveira';
+-- Esperado: visit_count=3, converted_at NOT NULL, converted_to_participant_id NOT NULL
 
--- Verificar se membro foi criado (pode ser manual ou automático dependendo da implementação)
--- Se trigger criar membro automaticamente:
-SELECT * FROM members
-WHERE nome = 'Fernanda Oliveira' AND gc_id = 'gc-001';
+-- Verificar se participante ativo existe no GC
+SELECT ggp.*
+FROM growth_group_participants ggp
+JOIN people p ON p.id = ggp.person_id
+WHERE p.name = 'Fernanda Oliveira'
+  AND ggp.gc_id = 'gc-001'
+  AND ggp.role = 'member'
+  AND ggp.status = 'active';
 ```
 
 **Critério de Aceite**: ✅ Fernanda marcada como convertida após 3ª visita, aparece como membro no GC.
@@ -225,7 +241,7 @@ WHERE nome = 'Fernanda Oliveira' AND gc_id = 'gc-001';
    - [ ] Login com `supervisor1@test.com` / `senha123`
 
 2. **Acessar Dashboard**
-   - [ ] Na home, tocar em "Minha Rede" ou "Dashboard"
+   - [ ] Na home, clicar em "Minha Rede" ou "Dashboard"
    - [ ] Verificar que aparece lista de GCs (gc-001, gc-002, gc-003)
 
 3. **Visualizar Métricas de Cada GC**
@@ -239,13 +255,13 @@ WHERE nome = 'Fernanda Oliveira' AND gc_id = 'gc-001';
      - **Última Reunião**: "Nenhuma reunião registrada"
 
 4. **Filtrar e Ordenar**
-   - [ ] Tocar em filtro/ordenação
+   - [ ] Clicar em filtro/ordenação
    - [ ] Ordenar por "Frequência" (crescente): GC Esperança deve aparecer primeiro
    - [ ] Ordenar por "Crescimento": GC Esperança primeiro
    - [ ] Filtrar por "Status: Ativo": Todos 3 GCs aparecem
 
 5. **Detalhar um GC**
-   - [ ] Tocar em "GC Esperança"
+   - [ ] Clicar em "GC Esperança"
    - [ ] Verificar lista de membros (6 membros: 5 iniciais + Fernanda)
    - [ ] Verificar lista de reuniões (3 ou 4 reuniões registradas)
    - [ ] Verificar gráfico de presença (se implementado)
@@ -293,12 +309,12 @@ WHERE gs.user_id IN (
    - [ ] Login com `admin@test.com` / `senha123`
 
 2. **Acessar Gestão de Lições**
-   - [ ] Na home, tocar em menu hambúrguer / gaveta
-   - [ ] Tocar em "Lições" ou "Biblioteca de Lições"
+   - [ ] Na home, clicar em menu hambúrguer / gaveta
+   - [ ] Clicar em "Lições" ou "Biblioteca de Lições"
    - [ ] Verificar que aparece lista de séries existentes
 
 3. **Criar Nova Série**
-   - [ ] Tocar em "Nova Série" (+ FAB)
+   - [ ] Clicar em "Nova Série" (+ FAB)
    - [ ] Preencher formulário:
      - Nome: "Discipulado Essencial"
      - Descrição: "Série para novos convertidos"
@@ -306,8 +322,8 @@ WHERE gs.user_id IN (
    - [ ] Verificar que série aparece na lista
 
 4. **Adicionar Lições à Série**
-   - [ ] Tocar na série "Discipulado Essencial"
-   - [ ] Tocar em "Adicionar Lição"
+   - [ ] Clicar na série "Discipulado Essencial"
+   - [ ] Clicar em "Adicionar Lição"
    - [ ] Preencher lição 1:
      - Título: "Salvação e Nova Vida"
      - Descrição: "Compreendendo a salvação em Cristo"
@@ -359,24 +375,24 @@ ORDER BY ordem_na_serie;
    - [ ] Login com `coordenador1@test.com` / `senha123`
 
 2. **Acessar Gestão de GCs**
-   - [ ] Na home, tocar em "Minha Rede" ou "GCs Supervisionados"
+   - [ ] Na home, clicar em "Minha Rede" ou "GCs Supervisionados"
    - [ ] Verificar que aparece lista de GCs sob coordenação
 
 3. **Criar Novo GC e Atribuir João como Supervisor**
-   - [ ] Tocar em "Criar GC"
+   - [ ] Clicar em "Criar GC"
    - [ ] Preencher formulário:
      - Nome: "GC Paz"
      - Modalidade: "online"
      - Líder: Selecionar outro usuário (não João)
-     - Supervisor: **Adicionar "João Líder"** (além de manter supervisor existente se necessário)
+     - Supervisores: **Adicionar "João Líder"** (role='supervisor' em growth_group_participants)
    - [ ] Salvar GC
 
 4. **Verificar Múltiplos Papéis de João**
    - [ ] Logout do coordenador
    - [ ] Login como `lider1@test.com` (João)
    - [ ] Verificar que João agora vê:
-     - **Como Líder**: GC Esperança, GC Fé (via gc_leaders)
-     - **Como Supervisor**: GC Paz (via gc_supervisors)
+     - **Como Líder**: GC Esperança, GC Fé (via growth_group_participants role='leader')
+     - **Como Supervisor**: GC Paz (via growth_group_participants role='supervisor')
    - [ ] Verificar que João pode:
      - Registrar reunião em GC Esperança/Fé (papel de líder)
      - Visualizar métricas do GC Paz (papel de supervisor)
@@ -387,20 +403,22 @@ ORDER BY ordem_na_serie;
 ```sql
 -- Verificar que João é líder de 2 GCs
 SELECT gc.nome FROM growth_groups gc
-JOIN gc_leaders gl ON gl.gc_id = gc.id
-WHERE gl.user_id = 'lider-001';
+JOIN growth_group_participants ggp ON ggp.gc_id = gc.id
+JOIN users u ON u.person_id = ggp.person_id
+WHERE u.id = 'lider-001' AND ggp.role IN ('leader','co_leader') AND ggp.status = 'active';
 -- Esperado: GC Esperança, GC Fé
 
 -- Verificar que João agora TAMBÉM é supervisor de 1 GC
 SELECT gc.nome FROM growth_groups gc
-JOIN gc_supervisors gs ON gs.gc_id = gc.id
-WHERE gs.user_id = 'lider-001';
+JOIN growth_group_participants ggp ON ggp.gc_id = gc.id
+JOIN users u ON u.person_id = ggp.person_id
+WHERE u.id = 'lider-001' AND ggp.role = 'supervisor' AND ggp.status = 'active';
 -- Esperado: GC Paz
 
 -- Verificar papéis acumulados via view user_roles (se implementada)
 SELECT is_leader, is_supervisor, is_coordinator,
-       total_gcs_liderados, total_gcs_supervisionados
-FROM user_roles
+       gcs_led, gcs_supervised
+FROM user_gc_roles
 WHERE user_id = 'lider-001';
 -- Esperado: is_leader=true, is_supervisor=true, is_coordinator=false
 --           total_gcs_liderados=2, total_gcs_supervisionados=1
@@ -433,12 +451,12 @@ Após executar todos os 5 cenários:
 | Problema | Comportamento Esperado | Status |
 |----------|------------------------|--------|
 | Visitante com mesmo nome mas telefones diferentes | Sistema cria 2 visitantes separados | ⚠️ Documentar em limitations |
-| Reunião com data futura | App deve bloquear ou avisar | [ ] Validar |
+| Reunião com data futura | Site deve bloquear ou avisar | [ ] Validar |
 | Líder tenta registrar reunião de GC de outro líder | RLS bloqueia insert (403) | [ ] Testar |
 | Admin deleta série com lições em uso | Lições ficam órfãs (licao.serie_id=NULL) ou CASCADE delete? | [ ] Definir comportamento |
 | Remover último líder de um GC | Trigger `ensure_gc_has_leader` bloqueia delete (EXCEPTION) | ✅ Implementado no data-model |
 | Remover último supervisor de um GC | Trigger `ensure_gc_has_supervisor` bloqueia delete (EXCEPTION) | ✅ Implementado no data-model |
-| GC com 2 líderes (casal) - ambos registram mesma reunião | App deve detectar duplicata ou permitir co-registro | [ ] Definir UX |
+| GC com 2 líderes (casal) - ambos registram mesma reunião | Site deve detectar duplicata ou permitir co-registro | [ ] Definir UX |
 | GC com múltiplos supervisores - qual recebe notificação? | Todos supervisores recebem notificações (FR-016 diferido) | ⚠️ Implementar quando FR-016 |
 
 ---
@@ -447,7 +465,7 @@ Após executar todos os 5 cenários:
 
 **Executado por**: __________________
 **Data**: __________________
-**Versão do App**: __________________
+**Versão do Site**: __________________
 
 ### Cenários Aprovados
 - [ ] Cenário 1: Líder registra reunião

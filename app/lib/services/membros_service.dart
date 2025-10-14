@@ -12,22 +12,25 @@ class MembrosService {
     String? status,
   }) async {
     try {
-      var query = _supabase
+      final query = _supabase
           .from('members')
-          .select()
+          .select(
+            'id, gc_id, status, joined_at, created_at, updated_at, deleted_at, '
+            'converted_from_visitor_id, person:people(name, email, phone)',
+          )
           .eq('gc_id', gcId)
           .isFilter('deleted_at', null);
 
       if (status != null) {
-        query = query.eq('status', status);
+        query.eq('status', status);
       }
 
-      query = query.order('nome');
-
-      final response = await query;
-      return List<Member>.from(
-        response.map((item) => Member.fromJson(item)),
+      final response = await query.order('joined_at');
+      final members = List<Member>.from(
+        (response as List).map((item) => Member.fromJson(_mapMember(item))),
       );
+      members.sort((a, b) => a.name.compareTo(b.name));
+      return members;
     } catch (e) {
       throw Exception('Erro ao listar membros: $e');
     }
@@ -47,21 +50,33 @@ class MembrosService {
         throw Exception('Email ou telefone é obrigatório');
       }
 
-      final response = await _supabase
-          .from('members')
+      // Criar pessoa
+      final personData = await _supabase
+          .from('people')
           .insert({
-            'gc_id': gcId,
-            'nome': nome,
+            'name': nome,
             'email': email,
-            'telefone': telefone,
-            'status': 'ativo',
-            if (convertedFromVisitorId != null)
-              'converted_from_visitor_id': convertedFromVisitorId,
+            'phone': telefone,
           })
           .select()
           .single();
 
-      return Member.fromJson(response);
+      final response = await _supabase
+          .from('members')
+          .insert({
+            'gc_id': gcId,
+            'person_id': personData['id'],
+            'status': 'active',
+            if (convertedFromVisitorId != null)
+              'converted_from_visitor_id': convertedFromVisitorId,
+          })
+          .select(
+            'id, gc_id, status, joined_at, created_at, updated_at, deleted_at, '
+            'converted_from_visitor_id, person:people(name, email, phone)',
+          )
+          .single();
+
+      return Member.fromJson(_mapMember(response));
     } catch (e) {
       throw Exception('Erro ao adicionar membro: $e');
     }
@@ -76,24 +91,48 @@ class MembrosService {
     String? status,
   }) async {
     try {
-      final updates = <String, dynamic>{};
-      if (nome != null) updates['nome'] = nome;
-      if (email != null) updates['email'] = email;
-      if (telefone != null) updates['telefone'] = telefone;
-      if (status != null) updates['status'] = status;
+      final memberResponse = await _supabase
+          .from('members')
+          .select('person_id')
+          .eq('id', id)
+          .maybeSingle();
 
-      if (updates.isEmpty) {
-        throw Exception('Nenhum campo para atualizar');
+      if (memberResponse == null) {
+        throw Exception('Membro não encontrado');
+      }
+
+      final memberUpdates = <String, dynamic>{};
+      if (status != null) memberUpdates['status'] = status;
+
+      if (memberUpdates.isNotEmpty) {
+        await _supabase
+            .from('members')
+            .update(memberUpdates)
+            .eq('id', id);
+      }
+
+      final personUpdates = <String, dynamic>{};
+      if (nome != null) personUpdates['name'] = nome;
+      if (email != null) personUpdates['email'] = email;
+      if (telefone != null) personUpdates['phone'] = telefone;
+
+      if (personUpdates.isNotEmpty) {
+        await _supabase
+            .from('people')
+            .update(personUpdates)
+            .eq('id', memberResponse['person_id']);
       }
 
       final response = await _supabase
           .from('members')
-          .update(updates)
+          .select(
+            'id, gc_id, status, joined_at, created_at, updated_at, deleted_at, '
+            'converted_from_visitor_id, person:people(name, email, phone)',
+          )
           .eq('id', id)
-          .select()
           .single();
 
-      return Member.fromJson(response);
+      return Member.fromJson(_mapMember(response));
     } catch (e) {
       throw Exception('Erro ao atualizar membro: $e');
     }
@@ -105,7 +144,7 @@ class MembrosService {
       await _supabase
           .from('members')
           .update({
-            'status': 'inativo',
+            'status': 'inactive',
             'deleted_at': DateTime.now().toIso8601String(),
           })
           .eq('id', id);
@@ -119,7 +158,10 @@ class MembrosService {
     try {
       final response = await _supabase
           .from('members')
-          .select()
+          .select(
+            'id, gc_id, status, joined_at, created_at, updated_at, deleted_at, '
+            'converted_from_visitor_id, person:people(name, email, phone)',
+          )
           .eq('id', id)
           .isFilter('deleted_at', null)
           .maybeSingle();
@@ -128,7 +170,7 @@ class MembrosService {
         return null;
       }
 
-      return Member.fromJson(response);
+      return Member.fromJson(_mapMember(response));
     } catch (e) {
       throw Exception('Erro ao buscar membro: $e');
     }
@@ -144,15 +186,28 @@ class MembrosService {
           .from('members')
           .update({
             'gc_id': newGcId,
-            'status': 'transferido',
+            'status': 'transferred',
           })
           .eq('id', memberId)
-          .select()
+          .select(
+            'id, gc_id, status, joined_at, created_at, updated_at, deleted_at, '
+            'converted_from_visitor_id, person:people(name, email, phone)',
+          )
           .single();
 
-      return Member.fromJson(response);
+      return Member.fromJson(_mapMember(response));
     } catch (e) {
       throw Exception('Erro ao transferir membro: $e');
     }
+  }
+
+  Map<String, dynamic> _mapMember(Map<String, dynamic> data) {
+    final person = data['person'] as Map<String, dynamic>?;
+    return {
+      ...data,
+      if (person != null) 'name': person['name'],
+      if (person != null) 'email': person['email'],
+      if (person != null) 'phone': person['phone'],
+    };
   }
 }

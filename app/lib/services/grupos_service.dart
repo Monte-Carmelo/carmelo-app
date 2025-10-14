@@ -13,21 +13,22 @@ class GruposService {
     int offset = 0,
   }) async {
     try {
-      var query = _supabase
+      final response = await _supabase
           .from('growth_groups')
           .select()
           .isFilter('deleted_at', null)
-          .order('nome')
+          .order('name')
           .range(offset, offset + limit - 1);
 
-      if (status != null) {
-        query = query.eq('status', status);
-      }
-
-      final response = await query;
-      return (response as List)
+      final groups = (response as List)
           .map((item) => GrowthGroup.fromJson(item))
           .toList();
+
+      if (status != null) {
+        return groups.where((gc) => gc.status == status).toList();
+      }
+
+      return groups;
     } catch (e) {
       throw Exception('Erro ao listar GCs: $e');
     }
@@ -35,38 +36,38 @@ class GruposService {
 
   /// Create a new growth group with leaders and supervisors
   Future<GrowthGroup> createGrowthGroup({
-    required String nome,
-    required String modalidade,
+    required String name,
+    required String mode,
     required List<String> leaderIds,
     required List<String> supervisorIds,
-    String? endereco,
-    int? diaSemana,
-    String? horario,
+    String? address,
+    int? weekday,
+    String? time,
   }) async {
     try {
       // Validar que presencial tem endereço
-      if (modalidade == 'presencial' && (endereco == null || endereco.isEmpty)) {
-        throw Exception('Endereço é obrigatório para GCs presenciais');
+      if (mode == 'in_person' && (address == null || address.isEmpty)) {
+        throw Exception('Address is required for in-person growth groups');
       }
 
       // Validar que há pelo menos 1 líder e 1 supervisor
       if (leaderIds.isEmpty) {
-        throw Exception('GC deve ter pelo menos 1 líder');
+        throw Exception('Growth group must have at least one leader');
       }
       if (supervisorIds.isEmpty) {
-        throw Exception('GC deve ter pelo menos 1 supervisor');
+        throw Exception('Growth group must have at least one supervisor');
       }
 
       // Criar GC
       final gcData = await _supabase
           .from('growth_groups')
           .insert({
-            'nome': nome,
-            'modalidade': modalidade,
-            'endereco': endereco,
-            'dia_semana': diaSemana,
-            'horario': horario,
-            'status': 'ativo',
+            'name': name,
+            'mode': mode,
+            'address': address,
+            'weekday': weekday,
+            'time': time,
+            'status': 'active',
           })
           .select()
           .single();
@@ -78,7 +79,7 @@ class GruposService {
         await _supabase.from('gc_leaders').insert({
           'gc_id': gcId,
           'user_id': leaderIds[i],
-          'role': i == 0 ? 'leader' : 'co-leader', // Primeiro é leader, demais co-leader
+          'role': i == 0 ? 'leader' : 'co_leader',
         });
       }
 
@@ -119,20 +120,20 @@ class GruposService {
   /// Update growth group
   Future<GrowthGroup> updateGrowthGroup({
     required String id,
-    String? nome,
-    String? modalidade,
-    String? endereco,
-    int? diaSemana,
-    String? horario,
+    String? name,
+    String? mode,
+    String? address,
+    int? weekday,
+    String? time,
     String? status,
   }) async {
     try {
       final updates = <String, dynamic>{};
-      if (nome != null) updates['nome'] = nome;
-      if (modalidade != null) updates['modalidade'] = modalidade;
-      if (endereco != null) updates['endereco'] = endereco;
-      if (diaSemana != null) updates['dia_semana'] = diaSemana;
-      if (horario != null) updates['horario'] = horario;
+      if (name != null) updates['name'] = name;
+      if (mode != null) updates['mode'] = mode;
+      if (address != null) updates['address'] = address;
+      if (weekday != null) updates['weekday'] = weekday;
+      if (time != null) updates['time'] = time;
       if (status != null) updates['status'] = status;
 
       if (updates.isEmpty) {
@@ -159,7 +160,7 @@ class GruposService {
       await _supabase
           .from('growth_groups')
           .update({
-            'status': 'inativo',
+            'status': 'inactive',
             'deleted_at': DateTime.now().toIso8601String(),
           })
           .eq('id', id);
@@ -173,7 +174,8 @@ class GruposService {
     try {
       final response = await _supabase
           .from('gc_leaders')
-          .select('user_id, role, users!inner(id, nome, email)')
+          .select(
+              'user_id, role, added_at, user:users!inner(id, is_admin, hierarchy_parent_id, hierarchy_path, hierarchy_depth, person:people(name, email))')
           .eq('gc_id', gcId);
 
       return List<Map<String, dynamic>>.from(response);
@@ -187,7 +189,8 @@ class GruposService {
     try {
       final response = await _supabase
           .from('gc_supervisors')
-          .select('user_id, users!inner(id, nome, email)')
+          .select(
+              'user_id, added_at, user:users!inner(id, is_admin, hierarchy_parent_id, hierarchy_path, hierarchy_depth, person:people(name, email))')
           .eq('gc_id', gcId);
 
       return List<Map<String, dynamic>>.from(response);
@@ -203,7 +206,7 @@ class GruposService {
           .from('members')
           .select()
           .eq('gc_id', gcId)
-          .eq('status', 'ativo')
+          .eq('status', 'active')
           .isFilter('deleted_at', null)
           .count();
 

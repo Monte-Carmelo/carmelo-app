@@ -16,7 +16,7 @@ class SupabaseConfig {
 
   static const String _supabaseAnonKey = String.fromEnvironment(
     'SUPABASE_ANON_KEY',
-    defaultValue: 'your-anon-key',
+    defaultValue: 'sb_publishable_ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH',
   );
 
   /// Initialize Supabase with PKCE auth flow for enhanced security

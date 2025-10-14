@@ -7,34 +7,49 @@ class AuthService {
   AuthService(this._supabase);
 
   /// Sign up a new user with email and password
-  Future<app_models.User?> signup({
+  Future<app_models.User> signup({
     required String email,
     required String password,
-    required String nome,
+    required String name,
+    String? phone,
   }) async {
     try {
       final response = await _supabase.auth.signUp(
         email: email,
         password: password,
-        data: {'name': nome},
+        data: {'name': name},
       );
 
       if (response.user == null) {
         throw Exception('Falha ao criar usuário');
       }
 
-      // Criar registro na tabela users
-      final userData = await _supabase
-          .from('users')
+      // Criar pessoa básica para o usuário
+      final personData = await _supabase
+          .from('people')
           .insert({
-            'id': response.user!.id,
+            'name': name,
             'email': email,
-            'name': nome,
+            if (phone != null) 'phone': phone,
           })
           .select()
           .single();
 
-      return app_models.User.fromJson(userData);
+      // Criar registro na tabela users vinculando à pessoa
+      final userData = await _supabase
+          .from('users')
+          .insert({
+            'id': response.user!.id,
+            'person_id': personData['id'],
+          })
+          .select(
+            'id, hierarchy_parent_id, hierarchy_path, hierarchy_depth, '
+            'is_admin, created_at, updated_at, deleted_at, '
+            'person:people(name, email, phone)',
+          )
+          .single();
+
+      return _mapToAppUser(userData);
     } on AuthException catch (e) {
       throw Exception('Erro ao cadastrar: ${e.message}');
     } catch (e) {
@@ -43,7 +58,7 @@ class AuthService {
   }
 
   /// Login with email and password
-  Future<app_models.User?> login({
+  Future<app_models.User> login({
     required String email,
     required String password,
   }) async {
@@ -60,11 +75,15 @@ class AuthService {
       // Buscar dados do usuário na tabela users
       final userData = await _supabase
           .from('users')
-          .select()
+          .select(
+            'id, hierarchy_parent_id, hierarchy_path, hierarchy_depth, '
+            'is_admin, created_at, updated_at, deleted_at, '
+            'person:people(name, email, phone)',
+          )
           .eq('id', response.user!.id)
           .single();
 
-      return app_models.User.fromJson(userData);
+      return _mapToAppUser(userData);
     } on AuthException catch (e) {
       throw Exception('Erro ao fazer login: ${e.message}');
     } catch (e) {
@@ -91,11 +110,19 @@ class AuthService {
 
       final userData = await _supabase
           .from('users')
-          .select()
+          .select(
+            'id, hierarchy_parent_id, hierarchy_path, hierarchy_depth, '
+            'is_admin, created_at, updated_at, deleted_at, '
+            'person:people(name, email, phone)',
+          )
           .eq('id', currentUser.id)
-          .single();
+          .maybeSingle();
 
-      return app_models.User.fromJson(userData);
+      if (userData == null) {
+        return null;
+      }
+
+      return _mapToAppUser(userData);
     } catch (e) {
       return null;
     }
@@ -114,5 +141,16 @@ class AuthService {
   /// Listen to auth state changes
   Stream<AuthState> get authStateChanges {
     return _supabase.auth.onAuthStateChange;
+  }
+
+  app_models.User _mapToAppUser(Map<String, dynamic> data) {
+    final person = data['person'] as Map<String, dynamic>?;
+    final merged = {
+      ...data,
+      if (person != null) 'name': person['name'],
+      if (person != null) 'email': person['email'],
+      if (person != null) 'phone': person['phone'],
+    };
+    return app_models.User.fromJson(merged);
   }
 }

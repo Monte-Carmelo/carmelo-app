@@ -8,17 +8,17 @@
 | Portuguese | English | Notes |
 |------------|---------|-------|
 | pessoas | people | Base entity for personal data |
-| growth_groups | growth_groups | ✅ Already English |
-| gc_leaders | gc_leaders | ✅ Already English |
-| gc_supervisors | gc_supervisors | ✅ Already English |
-| users | users | ✅ Already English |
-| members | members | ✅ Already English |
-| visitors | visitors | ✅ Already English |
-| meetings | meetings | ✅ Already English |
-| meeting_attendance | meeting_attendance | ✅ Already English |
-| lessons | lessons | ✅ Already English |
-| lesson_series | lesson_series | ✅ Already English |
-| config | config | ✅ Already English |
+| usuarios | users | Auth + hierarchy |
+| grupos_crescimento | growth_groups | Growth groups catalog |
+| participantes_gc | growth_group_participants | Papéis (leader/co_leader/supervisor/member) |
+| visitantes | visitors | Visitors linked to GC |
+| series_licoes | lesson_series | Lesson series catalog |
+| licoes | lessons | Individual lessons |
+| reunioes | meetings | Meeting instances |
+| presenca_membros | meeting_member_attendance | GC participant attendance |
+| presenca_visitantes | meeting_visitor_attendance | Visitor attendance |
+| eventos_conversao_visitantes | visitor_conversion_events | Conversion audit log |
+| configuracoes | config | Key/value configuration |
 
 ## Column Names by Table
 
@@ -34,231 +34,189 @@
 | updated_at | updated_at | TIMESTAMPTZ | ✅ Already English |
 | deleted_at | deleted_at | TIMESTAMPTZ | ✅ Already English |
 
-### Table: users
+### Table: usuarios → users
 
 | Portuguese | English | Type | Notes |
 |------------|---------|------|-------|
-| pessoa_id | person_id | UUID | FK to people table |
-| hierarchy_parent_id | hierarchy_parent_id | UUID | ✅ Already English |
-| hierarchy_path | hierarchy_path | TEXT | ✅ Already English |
-| hierarchy_depth | hierarchy_depth | INT | ✅ Already English |
+| pessoa_id | person_id | UUID | FK to people |
+| pai_hierarquia_id | hierarchy_parent_id | UUID | Parent user in hierarchy |
+| caminho_hierarquia | hierarchy_path | TEXT | materialized path |
+| profundidade | hierarchy_depth | INT | Depth level |
 | is_admin | is_admin | BOOLEAN | ✅ Already English |
 | created_at | created_at | TIMESTAMPTZ | ✅ Already English |
 | updated_at | updated_at | TIMESTAMPTZ | ✅ Already English |
 | deleted_at | deleted_at | TIMESTAMPTZ | ✅ Already English |
 
-### Table: growth_groups
+### Table: grupos_crescimento → growth_groups
 
 | Portuguese | English | Type | Notes |
 |------------|---------|------|-------|
 | nome | name | TEXT | GC name |
-| modalidade | mode | TEXT | 'presencial' → 'in_person', 'online' → 'online', 'hibrido' → 'hybrid' |
-| endereco | address | TEXT | Physical address |
-| dia_semana | weekday | INT | Day of week (0-6) |
+| modalidade | mode | TEXT | 'presencial' → 'in_person', 'online', 'hibrido' → 'hybrid' |
+| endereco | address | TEXT | Required when `mode = in_person` |
+| dia_semana | weekday | INT | 0 (domingo) .. 6 (sábado) |
 | horario | time | TIME | Meeting time |
-| status | status | TEXT | 'ativo' → 'active', 'inativo' → 'inactive', 'multiplicacao' → 'multiplying' |
+| status | status | TEXT | 'ativo' → 'active', etc. |
 | created_at | created_at | TIMESTAMPTZ | ✅ Already English |
 | updated_at | updated_at | TIMESTAMPTZ | ✅ Already English |
 | deleted_at | deleted_at | TIMESTAMPTZ | ✅ Already English |
 
-### Table: gc_leaders
+### Table: participantes_gc → growth_group_participants
 
 | Portuguese | English | Type | Notes |
 |------------|---------|------|-------|
-| gc_id | gc_id | UUID | ✅ Already English |
-| user_id | user_id | UUID | ✅ Already English |
-| role | role | TEXT | 'leader' → 'leader', 'co-leader' → 'co_leader' |
-| added_at | added_at | TIMESTAMPTZ | ✅ Already English |
-
-### Table: gc_supervisors
-
-| Portuguese | English | Type | Notes |
-|------------|---------|------|-------|
-| gc_id | gc_id | UUID | ✅ Already English |
-| user_id | user_id | UUID | ✅ Already English |
-| added_at | added_at | TIMESTAMPTZ | ✅ Already English |
-
-### Table: members
-
-| Portuguese | English | Type | Notes |
-|------------|---------|------|-------|
-| pessoa_id | person_id | UUID | FK to people table |
-| gc_id | gc_id | UUID | ✅ Already English |
+| gc_id | gc_id | UUID | FK to growth_groups |
+| pessoa_id | person_id | UUID | FK to people |
+| papel | role | TEXT | 'membro' → 'member', 'lider' → 'leader', etc. |
 | status | status | TEXT | 'ativo' → 'active', 'inativo' → 'inactive', 'transferido' → 'transferred' |
-| joined_at | joined_at | TIMESTAMPTZ | ✅ Already English |
-| converted_from_visitor_id | converted_from_visitor_id | UUID | ✅ Already English |
-| created_at | created_at | TIMESTAMPTZ | ✅ Already English |
-| updated_at | updated_at | TIMESTAMPTZ | ✅ Already English |
-| deleted_at | deleted_at | TIMESTAMPTZ | ✅ Already English |
+| entrou_em | joined_at | TIMESTAMPTZ | Join timestamp |
+| saiu_em | left_at | TIMESTAMPTZ | Nullable |
+| criado_por_user_id | added_by_user_id | UUID | User who added |
+| convertido_de_visitante_id | converted_from_visitor_id | UUID | Nullable |
+| anotacoes | notes | TEXT | Nullable |
+| created_at | created_at | TIMESTAMPTZ | ✅ |
+| updated_at | updated_at | TIMESTAMPTZ | ✅ |
+| deleted_at | deleted_at | TIMESTAMPTZ | ✅ |
 
-### Table: visitors
-
-| Portuguese | English | Type | Notes |
-|------------|---------|------|-------|
-| pessoa_id | person_id | UUID | FK to people table |
-| visit_count | visit_count | INT | ✅ Already English |
-| first_visit_date | first_visit_date | TIMESTAMPTZ | ✅ Already English |
-| last_visit_date | last_visit_date | TIMESTAMPTZ | ✅ Already English |
-| converted_to_member_at | converted_to_member_at | TIMESTAMPTZ | ✅ Already English |
-| converted_by_user_id | converted_by_user_id | UUID | ✅ Already English |
-| converted_to_member_id | converted_to_member_id | UUID | ✅ Already English |
-| created_at | created_at | TIMESTAMPTZ | ✅ Already English |
-| updated_at | updated_at | TIMESTAMPTZ | ✅ Already English |
-
-### Table: lesson_series
+### Table: visitantes → visitors
 
 | Portuguese | English | Type | Notes |
 |------------|---------|------|-------|
-| nome | name | TEXT | Series name |
+| pessoa_id | person_id | UUID | FK to people |
+| gc_id | gc_id | UUID | GC context |
+| status | status | TEXT | 'ativo', 'convertido', 'inativo' |
+| total_visitas | visit_count | INT | Visit counter |
+| primeira_visita_em | first_visit_date | TIMESTAMPTZ | Timestamp |
+| ultima_visita_em | last_visit_date | TIMESTAMPTZ | Nullable |
+| convertido_em | converted_at | TIMESTAMPTZ | Nullable |
+| convertido_por_user_id | converted_by_user_id | UUID | Nullable |
+| convertido_para_participante_id | converted_to_participant_id | UUID | Nullable |
+| created_at | created_at | TIMESTAMPTZ | ✅ |
+| updated_at | updated_at | TIMESTAMPTZ | ✅ |
+
+### Table: series_licoes → lesson_series
+
+| Portuguese | English | Type | Notes |
+|------------|---------|------|-------|
+| nome | name | TEXT | Series title |
 | descricao | description | TEXT | Description |
-| criado_por_user_id | created_by_user_id | UUID | Created by user |
-| created_at | created_at | TIMESTAMPTZ | ✅ Already English |
-| updated_at | updated_at | TIMESTAMPTZ | ✅ Already English |
+| criado_por_user_id | created_by_user_id | UUID | Owner |
+| created_at | created_at | TIMESTAMPTZ | ✅ |
+| updated_at | updated_at | TIMESTAMPTZ | ✅ |
 
-### Table: lessons
+### Table: licoes → lessons
 
 | Portuguese | English | Type | Notes |
 |------------|---------|------|-------|
 | titulo | title | TEXT | Lesson title |
-| descricao | description | TEXT | Description |
-| referencias_biblicas | bible_references | TEXT | Bible references |
+| descricao | description | TEXT | Summary |
 | serie_id | series_id | UUID | FK to lesson_series |
-| link | link | TEXT | ✅ Already English |
-| ordem_na_serie | order_in_series | INT | Order in series |
-| criado_por_user_id | created_by_user_id | UUID | Created by user |
-| created_at | created_at | TIMESTAMPTZ | ✅ Already English |
-| updated_at | updated_at | TIMESTAMPTZ | ✅ Already English |
+| link | link | TEXT | Optional external resource |
+| ordem_na_serie | order_in_series | INT | Order |
+| criado_por_user_id | created_by_user_id | UUID | Author |
+| created_at | created_at | TIMESTAMPTZ | ✅ |
+| updated_at | updated_at | TIMESTAMPTZ | ✅ |
 
-### Table: meetings
-
-| Portuguese | English | Type | Notes |
-|------------|---------|------|-------|
-| gc_id | gc_id | UUID | ✅ Already English |
-| data_hora | datetime | TIMESTAMPTZ | Meeting date and time |
-| licao_id | lesson_id | UUID | FK to lessons |
-| registrado_por_user_id | registered_by_user_id | UUID | Registered by user |
-| created_at | created_at | TIMESTAMPTZ | ✅ Already English |
-| updated_at | updated_at | TIMESTAMPTZ | ✅ Already English |
-
-### Table: meeting_attendance
+### Table: reunioes → meetings
 
 | Portuguese | English | Type | Notes |
 |------------|---------|------|-------|
-| meeting_id | meeting_id | UUID | ✅ Already English |
-| member_id | member_id | UUID | ✅ Already English |
-| visitor_id | visitor_id | UUID | ✅ Already English |
-| attendance_type | attendance_type | TEXT | ✅ Already English |
-| created_at | created_at | TIMESTAMPTZ | ✅ Already English |
+| gc_id | gc_id | UUID | ✅ |
+| licao_modelo_id | lesson_template_id | UUID | Nullable FK to lessons |
+| titulo_licao | lesson_title | TEXT | Required, can override template |
+| data_hora | datetime | TIMESTAMPTZ | Meeting timestamp |
+| comentarios | comments | TEXT | Optional notes |
+| registrado_por_user_id | registered_by_user_id | UUID | User who logged meeting |
+| created_at | created_at | TIMESTAMPTZ | ✅ |
+| updated_at | updated_at | TIMESTAMPTZ | ✅ |
+| deleted_at | deleted_at | TIMESTAMPTZ | Nullable soft delete |
+
+### Table: presenca_membros → meeting_member_attendance
+
+| Portuguese | English | Type | Notes |
+|------------|---------|------|-------|
+| reuniao_id | meeting_id | UUID | FK to meetings |
+| participante_id | participant_id | UUID | FK to growth_group_participants |
+| created_at | created_at | TIMESTAMPTZ | ✅ |
+
+### Table: presenca_visitantes → meeting_visitor_attendance
+
+| Portuguese | English | Type | Notes |
+|------------|---------|------|-------|
+| reuniao_id | meeting_id | UUID | FK to meetings |
+| visitante_id | visitor_id | UUID | FK to visitors |
+| created_at | created_at | TIMESTAMPTZ | ✅ |
+
+### Table: eventos_conversao_visitantes → visitor_conversion_events
+
+| Portuguese | English | Type | Notes |
+|------------|---------|------|-------|
+| visitante_id | visitor_id | UUID | FK to visitors |
+| participante_id | participant_id | UUID | FK to growth_group_participants |
+| pessoa_id | person_id | UUID | Redundant FK for convenience |
+| gc_id | gc_id | UUID | GC context |
+| convertido_em | converted_at | TIMESTAMPTZ | Timestamp |
+| convertido_por_user_id | converted_by_user_id | UUID | Nullable |
+| origem_conversao | conversion_source | TEXT | 'auto' / 'manual' |
+| notas | notes | TEXT | Optional |
+| created_at | created_at | TIMESTAMPTZ | ✅ |
+
+### Table: configuracoes → config
+
+| Portuguese | English | Type | Notes |
+|------------|---------|------|-------|
+| chave | key | TEXT | Config key |
+| valor | value | JSONB | Config value |
+| descricao | description | TEXT | Optional |
+| updated_at | updated_at | TIMESTAMPTZ | ✅ |
 
 ## View Names
 
 | Portuguese | English | Notes |
 |------------|---------|-------|
-| dashboard_metricas | dashboard_metrics | Dashboard metrics view |
-| user_roles | user_roles | ✅ Already English |
+| dashboard_metricas | dashboard_metrics | GC metrics view |
+| user_gc_roles | user_gc_roles | Aggregated GC roles per user |
 
 ## View Columns: dashboard_metricas → dashboard_metrics
 
 | Portuguese | English | Notes |
 |------------|---------|-------|
 | gc_nome | gc_name | Growth group name |
-| total_reunioes_mes_atual | total_meetings_current_month | Count |
-| media_presenca | average_attendance | Average attendance |
-| total_membros_ativos | total_active_members | Count |
-| conversoes_ultimo_mes | conversions_last_month | Count |
-| novos_membros_ultimo_mes | new_members_last_month | Count |
-| total_lideres | total_leaders | Count |
-| total_supervisores | total_supervisors | Count |
+| reunioes_mes_atual | meetings_current_month | Count |
+| media_presenca_30d | average_attendance | Rounded average |
+| membros_ativos | total_active_members | Count |
+| novos_membros_30d | new_members_30d | Count |
+| conversoes_30d | conversions_30d | Count |
+| visitantes_unicos_30d | unique_visitors_30d | Count |
+| taxa_conversao_pct | conversion_rate_pct | Percentage |
 
-## View Columns: user_roles
+## View Columns: user_gc_roles
 
 | Portuguese | English | Notes |
 |------------|---------|-------|
 | nome | name | User name |
-| email | email | ✅ Already English |
-| is_leader | is_leader | ✅ Already English |
-| is_supervisor | is_supervisor | ✅ Already English |
-| is_coordinator | is_coordinator | ✅ Already English |
-| is_admin | is_admin | ✅ Already English |
-| gcs_liderados | gcs_led | GCs led count |
-| gcs_supervisionados | gcs_supervised | GCs supervised count |
-| subordinados_diretos | direct_subordinates | Count |
+| email | email | ✅ |
+| is_leader | is_leader | ✅ |
+| is_supervisor | is_supervisor | ✅ |
+| is_coordinator | is_coordinator | ✅ |
+| is_admin | is_admin | ✅ |
+| total_gcs_liderados | gcs_led | Count |
+| total_gcs_supervisionados | gcs_supervised | Count |
+| total_subordinados | direct_subordinates | Count |
 
 ## Function Names
 
 | Portuguese | English | Notes |
 |------------|---------|-------|
-| update_timestamp() | update_timestamp() | ✅ Already English |
-| update_hierarchy_path() | update_hierarchy_path() | ✅ Already English |
-| auto_convert_visitor() | auto_convert_visitor() | ✅ Already English |
+| atualizar_timestamp() | update_timestamp() | Trigger helper |
+| atualizar_caminho_hierarquia() | update_hierarchy_path() | Hierarchy trigger |
+| converter_visitante_automaticamente() | auto_convert_visitor() | Visitor conversion trigger |
 
-## Constraint Names
-
-| Portuguese | English | Notes |
-|------------|---------|-------|
-| pessoa_tem_contato | person_has_contact | CHECK constraint |
-| endereco_se_presencial | address_if_in_person | CHECK constraint |
-| member_or_visitor | member_or_visitor | ✅ Already English |
-
-## Index Names
+## Constraint Examples
 
 | Portuguese | English | Notes |
 |------------|---------|-------|
-| idx_pessoas_* | idx_people_* | All people indexes |
-| idx_*_pessoa | idx_*_person | All pessoa_id indexes |
-
-## Enum Values
-
-### modalidade → mode
-- 'presencial' → 'in_person'
-- 'online' → 'online'
-- 'hibrido' → 'hybrid'
-
-### status (growth_groups)
-- 'ativo' → 'active'
-- 'inativo' → 'inactive'
-- 'multiplicacao' → 'multiplying'
-
-### status (members)
-- 'ativo' → 'active'
-- 'inativo' → 'inactive'
-- 'transferido' → 'transferred'
-
-### role (gc_leaders)
-- 'leader' → 'leader'
-- 'co-leader' → 'co_leader'
-
-### attendance_type
-- 'member' → 'member'
-- 'visitor' → 'visitor'
-
-## Policy Names
-
-Keep policy names descriptive in English but retain Portuguese where it aids clarity:
-
-Example:
-- `lideres_veem_proprios_gcs` → `leaders_view_own_gcs`
-- `supervisores_veem_gcs` → `supervisors_view_gcs`
-- `admins_manage_all_pessoas` → `admins_manage_all_people`
-
-## Migration Strategy
-
-1. Create new migration `013_standardize_to_english.sql`
-2. Rename table: `ALTER TABLE pessoas RENAME TO people;`
-3. Rename columns: `ALTER TABLE <table> RENAME COLUMN <old> TO <new>;`
-4. Rename views: `DROP VIEW old; CREATE VIEW new AS ...;`
-5. Update enum values: `UPDATE <table> SET <column> = CASE ... END;`
-6. Rename constraints: `ALTER TABLE <table> RENAME CONSTRAINT <old> TO <new>;`
-7. Rename indexes: `ALTER INDEX <old> RENAME TO <new>;`
-8. Drop and recreate policies with new names and references
-
-## Files to Update
-
-- ✅ constitution.md (updated to v1.2.0)
-- [ ] All migration files (001-012)
-- [ ] seed.sql
-- [ ] data-model.md
-- [ ] All Flutter models (app/lib/models/*.dart)
-- [ ] All Flutter services (app/lib/services/*.dart)
-- [ ] CLAUDE.md
-- [ ] tasks.md (references to Portuguese names)
+| participante_membro_unico | uq_growth_group_participants_active_membership | Unique active membership |
+| gc_precisa_lider | ensure_gc_has_leader | Trigger to keep a leader |
+| gc_precisa_supervisor | ensure_gc_has_supervisor | Trigger to keep a supervisor |
+| visitante_unico_por_gc | visitors_person_id_gc_unique | Unique visitor per GC |

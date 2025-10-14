@@ -1,6 +1,6 @@
 -- Migration 003: Growth Groups table
 -- Feature: 001-crie-um-app
--- Description: Creates growth_groups table (GCs). Leaders and supervisors are many-to-many via separate tables.
+-- Description: Creates growth_groups table (GCs). Papéis são definidos em growth_group_participants (migration 004).
 
 CREATE TABLE growth_groups (
   -- Identification
@@ -36,11 +36,11 @@ BEFORE UPDATE ON growth_groups
 FOR EACH ROW EXECUTE FUNCTION update_timestamp();
 
 -- Row Level Security (RLS)
--- NOTE: Policies will be created in migration 004 after gc_leaders/gc_supervisors tables exist
+-- NOTE: Policies serão criadas na migration 004 após growth_group_participants existir
 ALTER TABLE growth_groups ENABLE ROW LEVEL SECURITY;
 
 -- Comments
-COMMENT ON TABLE growth_groups IS 'Growth groups (GCs). Leaders and supervisors are defined in gc_leaders and gc_supervisors tables (many-to-many).';
+COMMENT ON TABLE growth_groups IS 'Growth groups (GCs). Papéis (líder/supervisor/membro) são definidos em growth_group_participants.';
 COMMENT ON COLUMN growth_groups.mode IS 'Meeting mode: in_person, online, or hybrid';
 COMMENT ON COLUMN growth_groups.address IS 'Address - required if mode=in_person';
 COMMENT ON COLUMN growth_groups.weekday IS 'Day of week: 0=Sunday, 6=Saturday';

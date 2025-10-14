@@ -102,17 +102,17 @@ All INSERT statements updated:
 | Migration | Description | Key Changes |
 |-----------|-------------|-------------|
 | 001_people.sql | Base entity for personal data | Created `people` table (was `pessoas`) |
-| 002_users_hierarchy.sql | Users with org hierarchy | `person_id` reference |
-| 003_growth_groups.sql | Growth groups | `name`, `mode`, `address`, `weekday`, `time` columns |
-| 004_gc_relationships.sql | GC leaders & supervisors | `co_leader` enum value, English policies |
-| 005_members.sql | GC members | `person_id` reference, `active` status |
-| 006_visitors.sql | Visitors tracking | `person_id` reference |
-| 007_lessons.sql | Lesson series & lessons | `title`, `description`, `bible_references`, `series_id`, `order_in_series`, `created_by_user_id` |
-| 008_meetings.sql | GC meetings | `datetime`, `lesson_id`, `registered_by_user_id` |
-| 009_meeting_attendance.sql | Meeting attendance | English policies |
-| 010_visitor_conversion_trigger.sql | Auto-conversion trigger | `registered_by_user_id` in trigger |
-| 011_dashboard_views.sql | Dashboard metrics | `dashboard_metrics` view with English columns |
-| 012_people_rls_policies.sql | People & visitor policies | English policy names for `people` table |
+| 002_users_hierarchy.sql | Users with org hierarchy | `person_id` reference, hierarchy triggers |
+| 003_growth_groups.sql | Growth groups | `mode`, `address_if_in_person`, RLS placeholders |
+| 004_gc_relationships.sql | Growth group participants | `growth_group_participants`, leader/supervisor triggers, RLS |
+| 005_members.sql | Legacy placeholder | Documenta remoção da tabela antiga `members` |
+| 006_visitors.sql | Visitors tracking | `converted_to_participant_id`, FK para participants |
+| 007_lessons.sql | Lesson series & lessons | Removido `bible_references`, mantido `link` |
+| 008_meetings.sql | GC meetings | `lesson_template_id`, `lesson_title`, `comments`, soft delete |
+| 009_meeting_attendance.sql | Attendance tables | `meeting_member_attendance`, `meeting_visitor_attendance`, RLS |
+| 010_visitor_conversion_trigger.sql | Auto-conversion trigger | Usa attendance de visitantes, cria participante ativo |
+| 011_dashboard_views.sql | Dashboard metrics | Atualiza view para novas tabelas de presença |
+| 012_people_rls_policies.sql | People policies | Referências a `growth_group_participants` e visitantes ativos |
 
 ## Files Still Requiring Updates
 
@@ -120,21 +120,17 @@ The following files reference the old Portuguese schema and need updates:
 
 ### High Priority (Blocks Implementation)
 
-1. **data-model.md** - SQL examples use Portuguese names
-2. **All Flutter models** (app/lib/models/*.dart) - Property names need translation
-3. **All Flutter services** (app/lib/services/*.dart) - Supabase queries need updates
+1. **Web (Next.js) services/hooks** — implementar clientes alinhados às novas tabelas (`growth_group_participants`, `meeting_member_attendance`, `meeting_visitor_attendance`).
 
-### Medium Priority (Documentation)
+### Medium Priority (Documentação)
 
-4. **CLAUDE.md** - References to data model
-5. **tasks.md** - Task descriptions mentioning Portuguese column names
-6. **plan.md** - Technical specifications
-7. **quickstart.md** - Manual test scenarios
+2. **CLAUDE.md** - Referências às entidades legadas
+3. **quickstart.md** - ✅ Atualizado para fluxo web
 
 ### Low Priority (Generated Code)
 
-8. **Contract tests** (tests/contract/*.dart) - API contract validations
-9. **Integration tests** (app/integration_test/*.dart) - Test scenarios
+4. **Contract tests** (`tests/contract/*.ts`)
+5. **Integration tests** (`web/tests/e2e/*.ts`)
 
 ## Benefits Achieved
 
@@ -146,10 +142,10 @@ The following files reference the old Portuguese schema and need updates:
 
 ## Next Steps
 
-1. **Immediate**: Update data-model.md to reflect English schema
-2. **Before coding**: Update Flutter models and services
-3. **During implementation**: Update tests to use English schema
-4. **Before PR**: Update all documentation references
+1. **Immediate**: Atualizar serviços/hooks do frontend web (Sprint 1)
+2. **Durante Sprint 1**: Criar testes de contrato e Vitest para garantir aderência ao schema
+3. **Sprint 2-3**: Completar cenários Playwright e documentação Storybook
+4. **Antes de lançar**: Rodar quickstart web e revisar documentação cruzada
 
 ## Validation Checklist
 
@@ -159,11 +155,11 @@ The following files reference the old Portuguese schema and need updates:
 - [x] seed.sql updated
 - [x] Migrations tested successfully
 - [x] Old 001_pessoas.sql removed
-- [ ] data-model.md updated
-- [ ] Flutter models updated
-- [ ] Flutter services updated
-- [ ] CLAUDE.md updated
-- [ ] tasks.md updated
+- [x] data-model.md atualizado
+- [ ] Web services/hooks atualizados
+- [ ] Storybook/E2E coverage adicionada
+- [ ] CLAUDE.md atualizado para stack web
+- [x] tasks.md atualizado
 
 ---
 

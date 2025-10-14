@@ -1,8 +1,8 @@
 openapi: 3.0.0
 info:
   title: Growth Groups API Contracts
-  version: 1.0.0
-  description: Contratos para gestão de Grupos de Crescimento
+  version: 1.1.0
+  description: Contratos para gestão de Grupos de Crescimento (GCs)
 
 servers:
   - url: https://{project}.supabase.co/rest/v1
@@ -23,15 +23,15 @@ paths:
           in: query
           schema:
             type: string
-            default: "*,gc_leaders(*,user:users(*)),gc_supervisors(*,user:users(*))"
+            default: "*,participants:growth_group_participants(*,person:people(*))"
         - name: status
           in: query
           schema:
             type: string
-            enum: [ativo, inativo, multiplicando]
+            enum: [active, inactive, multiplying]
       responses:
         '200':
-          description: Lista de GCs (filtrada por RLS)
+          description: Lista de GCs visíveis conforme RLS
           content:
             application/json:
               schema:
@@ -74,7 +74,12 @@ paths:
           in: query
           schema:
             type: string
-            default: "*,gc_leaders(*,user:users(*)),gc_supervisors(*,user:users(*)),members(count)"
+            default: |
+              *,
+              leaders:growth_group_participants(role.eq.leader,person:people(*)),
+              co_leaders:growth_group_participants(role.eq.co_leader,person:people(*)),
+              supervisors:growth_group_participants(role.eq.supervisor,person:people(*)),
+              members:growth_group_participants(role.eq.member,person:people(*))
       responses:
         '200':
           description: Detalhes do GC
@@ -113,7 +118,7 @@ paths:
           $ref: '#/components/responses/NotFound'
 
     delete:
-      summary: Desativar grupo de crescimento (soft delete)
+      summary: Soft delete (desativar) GC
       operationId: deleteGrowthGroup
       parameters:
         - $ref: '#/components/parameters/GrowthGroupId'
@@ -125,27 +130,34 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
-  /growth_groups/{id}/membros:
+  /growth_groups/{id}/participants:
     get:
-      summary: Listar membros de um GC
-      operationId: listGrowthGroupMembers
+      summary: Listar participantes de um GC por papel
+      operationId: listParticipantsByRole
       parameters:
         - $ref: '#/components/parameters/GrowthGroupId'
-        - name: status
+        - name: role
           in: query
+          required: false
           schema:
             type: string
-            enum: [ativo, inativo, transferido]
-            default: ativo
+            enum: [leader, co_leader, supervisor, member]
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [active, inactive, transferred]
+            default: active
       responses:
         '200':
-          description: Lista de membros
+          description: Lista de participantes
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/Member'
+                  $ref: '#/components/schemas/Participant'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '404':
@@ -164,207 +176,144 @@ components:
   schemas:
     GrowthGroup:
       type: object
-      required:
-        - id
-        - nome
-        - modalidade
-        - status
       properties:
         id:
           type: string
           format: uuid
-        nome:
+        name:
           type: string
-          maxLength: 255
-          example: "GC Esperança"
-        modalidade:
+        mode:
           type: string
-          enum: [presencial, online]
-        endereco:
+          enum: [in_person, online, hybrid]
+        address:
           type: string
           nullable: true
-          example: "Rua das Flores, 123 - Bairro Centro"
-        dia_semana:
+        weekday:
           type: integer
-          minimum: 0
-          maximum: 6
           nullable: true
-          description: "0=domingo, 6=sábado"
-        horario:
+        time:
           type: string
-          format: time
           nullable: true
-          example: "19:30"
         status:
           type: string
-          enum: [ativo, inativo, multiplicando]
+          enum: [active, inactive, multiplying]
         created_at:
           type: string
           format: date-time
         updated_at:
           type: string
           format: date-time
+        deleted_at:
+          type: string
+          format: date-time
+          nullable: true
 
     GrowthGroupDetailed:
       allOf:
         - $ref: '#/components/schemas/GrowthGroup'
         - type: object
           properties:
-            gc_leaders:
+            leaders:
               type: array
               items:
-                $ref: '#/components/schemas/GCLeader'
-            gc_supervisors:
+                $ref: '#/components/schemas/Participant'
+            co_leaders:
               type: array
               items:
-                $ref: '#/components/schemas/GCSupervisor'
+                $ref: '#/components/schemas/Participant'
+            supervisors:
+              type: array
+              items:
+                $ref: '#/components/schemas/Participant'
             members:
               type: array
               items:
-                $ref: '#/components/schemas/Member'
+                $ref: '#/components/schemas/Participant'
 
     GrowthGroupCreate:
       type: object
       required:
-        - nome
-        - modalidade
-        - leader_ids
-        - supervisor_ids
+        - name
+        - mode
+        - status
       properties:
-        nome:
+        name:
           type: string
-          maxLength: 255
-        modalidade:
+        mode:
           type: string
-          enum: [presencial, online]
-        endereco:
+          enum: [in_person, online, hybrid]
+        address:
           type: string
-          description: "Obrigatório se modalidade=presencial"
-        dia_semana:
+          nullable: true
+        weekday:
           type: integer
-          minimum: 0
-          maximum: 6
-        horario:
+          nullable: true
+        time:
           type: string
-          format: time
-        leader_ids:
-          type: array
-          items:
-            type: object
-            required:
-              - user_id
-            properties:
-              user_id:
-                type: string
-                format: uuid
-              role:
-                type: string
-                enum: [leader, co-leader]
-                default: leader
-          minItems: 1
-          description: "Pelo menos 1 líder obrigatório"
-        supervisor_ids:
-          type: array
-          items:
-            type: string
-            format: uuid
-          minItems: 1
-          description: "Pelo menos 1 supervisor obrigatório"
+          nullable: true
+        status:
+          type: string
+          enum: [active, inactive, multiplying]
 
     GrowthGroupUpdate:
       type: object
       properties:
-        nome:
+        name:
           type: string
-          maxLength: 255
-        modalidade:
+        mode:
           type: string
-          enum: [presencial, online]
-        endereco:
+          enum: [in_person, online, hybrid]
+        address:
           type: string
           nullable: true
-        dia_semana:
+        weekday:
           type: integer
-          minimum: 0
-          maximum: 6
           nullable: true
-        horario:
+        time:
           type: string
-          format: time
           nullable: true
         status:
           type: string
-          enum: [ativo, inativo, multiplicando]
+          enum: [active, inactive, multiplying]
 
-    Member:
+    Participant:
       type: object
       properties:
         id:
           type: string
           format: uuid
-        nome:
-          type: string
-        email:
-          type: string
-          format: email
-          nullable: true
-        telefone:
-          type: string
-          nullable: true
         gc_id:
           type: string
           format: uuid
-        status:
-          type: string
-          enum: [ativo, inativo, transferido]
-        joined_at:
-          type: string
-          format: date-time
-
-    GCLeader:
-      type: object
-      properties:
-        gc_id:
-          type: string
-          format: uuid
-        user_id:
+        person_id:
           type: string
           format: uuid
         role:
           type: string
-          enum: [leader, co-leader]
-        added_at:
+          enum: [leader, co_leader, supervisor, member]
+        status:
+          type: string
+          enum: [active, inactive, transferred]
+        joined_at:
           type: string
           format: date-time
-        user:
-          $ref: '#/components/schemas/UserBasic'
-
-    GCSupervisor:
-      type: object
-      properties:
-        gc_id:
-          type: string
-          format: uuid
-        user_id:
-          type: string
-          format: uuid
-        added_at:
+        left_at:
           type: string
           format: date-time
-        user:
-          $ref: '#/components/schemas/UserBasic'
-
-    UserBasic:
-      type: object
-      properties:
-        id:
-          type: string
-          format: uuid
-        nome:
-          type: string
-        email:
-          type: string
-          format: email
+          nullable: true
+        person:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            name:
+              type: string
+            email:
+              type: string
+            phone:
+              type: string
+              nullable: true
 
     Error:
       type: object
@@ -373,32 +322,30 @@ components:
           type: string
         hint:
           type: string
-        details:
-          type: string
         code:
           type: string
 
   responses:
+    BadRequest:
+      description: Dados inválidos
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
     Unauthorized:
-      description: Não autenticado
+      description: Token ausente ou inválido
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/Error'
     Forbidden:
-      description: Sem permissão (RLS bloqueou)
+      description: Usuário não possui permissão
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/Error'
     NotFound:
       description: Recurso não encontrado
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Error'
-    BadRequest:
-      description: Dados inválidos
       content:
         application/json:
           schema:

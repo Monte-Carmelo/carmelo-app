@@ -12,19 +12,16 @@ class LicoesService {
     String? serieId,
   }) async {
     try {
-      var query = _supabase
-          .from('lessons')
-          .select()
-          .isFilter('deleted_at', null);
+      final query = _supabase.from('lessons').select();
 
       if (serieId != null) {
-        query = query.eq('serie_id', serieId);
+        query.eq('series_id', serieId);
       }
 
-      final response = await query.order('ordem_na_serie');
+      final response = await query.order('order_in_series');
 
       return List<Lesson>.from(
-        response.map((item) => Lesson.fromJson(item)),
+        (response as List).map((item) => Lesson.fromJson(item)),
       );
     } catch (e) {
       throw Exception('Erro ao listar lições: $e');
@@ -37,11 +34,10 @@ class LicoesService {
       final response = await _supabase
           .from('lesson_series')
           .select()
-          .isFilter('deleted_at', null)
-          .order('nome');
+          .order('name');
 
       return List<LessonSeries>.from(
-        response.map((item) => LessonSeries.fromJson(item)),
+        (response as List).map((item) => LessonSeries.fromJson(item)),
       );
     } catch (e) {
       throw Exception('Erro ao listar séries de lições: $e');
@@ -69,13 +65,13 @@ class LicoesService {
       final response = await _supabase
           .from('lessons')
           .insert({
-            'titulo': titulo,
-            'descricao': descricao,
-            'referencias_biblicas': referenciasBiblicas,
+            'title': titulo,
+            'description': descricao,
+            'bible_references': referenciasBiblicas,
             'link': link,
-            'serie_id': serieId,
-            'ordem_na_serie': ordemNaSerie,
-            'criado_por_user_id': _supabase.auth.currentUser?.id,
+            'series_id': serieId,
+            'order_in_series': ordemNaSerie,
+            'created_by_user_id': _supabase.auth.currentUser?.id,
           })
           .select()
           .single();
@@ -101,9 +97,9 @@ class LicoesService {
       final response = await _supabase
           .from('lesson_series')
           .insert({
-            'nome': nome,
-            'descricao': descricao,
-            'criado_por_user_id': _supabase.auth.currentUser?.id,
+            'name': nome,
+            'description': descricao,
+            'created_by_user_id': _supabase.auth.currentUser?.id,
           })
           .select()
           .single();
@@ -127,7 +123,6 @@ class LicoesService {
           .from('lessons')
           .select()
           .eq('id', id)
-          .isFilter('deleted_at', null)
           .maybeSingle();
 
       if (response == null) {
@@ -147,7 +142,6 @@ class LicoesService {
           .from('lesson_series')
           .select()
           .eq('id', id)
-          .isFilter('deleted_at', null)
           .maybeSingle();
 
       if (seriesResponse == null) {
@@ -158,14 +152,13 @@ class LicoesService {
       final lessonsResponse = await _supabase
           .from('lessons')
           .select()
-          .eq('serie_id', id)
-          .isFilter('deleted_at', null)
-          .order('ordem_na_serie');
+          .eq('series_id', id)
+          .order('order_in_series');
 
       return {
         'series': LessonSeries.fromJson(seriesResponse),
         'lessons': List<Lesson>.from(
-          lessonsResponse.map((item) => Lesson.fromJson(item)),
+          (lessonsResponse as List).map((item) => Lesson.fromJson(item)),
         ),
       };
     } catch (e) {
@@ -184,11 +177,11 @@ class LicoesService {
   }) async {
     try {
       final updates = <String, dynamic>{};
-      if (titulo != null) updates['titulo'] = titulo;
-      if (descricao != null) updates['descricao'] = descricao;
-      if (referenciasBiblicas != null) updates['referencias_biblicas'] = referenciasBiblicas;
+      if (titulo != null) updates['title'] = titulo;
+      if (descricao != null) updates['description'] = descricao;
+      if (referenciasBiblicas != null) updates['bible_references'] = referenciasBiblicas;
       if (link != null) updates['link'] = link;
-      if (ordemNaSerie != null) updates['ordem_na_serie'] = ordemNaSerie;
+      if (ordemNaSerie != null) updates['order_in_series'] = ordemNaSerie;
 
       if (updates.isEmpty) {
         throw Exception('Nenhum campo para atualizar');
@@ -210,12 +203,7 @@ class LicoesService {
   /// Delete lesson (soft delete, admin only)
   Future<void> deleteLesson(String id) async {
     try {
-      await _supabase
-          .from('lessons')
-          .update({
-            'deleted_at': DateTime.now().toIso8601String(),
-          })
-          .eq('id', id);
+      await _supabase.from('lessons').delete().eq('id', id);
     } catch (e) {
       throw Exception('Erro ao deletar lição: $e');
     }

@@ -1,6 +1,6 @@
 -- Migration 001: People (base entity)
 -- Feature: 001-crie-um-app
--- Description: Normalized entity for personal data, avoids duplication between users, members, visitors
+-- Description: Normalized entity for personal data, avoids duplication between users, growth_group_participants, visitors
 
 -- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
@@ -47,7 +47,7 @@ FOR EACH ROW EXECUTE FUNCTION update_timestamp();
 ALTER TABLE people ENABLE ROW LEVEL SECURITY;
 
 -- Comments
-COMMENT ON TABLE people IS 'Base normalized entity: personal data shared between users, members, visitors';
+COMMENT ON TABLE people IS 'Base normalized entity: personal data shared between users, growth_group_participants e visitors';
 COMMENT ON COLUMN people.name IS 'Person''s full name';
 COMMENT ON COLUMN people.email IS 'Email (optional, but at least email OR phone required)';
 COMMENT ON COLUMN people.phone IS 'Phone (optional, but at least email OR phone required)';

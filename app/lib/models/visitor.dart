@@ -26,11 +26,12 @@ class Visitor {
   bool get isConverted => convertedToMemberAt != null;
 
   factory Visitor.fromJson(Map<String, dynamic> json) {
+    final person = json['person'] as Map<String, dynamic>?;
     return Visitor(
       id: json['id'] as String,
-      name: json['name'] as String,
-      email: json['email'] as String?,
-      phone: json['phone'] as String?,
+      name: (json['name'] ?? person?['name']) as String,
+      email: (json['email'] ?? person?['email']) as String?,
+      phone: (json['phone'] ?? person?['phone']) as String?,
       visitCount: json['visit_count'] as int? ?? 0,
       firstVisitDate: json['first_visit_date'] != null
           ? DateTime.parse(json['first_visit_date'] as String)

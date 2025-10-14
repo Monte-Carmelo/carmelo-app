@@ -1,20 +1,18 @@
 # API Contracts - App de Gestão de GCs
 
-Este diretório contém os contratos OpenAPI 3.0 para as APIs do sistema.
+Este diretório contém os contratos OpenAPI 3.0 das APIs expostas via Supabase (PostgREST).
 
 ## Arquivos
 
-- **auth.yaml**: Autenticação (signup, login, logout) via Supabase Auth
-- **grupos.yaml**: CRUD de Grupos de Crescimento + listagem de membros
-- **reunioes.yaml**: Registro de reuniões + lista de presença (membros e visitantes)
+- **auth.yaml**: Autenticação (signup/login/logout) via Supabase Auth
+- **grupos.yaml**: CRUD de Grupos de Crescimento + participantes agregados por papel
+- **gc_relationships.yaml**: Gestão direta de `growth_group_participants` (leader/co_leader/supervisor/member)
+- **reunioes.yaml**: Registro de reuniões + presenças (membros e visitantes)
 
-## Contratos Não Implementados (Menor Prioridade)
+## Contratos Não Implementados (Baixa prioridade)
 
-Os seguintes contratos serão implementados conforme necessário:
-
-- **membros.yaml**: CRUD de membros (POST/PATCH/DELETE em `/members`)
-- **licoes.yaml**: CRUD de lições e séries (admin only)
-- **dashboards.yaml**: Endpoint GET `/dashboard_metricas` (view PostgreSQL)
+- **lessons.yaml**: CRUD de lições e séries (admin only)
+- **dashboards.yaml**: Endpoint GET `/dashboard_metrics` (view PostgreSQL)
 
 ## Como Usar
 
@@ -22,11 +20,11 @@ Os seguintes contratos serão implementados conforme necessário:
 
 Os contract tests em `tests/contract/` devem validar:
 1. **Schema da request**: Campos obrigatórios, tipos, formatos
-2. **Schema da response**: Estrutura correta dos dados retornados
+2. **Schema da response**: Estrutura correta (incluindo joins `select=...`)
 3. **RLS Policies**: Usuários sem permissão recebem 403/vazio
 4. **Edge cases**: Duplicatas (409), not found (404), bad request (400)
 
-### Exemplo de Test (Dart + Supabase)
+### Exemplo de Teste (Dart + Supabase)
 
 ```dart
 // tests/contract/test_grupos_post.dart
@@ -37,20 +35,23 @@ void main() {
   late SupabaseClient supabase;
 
   setUpAll(() async {
-    supabase = await Supabase.initialize(/* ... */);
-    // Authenticate como coordenador
+    await Supabase.initialize(
+      url: const String.fromEnvironment('SUPABASE_URL'),
+      anonKey: const String.fromEnvironment('SUPABASE_ANON_KEY'),
+    );
+    supabase = Supabase.instance.client;
+
     await supabase.auth.signInWithPassword(
-      email: 'coordenador@test.com',
+      email: 'coordinator@test.com',
       password: 'senha123',
     );
   });
 
   test('POST /growth_groups cria GC com schema válido', () async {
     final payload = {
-      'nome': 'GC Teste Contract',
-      'modalidade': 'online',
-      'lider_id': 'uuid-lider-teste',
-      'supervisor_id': 'uuid-supervisor-teste',
+      'name': 'GC Test Contract',
+      'mode': 'online',
+      'status': 'active',
     };
 
     final response = await supabase
@@ -59,21 +60,18 @@ void main() {
         .select()
         .single();
 
-    // Validar schema da response
     expect(response['id'], isA<String>());
-    expect(response['nome'], equals('GC Teste Contract'));
-    expect(response['modalidade'], equals('online'));
-    expect(response['status'], equals('ativo')); // Default
+    expect(response['name'], equals('GC Test Contract'));
+    expect(response['mode'], equals('online'));
+    expect(response['status'], equals('active'));
     expect(response['created_at'], isNotNull);
   });
 
-  test('POST /growth_groups presencial sem endereço retorna 400', () async {
+  test('POST /growth_groups presencial sem address retorna 400', () async {
     final payload = {
-      'nome': 'GC Inválido',
-      'modalidade': 'presencial',
-      // Faltando 'endereco'
-      'lider_id': 'uuid-lider',
-      'supervisor_id': 'uuid-supervisor',
+      'name': 'GC Inválido',
+      'mode': 'in_person',
+      'status': 'active',
     };
 
     expect(
@@ -84,37 +82,8 @@ void main() {
 }
 ```
 
-## Notas de Implementação
+## Notas
 
-### Supabase REST API
-- Base URL: `https://your-project.supabase.co/rest/v1`
-- Headers obrigatórios:
-  - `apikey`: Anon key do projeto
-  - `Authorization`: `Bearer {access_token}` (após login)
-  - `Content-Type`: `application/json`
-
-### Row Level Security (RLS)
-Todos os endpoints respeitam RLS policies definidas no PostgreSQL:
-- Líderes: Apenas seus GCs
-- Supervisores: GCs de subordinados (via `hierarchy_path LIKE`)
-- Admins: Acesso total
-
-Se RLS bloquear, Supabase retorna:
-- **SELECT**: Array vazio `[]` (não 403!)
-- **INSERT/UPDATE/DELETE**: 403 Forbidden
-
-### Triggers Automáticos
-- **meeting_attendance** inserts acionam `auto_convert_visitor()`:
-  - Incrementa `visitors.visit_count`
-  - Se `visit_count >= threshold` (config), seta `converted_to_member_at`
-
-## Validação Manual
-
-Use Postman/Insomnia importando os YAMLs para validar manualmente durante desenvolvimento.
-
-**Variáveis de ambiente**:
-```
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_ANON_KEY=your-anon-key
-ACCESS_TOKEN=<obtido via /auth/v1/token>
-```
+- Todos os contratos assumem colunas **em inglês**, conforme migrations padronizadas (vide `TRANSLATION_MAP.md`).
+- O campo `select` deve ser mantido alinhado ao schema atual (ex.: `growth_group_participants`, `meeting_member_attendance`).
+- Atualize este README sempre que novos contratos forem criados ou descontinuados.

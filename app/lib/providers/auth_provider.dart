@@ -69,7 +69,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<void> login(String email, String password) async {
     state = state.copyWith(isLoading: true, error: null);
     try {
-      final user = await _authService.login(email, password);
+      final user = await _authService.login(
+        email: email,
+        password: password,
+      );
       state = state.copyWith(
         user: user,
         isAuthenticated: true,
@@ -88,7 +91,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<void> signup(String email, String password, String nome) async {
     state = state.copyWith(isLoading: true, error: null);
     try {
-      final user = await _authService.signup(email, password, nome);
+      final user = await _authService.signup(
+        email: email,
+        password: password,
+        name: nome,
+      );
       state = state.copyWith(
         user: user,
         isAuthenticated: true,
@@ -124,7 +131,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
 }
 
 // Provider do Supabase client
-final supabaseProvider = Provider((ref) => supabase);
+final supabaseProvider = Provider((ref) => SupabaseConfig.client);
 
 // Provider do AuthService
 final authServiceProvider = Provider((ref) {

@@ -10,16 +10,20 @@ class ReunioesService {
   /// Create a meeting with attendance list
   Future<Meeting> createMeeting({
     required String gcId,
-    required DateTime dataHora,
-    String? licaoId,
-    String? observacoes,
-    required List<String> memberIds,
-    required List<String> visitorIds,
+    required DateTime datetime,
+    String? lessonId,
+    required List<MeetingAttendance> attendanceList,
+    String? registeredByUserId,
   }) async {
     try {
       // Validar que data não é futura
-      if (dataHora.isAfter(DateTime.now())) {
+      if (datetime.isAfter(DateTime.now())) {
         throw Exception('Data da reunião não pode ser no futuro');
+      }
+
+      final registrarId = registeredByUserId ?? _supabase.auth.currentUser?.id;
+      if (registrarId == null) {
+        throw Exception('Usuário não autenticado');
       }
 
       // Criar reunião
@@ -27,36 +31,27 @@ class ReunioesService {
           .from('meetings')
           .insert({
             'gc_id': gcId,
-            'data_hora': dataHora.toIso8601String(),
-            'licao_id': licaoId,
-            'observacoes': observacoes,
-            'registrado_por_user_id': _supabase.auth.currentUser?.id,
+            'datetime': datetime.toIso8601String(),
+            'lesson_id': lessonId,
+            'registered_by_user_id': registrarId,
           })
           .select()
           .single();
 
-      final meetingId = meetingResponse['id'];
+      final meetingId = meetingResponse['id'] as String;
 
       // Inserir presenças de membros
-      if (memberIds.isNotEmpty) {
-        final memberAttendances = memberIds.map((memberId) => {
-              'meeting_id': meetingId,
-              'member_id': memberId,
-              'attendance_type': 'member',
-            }).toList();
+      if (attendanceList.isNotEmpty) {
+        final rows = attendanceList.map((attendance) {
+          return {
+            'meeting_id': meetingId,
+            'attendance_type': attendance.attendanceType,
+            'member_id': attendance.memberId,
+            'visitor_id': attendance.visitorId,
+          };
+        }).toList();
 
-        await _supabase.from('meeting_attendance').insert(memberAttendances);
-      }
-
-      // Inserir presenças de visitantes
-      if (visitorIds.isNotEmpty) {
-        final visitorAttendances = visitorIds.map((visitorId) => {
-              'meeting_id': meetingId,
-              'visitor_id': visitorId,
-              'attendance_type': 'visitor',
-            }).toList();
-
-        await _supabase.from('meeting_attendance').insert(visitorAttendances);
+        await _supabase.from('meeting_attendance').insert(rows);
       }
 
       return Meeting.fromJson(meetingResponse);
@@ -72,7 +67,6 @@ class ReunioesService {
           .from('meetings')
           .select()
           .eq('id', id)
-          .isFilter('deleted_at', null)
           .maybeSingle();
 
       if (meetingResponse == null) {
@@ -82,14 +76,7 @@ class ReunioesService {
       // Buscar presenças
       final attendanceResponse = await _supabase
           .from('meeting_attendance')
-          .select('''
-            id,
-            attendance_type,
-            member_id,
-            visitor_id,
-            members:member_id(id, nome, email),
-            visitors:visitor_id(id, nome, email)
-          ''')
+          .select()
           .eq('meeting_id', id);
 
       return {
@@ -114,8 +101,7 @@ class ReunioesService {
           .from('meetings')
           .select()
           .eq('gc_id', gcId)
-          .isFilter('deleted_at', null)
-          .order('data_hora', ascending: false)
+          .order('datetime', ascending: false)
           .range(offset, offset + limit - 1);
 
       return List<Meeting>.from(
@@ -158,12 +144,7 @@ class ReunioesService {
   /// Delete a meeting (soft delete)
   Future<void> deleteMeeting(String id) async {
     try {
-      await _supabase
-          .from('meetings')
-          .update({
-            'deleted_at': DateTime.now().toIso8601String(),
-          })
-          .eq('id', id);
+      await _supabase.from('meetings').delete().eq('id', id);
     } catch (e) {
       throw Exception('Erro ao deletar reunião: $e');
     }

@@ -26,20 +26,10 @@ final gruposByStatusProvider = FutureProvider.family<List<GrowthGroup>, String>(
 );
 
 // Provider.family para obter detalhes de um GC específico
-final grupoDetailsProvider = FutureProvider.family<GrowthGroup, String>(
+final grupoDetailsProvider = FutureProvider.family<GrowthGroup?, String>(
   (ref, gcId) async {
     final service = ref.watch(gruposServiceProvider);
     return await service.getGrowthGroup(gcId);
-  },
-);
-
-// Provider.family para listar membros de um GC
-final grupoMembersProvider = FutureProvider.family<List<dynamic>, String>(
-  (ref, gcId) async {
-    final service = ref.watch(gruposServiceProvider);
-    // Buscar GC com membros incluídos
-    final gc = await service.getGrowthGroup(gcId);
-    return gc.members ?? [];
   },
 );
 
@@ -85,11 +75,11 @@ class GrupoFormNotifier extends StateNotifier<GrupoFormState> {
     state = state.copyWith(isLoading: true, error: null);
     try {
       final gc = await _service.createGrowthGroup(
-        nome: nome,
-        modalidade: modalidade,
-        endereco: endereco,
-        diaSemana: diaSemana,
-        horario: horario,
+        name: nome,
+        mode: modalidade,
+        address: endereco,
+        weekday: diaSemana,
+        time: horario,
         leaderIds: leaderIds,
         supervisorIds: supervisorIds,
       );
@@ -116,11 +106,11 @@ class GrupoFormNotifier extends StateNotifier<GrupoFormState> {
     try {
       final gc = await _service.updateGrowthGroup(
         id: id,
-        nome: nome,
-        modalidade: modalidade,
-        endereco: endereco,
-        diaSemana: diaSemana,
-        horario: horario,
+        name: nome,
+        mode: modalidade,
+        address: endereco,
+        weekday: diaSemana,
+        time: horario,
         status: status,
       );
       state = state.copyWith(isLoading: false, savedGrupo: gc);

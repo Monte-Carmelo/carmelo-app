@@ -11,19 +11,21 @@ class VisitorsService {
     bool onlyNotConverted = false,
   }) async {
     try {
-      var query = _supabase
+      final query = _supabase
           .from('visitors')
-          .select();
+          .select(
+            'id, visit_count, first_visit_date, last_visit_date, converted_to_member_at, '
+            'converted_by_user_id, converted_to_member_id, created_at, updated_at, '
+            'person:people(name, email, phone)',
+          );
 
       if (onlyNotConverted) {
-        query = query.isFilter('converted_to_member_at', null);
+        query.isFilter('converted_to_member_at', null);
       }
 
-      query = query.order('visit_count', ascending: false);
-
-      final response = await query;
+      final response = await query.order('visit_count', ascending: false);
       return List<Visitor>.from(
-        response.map((item) => Visitor.fromJson(item)),
+        (response as List).map((item) => Visitor.fromJson(_mapVisitor(item))),
       );
     } catch (e) {
       throw Exception('Erro ao listar visitantes: $e');
@@ -42,18 +44,30 @@ class VisitorsService {
         throw Exception('Email ou telefone é obrigatório');
       }
 
-      final response = await _supabase
-          .from('visitors')
+      final personData = await _supabase
+          .from('people')
           .insert({
-            'nome': nome,
+            'name': nome,
             'email': email,
-            'telefone': telefone,
-            'visit_count': 0,
+            'phone': telefone,
           })
           .select()
           .single();
 
-      return Visitor.fromJson(response);
+      final response = await _supabase
+          .from('visitors')
+          .insert({
+            'person_id': personData['id'],
+            'visit_count': 0,
+          })
+          .select(
+            'id, visit_count, first_visit_date, last_visit_date, converted_to_member_at, '
+            'converted_by_user_id, converted_to_member_id, created_at, updated_at, '
+            'person:people(name, email, phone)',
+          )
+          .single();
+
+      return Visitor.fromJson(_mapVisitor(response));
     } catch (e) {
       throw Exception('Erro ao adicionar visitante: $e');
     }
@@ -64,7 +78,11 @@ class VisitorsService {
     try {
       final response = await _supabase
           .from('visitors')
-          .select()
+          .select(
+            'id, visit_count, first_visit_date, last_visit_date, converted_to_member_at, '
+            'converted_by_user_id, converted_to_member_id, created_at, updated_at, '
+            'person:people(name, email, phone)',
+          )
           .eq('id', id)
           .maybeSingle();
 
@@ -72,7 +90,7 @@ class VisitorsService {
         return null;
       }
 
-      return Visitor.fromJson(response);
+      return Visitor.fromJson(_mapVisitor(response));
     } catch (e) {
       throw Exception('Erro ao buscar visitante: $e');
     }
@@ -99,7 +117,7 @@ class VisitorsService {
 
       return {
         'visitor_id': visitor.id,
-        'nome': visitor.nome,
+        'nome': visitor.name,
         'visit_count': visitor.visitCount,
         'threshold': threshold,
         'is_ready_to_convert': visitor.visitCount >= threshold,
@@ -117,12 +135,16 @@ class VisitorsService {
     try {
       final response = await _supabase
           .from('visitors')
-          .select()
-          .or('nome.ilike.%$query%,email.ilike.%$query%,telefone.ilike.%$query%')
+          .select(
+            'id, visit_count, first_visit_date, last_visit_date, converted_to_member_at, '
+            'converted_by_user_id, converted_to_member_id, created_at, updated_at, '
+            'person:people!inner(name, email, phone)',
+          )
+          .or('person.name.ilike.%$query%,person.email.ilike.%$query%,person.phone.ilike.%$query%')
           .order('visit_count', ascending: false);
 
       return List<Visitor>.from(
-        response.map((item) => Visitor.fromJson(item)),
+        (response as List).map((item) => Visitor.fromJson(_mapVisitor(item))),
       );
     } catch (e) {
       throw Exception('Erro ao buscar visitantes: $e');
@@ -145,16 +167,30 @@ class VisitorsService {
 
       final response = await _supabase
           .from('visitors')
-          .select()
+          .select(
+            'id, visit_count, first_visit_date, last_visit_date, converted_to_member_at, '
+            'converted_by_user_id, converted_to_member_id, created_at, updated_at, '
+            'person:people(name, email, phone)',
+          )
           .gte('visit_count', threshold)
           .isFilter('converted_to_member_at', null)
           .order('visit_count', ascending: false);
 
       return List<Visitor>.from(
-        response.map((item) => Visitor.fromJson(item)),
+        (response as List).map((item) => Visitor.fromJson(_mapVisitor(item))),
       );
     } catch (e) {
       throw Exception('Erro ao buscar visitantes prontos para conversão: $e');
     }
+  }
+
+  Map<String, dynamic> _mapVisitor(Map<String, dynamic> data) {
+    final person = data['person'] as Map<String, dynamic>?;
+    return {
+      ...data,
+      if (person != null) 'name': person['name'],
+      if (person != null) 'email': person['email'],
+      if (person != null) 'phone': person['phone'],
+    };
   }
 }

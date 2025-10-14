@@ -1,450 +1,219 @@
-# Pesquisa Técnica: App de Gestão de Grupos de Crescimento
+# Pesquisa Técnica: Plataforma Web de Gestão de Grupos de Crescimento
 
-**Feature**: 001-crie-um-app
-**Data**: 2025-10-04
-**Referência**: [plan.md](./plan.md)
+**Feature**: 001-crie-um-app  
+**Data**: 2025-10-04  
+**Referência cruzada**: [plan.md](./plan.md) | [data-model.md](./data-model.md)
 
 ## Resumo Executivo
 
-Este documento consolida as decisões técnicas para implementação do app móvel de gestão de GCs usando Flutter + Supabase. Todas as decisões foram tomadas priorizando: (1) velocidade de desenvolvimento, (2) offline-first capability, (3) escalabilidade da hierarquia organizacional, (4) segurança via RLS.
+Consolidamos aqui as decisões técnicas para implementar uma aplicação web responsiva (mobile-first) baseada em **Next.js 14 + Supabase**. Os objetivos centrais permanecem: (1) entrega rápida de valor para líderes e supervisores, (2) segurança de dados via RLS, (3) escalabilidade da hierarquia organizacional, (4) suporte a fluxos críticos mesmo com conectividade instável.
 
 ---
 
-## 1. Flutter + Supabase Integration
+## 1. Next.js + Supabase Integration
 
 ### Decisão
-Utilizar **Supabase Flutter SDK oficial** (`supabase_flutter: ^2.0.0+`) com autenticação email/senha via Supabase Auth.
+Utilizar **Supabase JS Client v2** com o pacote `@supabase/ssr` para compartilhar sessão entre rotas server e client. Autenticação email/senha (Supabase Auth) permanece como mecanismo oficial.
 
 ### Rationale
-- SDK oficial tem suporte completo a auth, realtime, storage e edge functions
-- Supabase Auth já implementa hashing seguro (bcrypt), rate limiting, email verification
-- Reduz código boilerplate vs implementação manual de backend
-- Flutter SDK tem integração nativa com sqflite para offline storage
+- **SSR + Edge friendly**: `createServerClient` lê/grava cookies automaticamente, permitindo proteger rotas sensíveis sem reinventar auth.
+- **Menos boilerplate**: Supabase fornece PostgREST, RPC e Realtime já prontos, reduzindo esforço de backend.
+- **Consistência com RLS**: Todo acesso passa por policies existentes no banco; não duplicamos regras no frontend.
 
-### Alternativas Consideradas
-| Alternativa | Razão para Rejeição |
-|-------------|---------------------|
-| Firebase + Flutter | Supabase oferece PostgreSQL (mais flexível para queries hierárquicas complexas) e é open-source |
-| Backend custom (Node/Nest.js) | Tempo de desenvolvimento muito maior; Supabase já fornece auth, realtime, RLS out-of-the-box |
-| Amplify + Flutter | Vendor lock-in AWS; Supabase tem melhor DX para developers |
+### Alternativas
+| Alternativa | Razão para rejeição |
+|-------------|--------------------|
+| Backend custom (Node/Nest.js) | Atrasaria o go-to-market e duplicaria regras hoje garantidas via RLS |
+| Firebase Auth + Firestore | Não atende consultas hierárquicas complexas e não oferece Postgres pronto |
+| Clerk/Auth0 + API própria | Maior custo recorrente e complexidade para sincronizar com Supabase |
 
-### Implementação Chave
-```dart
-// supabase/config.dart
-import 'package:supabase_flutter/supabase_flutter.dart';
+### Implementação chave
+```ts
+// web/src/lib/supabase/server-client.ts
+import { createServerClient } from '@supabase/ssr';
 
-await Supabase.initialize(
-  url: SUPABASE_URL,
-  anonKey: SUPABASE_ANON_KEY,
-  authOptions: FlutterAuthClientOptions(
-    authFlowType: AuthFlowType.pkce, // Segurança adicional
-  ),
-);
+declare const process: NodeJS.Process;
 
-final supabase = Supabase.instance.client;
+export const createSupabaseServerClient = () =>
+  createServerClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll: () => cookies().getAll(),
+        setAll: (items) => items.forEach((item) => cookies().set(item.name, item.value, item.options)),
+      },
+    },
+  );
 ```
 
 ---
 
-## 2. Hierarquia Organizacional Expansível
+## 2. Hierarquia Organizacional (Postgres)
 
 ### Decisão
-Usar **Adjacency List** com **Materialized Path** como índice auxiliar para queries de subárvore.
+Manter modelo existente com adjacency list + `hierarchy_path` (materialized path) nas tabelas `users` e `growth_group_participants`. Triggers já implementados seguem válidos.
 
 ### Rationale
-- Adjacency List (`parent_id`) é simples e permite N níveis sem limite
-- Materialized Path (`hierarchy_path` ex: `/1/3/7`) otimiza queries "todos descendentes de X" (LIKE '/1/3/%')
-- PostgreSQL Common Table Expressions (CTEs recursivas) suportam bem adjacency list
-- RLS policies podem usar `hierarchy_path` para filtragem eficiente
-
-### Alternativas Consideradas
-| Alternativa | Razão para Rejeição |
-|-------------|---------------------|
-| Nested Sets | Dificulta inserções frequentes (requer renumeração); overkill para hierarquia que cresce incrementalmente |
-| Closure Table | Tabela extra com todas relações ancestrais; overhead de storage/manutenção para estrutura que pode ter 10+ níveis |
-| JSON/JSONB column | Queries hierárquicas menos eficientes; sem FK constraints |
-
-### Schema (simplificado)
-```sql
-CREATE TABLE users (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  email TEXT UNIQUE NOT NULL,
-  nome TEXT NOT NULL,
-  hierarchy_parent_id UUID REFERENCES users(id),
-  hierarchy_path TEXT, -- ex: '/uuid1/uuid2/uuid3'
-  hierarchy_depth INT DEFAULT 0, -- Profundidade na árvore (0=raiz, 1+= níveis abaixo)
-  is_admin BOOLEAN DEFAULT FALSE,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- IMPORTANTE: Papéis (líder, supervisor, coordenador) são DERIVADOS de relacionamentos,
--- não armazenados como campo estático. Um usuário pode acumular múltiplos papéis.
--- Ver data-model.md seção "Modelo de Papéis Acumulados" para detalhes.
-
--- Trigger para auto-atualizar hierarchy_path ao inserir/atualizar parent_id
-CREATE OR REPLACE FUNCTION update_hierarchy_path() RETURNS TRIGGER AS $$
-BEGIN
-  IF NEW.hierarchy_parent_id IS NULL THEN
-    NEW.hierarchy_path := '/' || NEW.id::TEXT;
-  ELSE
-    SELECT hierarchy_path || '/' || NEW.id::TEXT
-    INTO NEW.hierarchy_path
-    FROM users
-    WHERE id = NEW.hierarchy_parent_id;
-  END IF;
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER set_hierarchy_path
-BEFORE INSERT OR UPDATE ON users
-FOR EACH ROW EXECUTE FUNCTION update_hierarchy_path();
-```
-
-### Query Exemplo: "Todos GCs sob coordenador X"
-```sql
--- Usando materialized path
-SELECT gc.*
-FROM growth_groups gc
-JOIN users leader ON gc.lider_id = leader.id
-JOIN users supervisor ON gc.supervisor_id = supervisor.id
-WHERE supervisor.hierarchy_path LIKE (
-  SELECT hierarchy_path || '%' FROM users WHERE id = 'coordenador_x_id'
-);
-```
-
----
-
-## 3. Row Level Security (RLS) Policies
-
-### Decisão
-Implementar **RLS nativo do PostgreSQL** para todas as tabelas principais, com policies baseadas em `hierarchy_path` e `is_admin`.
-
-### Rationale
-- Segurança no nível de dados (mesmo se app Flutter for comprometido, backend está protegido)
-- Supabase gerencia JWT automaticamente, RLS usa `auth.uid()` e `auth.jwt()`
-- Escala melhor que lógica de permissão no app layer
-
-### Políticas Principais
-```sql
--- Exemplo: Líderes só veem seus próprios GCs
-CREATE POLICY "lideres_veem_proprios_gcs" ON growth_groups
-FOR SELECT USING (
-  lider_id = auth.uid()
-  OR
-  supervisor_id IN (
-    SELECT id FROM users
-    WHERE hierarchy_path LIKE (
-      SELECT hierarchy_path || '%' FROM users WHERE id = auth.uid()
-    )
-  )
-);
-
--- Admins veem tudo
-CREATE POLICY "admins_veem_tudo" ON growth_groups
-FOR SELECT USING (
-  EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND is_admin = TRUE)
-);
-```
-
----
-
-## 4. Offline-First com Sincronização
-
-### Decisão
-Usar **sqflite** para armazenamento local + **Supabase Realtime** para sincronização bidirecional.
-
-### Rationale
-- Líderes precisam registrar reuniões mesmo offline (contexto: reuniões são semanais, podem acontecer em locais sem internet)
-- sqflite é padrão do ecossistema Flutter para SQLite local
-- Supabase Realtime (baseado em Postgres LISTEN/NOTIFY) sincroniza mudanças assim que app volta online
-- Conflict resolution: last-write-wins com timestamp (reuniões raramente têm edições concorrentes)
-
-### Estratégia de Sync
-```dart
-class SyncService {
-  // 1. Salvar localmente (sqflite) SEMPRE
-  Future<void> createMeeting(Meeting meeting) async {
-    await localDb.insert('meetings', meeting.toJson());
-
-    // 2. Tentar sync imediatamente se online
-    if (await connectivity.isOnline) {
-      await _syncToSupabase(meeting);
-    } else {
-      // 3. Marcar como pending sync
-      await localDb.insert('sync_queue', {
-        'table': 'meetings',
-        'record_id': meeting.id,
-        'operation': 'INSERT',
-      });
-    }
-  }
-
-  // 4. Background sync quando volta online
-  Future<void> processSyncQueue() async {
-    final pending = await localDb.query('sync_queue');
-    for (var item in pending) {
-      await _syncToSupabase(item);
-      await localDb.delete('sync_queue', where: 'id = ?', whereArgs: [item['id']]);
-    }
-  }
-}
-```
-
-### Alternativas Consideradas
-| Alternativa | Razão para Rejeição |
-|-------------|---------------------|
-| Apenas online (sem offline) | FR-003 requer registro de reuniões; contexto de uso (igrejas) frequentemente tem conectividade ruim |
-| Drift (moor) | Overkill para nosso schema; sqflite + generated code é suficiente |
-| Hive/ObjectBox | Não-relacional dificulta queries hierárquicas; queremos manter mental model consistente com PostgreSQL |
-
----
-
-## 5. State Management
-
-### Decisão
-Usar **Riverpod 2.x** com `StateNotifierProvider` para lógica de negócio e `FutureProvider` para data fetching.
-
-### Rationale
-- Riverpod é compile-safe (vs Provider que tem erros em runtime)
-- Ótima integração com testing (mocking providers é trivial)
-- Evita boilerplate do Bloc sem perder testabilidade
-- Community momentum forte no ecossistema Flutter 2024+
-
-### Alternativas Consideradas
-| Alternativa | Razão para Rejeição |
-|-------------|---------------------|
-| Provider (original) | Riverpod resolve problemas de tipo safety e permite múltiplos providers do mesmo tipo |
-| Bloc | Muito boilerplate para escopo do projeto; Riverpod oferece ~80% dos benefícios com menos código |
-| GetX | Mágica demais (service locator global); dificulta testing e manutenção |
-
-### Exemplo
-```dart
-final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
-  return AuthNotifier(ref.read(supabaseProvider));
-});
-
-final gruposProvider = FutureProvider.family<List<GrowthGroup>, String?>((ref, supervisorId) async {
-  final supabase = ref.watch(supabaseProvider);
-  return supabase.from('growth_groups')
-    .select()
-    .eq('supervisor_id', supervisorId ?? ref.watch(authProvider).user!.id)
-    .execute()
-    .then((res) => (res.data as List).map((e) => GrowthGroup.fromJson(e)).toList());
-});
-```
-
----
-
-## 6. Conversão Automática de Visitantes
-
-### Decisão
-Implementar via **PostgreSQL Trigger** que verifica `visit_count` ao inserir `meeting_attendance` e atualiza tabela `visitors`.
-
-### Rationale
-- Lógica de negócio crítica fica no banco (não depende de app Flutter estar online)
-- Trigger é atômico (não há race condition)
-- Parametrizável via tabela `config` (threshold de visitas)
+- **Escalável**: consultas recursivas (`LIKE hierarchy_path || '%'`) funcionam bem até milhares de nós.
+- **Flexível**: suporta múltiplos níveis (líder → supervisor → coordenador N) sem mudar schema.
 
 ### Implementação
-```sql
-CREATE TABLE config (
-  key TEXT PRIMARY KEY,
-  value JSONB NOT NULL
-);
-
-INSERT INTO config VALUES ('visitor_conversion_threshold', '3');
-
-CREATE OR REPLACE FUNCTION auto_convert_visitor() RETURNS TRIGGER AS $$
-DECLARE
-  threshold INT;
-  current_count INT;
-BEGIN
-  -- Apenas para visitantes (não membros)
-  IF NEW.visitor_id IS NOT NULL THEN
-    -- Buscar threshold
-    SELECT (value::TEXT)::INT INTO threshold
-    FROM config WHERE key = 'visitor_conversion_threshold';
-
-    -- Contar visitas do visitante
-    SELECT COUNT(*) INTO current_count
-    FROM meeting_attendance
-    WHERE visitor_id = NEW.visitor_id;
-
-    -- Se atingiu threshold, converter
-    IF current_count >= threshold THEN
-      UPDATE visitors
-      SET converted_to_member_at = NOW(),
-          converted_by_user_id = NEW.meeting_id -- (meeting tem registrado_por_user_id)
-      WHERE id = NEW.visitor_id;
-
-      -- Criar membro (lógica adicional pode ser edge function)
-      -- Por simplicidade, trigger apenas marca conversão
-    END IF;
-  END IF;
-
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER check_visitor_conversion
-AFTER INSERT ON meeting_attendance
-FOR EACH ROW EXECUTE FUNCTION auto_convert_visitor();
-```
-
-### Alternativas Consideradas
-| Alternativa | Razão para Rejeição |
-|-------------|---------------------|
-| Edge Function (Deno) | Triggers são mais rápidos; edge functions adicionam latência de rede |
-| Lógica no app Flutter | Não funciona offline; visitante poderia atingir threshold sem conversão se líder registrar offline |
+- `users.hierarchy_parent_id` + trigger `users_hierarchy_path_update`.
+- Views auxiliares (`user_gc_roles`) para mapear papéis acumulados.
 
 ---
 
-## 7. Dashboards e Métricas
+## 3. State Management
 
 ### Decisão
-Criar **PostgreSQL Views** para métricas agregadas + **caching no app** (TTL 5 minutos).
+Combinar **TanStack Query** para dados assincronizados + **Zustand** para estado local/efêmero.
 
 ### Rationale
-- Views pré-computam joins complexos (frequência média, crescimento, conversão)
-- Supabase expõe views como endpoints REST automaticamente
-- Caching reduz calls desnecessários (dashboards raramente mudam a cada segundo)
+- Query lida com cache, invalidação, re-fetch e persistência (IndexedDB) sem boilerplate.
+- Zustand é leve e previsível para UI state (modais, filtros), evitando Redux ou Context complexos.
 
-### View Exemplo: Métrica de Frequência
-```sql
-CREATE VIEW dashboard_metricas AS
-SELECT
-  gc.id as gc_id,
-  gc.nome as gc_nome,
-  COUNT(DISTINCT m.id) as total_reunioes_mes_atual,
-  AVG(attendance_count.count) as media_presenca,
-  (
-    SELECT COUNT(*) FROM members WHERE gc_id = gc.id AND status = 'ativo'
-  ) as total_membros_ativos,
-  (
-    SELECT COUNT(*) FROM visitors v
-    JOIN meeting_attendance ma ON ma.visitor_id = v.id
-    JOIN meetings m2 ON m2.id = ma.meeting_id
-    WHERE m2.gc_id = gc.id
-      AND v.converted_to_member_at IS NOT NULL
-      AND v.converted_to_member_at >= NOW() - INTERVAL '30 days'
-  ) as conversoes_ultimo_mes
-FROM growth_groups gc
-LEFT JOIN meetings m ON m.gc_id = gc.id
-  AND m.data_hora >= DATE_TRUNC('month', NOW())
-LEFT JOIN LATERAL (
-  SELECT COUNT(*) as count
-  FROM meeting_attendance
-  WHERE meeting_id = m.id
-) attendance_count ON true
-GROUP BY gc.id;
-```
-
-### Caching no App
-```dart
-class DashboardCache {
-  DateTime? _lastFetch;
-  List<Metrica>? _cachedData;
-  static const cacheDuration = Duration(minutes: 5);
-
-  Future<List<Metrica>> getMetricas({bool forceRefresh = false}) async {
-    if (!forceRefresh &&
-        _cachedData != null &&
-        _lastFetch != null &&
-        DateTime.now().difference(_lastFetch!) < cacheDuration) {
-      return _cachedData!;
-    }
-
-    _cachedData = await supabase.from('dashboard_metricas').select().execute();
-    _lastFetch = DateTime.now();
-    return _cachedData!;
-  }
-}
-```
+### Alternativas rejeitadas
+| Alternativa | Motivo |
+|-------------|--------|
+| Redux Toolkit | Overhead desnecessário para escopo atual, demanda muito código cerimonial |
+| Context puro | Dificulta isolação de estado, leva a re-renderizações em cascata |
+| Apollo Client | Exigiria GraphQL layer; Supabase já expõe REST/RPC |
 
 ---
 
-## 8. Testing Strategy
+## 4. Cache & Offline Light
 
 ### Decisão
-Pirâmide de testes: **70% unit** (models, services) + **20% widget** (screens críticas) + **10% integration** (user flows E2E).
+Usar persistência de cache do TanStack Query (`@tanstack/query-sync-storage-persister`) armazenando dados em IndexedDB. Para formulários críticos (ex.: registro de reunião), aplicar salvamento otimista + replays em background.
 
 ### Rationale
-- Unit tests são rápidos e cobrem lógica de negócio
-- Widget tests validam UI sem precisar de Supabase real
-- Integration tests garantem que fluxos críticos funcionam ponta-a-ponta
+- Evita dependência de banco local dedicado (ex.: sqlite/hive) e funciona em browsers modernos.
+- Permite experiência resiliente: líder registra reunião offline → dados persistidos localmente → sync ao reconectar.
 
-### Ferramentas
-- **mockito**: Mock Supabase client para unit/widget tests
-- **integration_test**: E2E tests rodando em emulador/device
-- **Supabase local**: Docker compose com Postgres local para integration tests (CI/CD)
+### Observações
+- Precisamos adicionar indicador de "sincronizando" nas telas de reuniões.
+- Supabase ainda requer conectividade para commit final; manter fila de operações em memória + IndexedDB.
 
-### Exemplo: Mock Supabase
-```dart
-class MockSupabaseClient extends Mock implements SupabaseClient {}
+---
 
-void main() {
-  late MockSupabaseClient mockSupabase;
-  late AuthService authService;
+## 5. Segurança & RLS
 
-  setUp(() {
-    mockSupabase = MockSupabaseClient();
-    authService = AuthService(mockSupabase);
-  });
+### Decisão
+Todas as queries passam pelo Supabase, honrando policies existentes em `data-model.md`. Middleware Next protegerá rotas conforme role (líder/supervisor/admin) lendo o token Supabase.
 
-  test('login com credenciais válidas retorna user', () async {
-    when(mockSupabase.auth.signInWithPassword(
-      email: 'test@test.com',
-      password: 'senha123',
-    )).thenAnswer((_) async => AuthResponse(/* mock data */));
+### Rationale
+- Reuso da camada de segurança já validada.
+- Minimiza risco de divergência entre front e banco.
 
-    final user = await authService.login('test@test.com', 'senha123');
-    expect(user, isNotNull);
-  });
-}
+### Implementação
+- Middleware (`web/src/middleware.ts`) verifica role e redireciona usuários não autorizados.
+- Uso de `select` com `supabase.from('growth_group_participants')` respeita RLS.
+
+---
+
+## 6. Estratégia de Testes
+
+### Decisão
+Aplicar **TDD** com três camadas:
+1. **Contratos**: testes Node (Supertest/undici) contra Supabase local (`tests/contract/*.test.ts`).
+2. **Unidade/Componente**: Vitest + Testing Library.
+3. **E2E**: Playwright com projetos mobile (viewport 390px) e desktop (1280px).
+
+### Rationale
+- Assegura aderência aos contratos atualizados (`contracts/*.yaml`).
+- Garante UI responsiva e acessível em breakpoints principais.
+
+### Ferramentas adicionais
+- Storybook 8 + Test Runner para componentes críticos (forms, widgets de dashboard).
+- `axe-core` integrado nos testes de componente para A11y.
+
+---
+
+## 7. Catálogo de Lições
+
+### Decisão
+Manter `lesson_series` + `lessons` conforme data-model, com endpoints acessados via Supabase RPC. Lideranças podem selecionar lições padrão ou inserir título customizado por reunião (`meetings.lesson_title`).
+
+### Rationale
+- Reaproveita seed existente.
+- Permite comparativos entre GCs mesmo com customizações pontuais.
+
+### Próximos passos
+- Página administrativa (Sprint 3) trará CRUD com validação via Zod.
+- Necessário paginar listagem para não carregar series grandes de uma vez.
+
+---
+
+## 8. Conversão de Visitantes
+
+### Decisão
+Continuar utilizando trigger `auto_convert_visitor` para conversão automática após threshold (default 3 visitas). Fluxo manual registra eventos em `visitor_conversion_events` para auditoria.
+
+### Rationale
+- Mantém verdade única no banco.
+- Simplifica UI: basta acionar RPC que insere na tabela e triggers cuidam do resto.
+
+### Implementação no frontend
+```ts
+await supabase.rpc('convert_visitor', { visitor_id: id, gc_id });
 ```
 
 ---
 
-## 9. Performance & Constraints
+## 9. Dashboards & Métricas
 
-### Decisões
-| Constraint | Solução |
-|------------|---------|
-| <500ms carregamento listas | Pagination (limit 50), indexes em FKs, views para joins complexos |
-| <200ms ações locais | Sqflite local, UI otimista (atualiza UI antes de sync) |
-| 60fps UI | Usar `ListView.builder` (lazy load), evitar rebuilds desnecessários (Riverpod select) |
-| <100MB storage local | Cleanup automático de reuniões >1 ano (configurável), compressão de imagens (se futuro) |
+### Decisão
+Consumir views `gc_dashboard_summary` e `supervision_metrics` já definidas nas migrations (`011_dashboard_views.sql`). Aplicar caching via React Query (intervalo 5 min) e SSR para primeira renderização rápida.
 
----
+### Rationale
+- Supervisores precisam de visão consolidada sem sobrecarregar o frontend.
+- SSR reduz TTFB em dispositivos modestos e melhora SEO.
 
-## 10. Segurança
-
-### Decisões
-| Ameaça | Mitigação |
-|--------|-----------|
-| SQL Injection | Supabase client usa prepared statements; RLS valida no DB layer |
-| XSS (mobile context) | Sanitização de inputs em forms (Flutter validators) |
-| Credential stuffing | Rate limiting no Supabase Auth (built-in: 5 tentativas/hora) |
-| Privilege escalation | RLS policies testadas via contract tests; `is_admin` flag protegida por RLS |
-| Data leakage | HTTPS only (Supabase enforced), sensitive data em tabelas separadas com RLS stricto |
+### Considerações
+- Adicionar fallback skeletons para evitar layout shift.
+- Verificar limites de rate da Supabase (50 req/min por IP no plano gratuito).
 
 ---
 
-## Sumário de Decisões
+## 10. Deploy & Observabilidade
 
-| Decisão | Tecnologia/Padrão | Justificativa Chave |
-|---------|-------------------|---------------------|
-| Frontend | Flutter 3.x | Multiplataforma, performance nativa, ecosystem maduro |
-| Backend | Supabase (PostgreSQL) | Reduz tempo dev, RLS nativo, realtime out-of-box |
-| Auth | Supabase Auth (email/senha) | Seguro, rate limiting, fácil integração |
-| State Mgmt | Riverpod 2.x | Type-safe, testável, menos boilerplate que Bloc |
-| Offline | sqflite + sync queue | Requisito crítico (FR-003), conflict resolution simples |
-| Hierarquia | Adjacency List + Materialized Path | N níveis, queries eficientes, RLS-friendly |
-| Visitor Conversion | PostgreSQL Trigger | Atômico, offline-safe, parametrizável |
-| Dashboards | PostgreSQL Views + cache | Performance, reduz lógica no app |
-| Testing | Unit (mockito) + Widget + Integration | Cobertura balanceada, CI-friendly |
+### Decisão
+Hospedar no **Vercel** (preview por PR, produção em `main`). Observabilidade via **Sentry** (erros), **PostHog** (analytics) e logs nativos do Supabase.
+
+### Pipeline
+- GitHub Actions roda `npm run lint`, `npm run type-check`, `npm run test`, `npm run test:e2e -- --project=desktop --project=mobile --config tests/playwright.ci.config.ts`.
+- Deploy automático para Vercel Preview; promoção manual após smoke.
+
+### Alternativas
+| Alternativa | Motivo para rejeição |
+|-------------|----------------------|
+| Netlify | Bom fallback, porém equipe já familiarizada com Vercel + Next |
+| AWS Amplify | Alto overhead de configuração, menor integração com Next 14 |
 
 ---
 
-**Status**: ✅ Todas decisões técnicas consolidadas. Pronto para Phase 1 (data-model, contracts, quickstart).
+## Segurança e Compliance
+- **RLS**: Políticas existentes cobrindo líderes, supervisores, coordenadores. Qualquer bug front-end ainda respeita RLS.
+- **Secrets**: Gerenciados via variáveis de ambiente (`.env.local` local, Vercel env vars em staging/prod`).
+- **RGPD/ LGPD**: Continuar seguindo princípios de minimização de dados (apenas contato essencial) e permitir remoção/anonimização via Supabase.
+- **Logs**: Evitar armazenar dados sensíveis em analytics; mascarar emails/telefones.
+
+---
+
+## Próximos Experimentos
+1. **TanStack Query Persist**: Avaliar uso de `createIndexedDBStoragePersister` + sincronização incremental.
+2. **Supabase Realtime**: Possibilidade de atualizar dashboards ao vivo (não prioritário para MVP).
+3. **PWA / App Shell**: Estudar viabilidade de adicionar manifest + Service Worker para uso offline mais robusto.
+
+---
+
+## Referências
+- [Supabase JavaScript Client v2](https://supabase.com/docs/reference/javascript)
+- [Next.js App Router](https://nextjs.org/docs/app)
+- [TanStack Query Persisted Client](https://tanstack.com/query/latest/docs/framework/react/plugins/persistQueryClient)
+- [Playwright Test Runner](https://playwright.dev/docs/test-intro)
+
+---
+
+**Status**: ✅ Documento alinhado à nova arquitetura web. Atualizações futuras devem manter coerência com `plan.md`, `tasks.md` e `web-stack-decisions.md`.

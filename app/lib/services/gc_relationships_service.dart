@@ -11,12 +11,12 @@ class GCRelationshipsService {
   Future<GCLeader> addLeader({
     required String gcId,
     required String userId,
-    String role = 'co-leader',
+    String role = 'co_leader',
   }) async {
     try {
       // Validar role
-      if (role != 'leader' && role != 'co-leader') {
-        throw Exception('Role deve ser "leader" ou "co-leader"');
+      if (role != 'leader' && role != 'co_leader') {
+        throw Exception('Role deve ser "leader" ou "co_leader"');
       }
 
       final response = await _supabase
@@ -26,7 +26,10 @@ class GCRelationshipsService {
             'user_id': userId,
             'role': role,
           })
-          .select()
+          .select(
+            'gc_id, user_id, role, added_at, added_by_user_id, '
+            'user:users(id, is_admin, hierarchy_parent_id, hierarchy_path, hierarchy_depth, person:people(name, email, phone))',
+          )
           .single();
 
       return GCLeader.fromJson(response);
@@ -119,7 +122,9 @@ class GCRelationshipsService {
     try {
       final response = await _supabase
           .from('gc_leaders')
-          .select()
+          .select(
+              'gc_id, user_id, role, added_at, added_by_user_id, '
+              'user:users(id, is_admin, hierarchy_parent_id, hierarchy_path, hierarchy_depth, person:people(name, email, phone))')
           .eq('gc_id', gcId)
           .order('role'); // leader antes de co-leader
 
@@ -134,7 +139,9 @@ class GCRelationshipsService {
     try {
       final response = await _supabase
           .from('gc_supervisors')
-          .select()
+          .select(
+              'gc_id, user_id, added_at, added_by_user_id, '
+              'user:users(id, is_admin, hierarchy_parent_id, hierarchy_path, hierarchy_depth, person:people(name, email, phone))')
           .eq('gc_id', gcId)
           .order('added_at');
 

@@ -80,7 +80,7 @@ open http://localhost:54323
 - ✅ Tabela `growth_groups`
 - ✅ Tabelas `gc_leaders`, `gc_supervisors`
 - ✅ Tabelas `members`, `visitors`
-- ✅ Tabelas `meetings`, `meeting_attendance`
+- ✅ Tabelas `meetings`, `meeting_member_attendance`, `meeting_visitor_attendance`
 - ✅ Tabelas `lessons`, `lesson_series`
 - ✅ View `dashboard_metricas`
 

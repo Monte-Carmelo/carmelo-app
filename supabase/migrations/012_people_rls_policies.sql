@@ -1,69 +1,100 @@
--- Migration 012: People and Visitors RLS Policies
+-- Migration 012: People RLS Policies
 -- Feature: 001-crie-um-app
--- Description: Row Level Security policies for people and visitors tables (after all dependent tables exist)
+-- Description: Policies de visibilidade de pessoas baseadas em growth_group_participants
 
--- Leaders see people from their GCs (members + visitors via meetings)
-CREATE POLICY "leaders_view_gc_people" ON people
+DROP POLICY IF EXISTS "leaders_view_gc_people" ON people;
+DROP POLICY IF EXISTS "supervisors_view_people" ON people;
+DROP POLICY IF EXISTS "admins_manage_all_people" ON people;
+
+CREATE POLICY "leaders_view_people_in_gc" ON people
 FOR SELECT USING (
-  id IN (
-    SELECT person_id FROM members WHERE gc_id IN (SELECT gc_id FROM gc_leaders WHERE user_id = auth.uid())
-  )
-  OR
-  id IN (
-    SELECT person_id FROM visitors WHERE id IN (
-      SELECT visitor_id FROM meeting_attendance WHERE meeting_id IN (
-        SELECT id FROM meetings WHERE gc_id IN (SELECT gc_id FROM gc_leaders WHERE user_id = auth.uid())
+  EXISTS (
+    SELECT 1
+    FROM growth_group_participants gpr
+    WHERE gpr.person_id = people.id
+      AND gpr.status = 'active'
+      AND gpr.gc_id IN (
+        SELECT gc_id
+        FROM growth_group_participants leader_role
+        WHERE leader_role.person_id = (SELECT person_id FROM users WHERE id = auth.uid())
+          AND leader_role.role IN ('leader', 'co_leader')
+          AND leader_role.status = 'active'
+          AND leader_role.deleted_at IS NULL
       )
-    )
+  )
+  OR EXISTS (
+    SELECT 1
+    FROM visitors v
+    WHERE v.person_id = people.id
+      AND v.status = 'active'
+      AND v.gc_id IN (
+        SELECT gc_id
+        FROM growth_group_participants leader_role
+        WHERE leader_role.person_id = (SELECT person_id FROM users WHERE id = auth.uid())
+          AND leader_role.role IN ('leader', 'co_leader')
+          AND leader_role.status = 'active'
+          AND leader_role.deleted_at IS NULL
+      )
   )
 );
 
--- Supervisors see people from supervised GCs
 CREATE POLICY "supervisors_view_people" ON people
 FOR SELECT USING (
-  id IN (
-    SELECT person_id FROM members WHERE gc_id IN (SELECT gc_id FROM gc_supervisors WHERE user_id = auth.uid())
-  )
-  OR
-  id IN (
-    SELECT person_id FROM visitors WHERE id IN (
-      SELECT visitor_id FROM meeting_attendance WHERE meeting_id IN (
-        SELECT id FROM meetings WHERE gc_id IN (SELECT gc_id FROM gc_supervisors WHERE user_id = auth.uid())
+  EXISTS (
+    SELECT 1
+    FROM growth_group_participants gpr
+    WHERE gpr.person_id = people.id
+      AND gpr.status = 'active'
+      AND gpr.gc_id IN (
+        SELECT gc_id
+        FROM growth_group_participants supervisor_role
+        WHERE supervisor_role.person_id = (SELECT person_id FROM users WHERE id = auth.uid())
+          AND supervisor_role.role = 'supervisor'
+          AND supervisor_role.status = 'active'
+          AND supervisor_role.deleted_at IS NULL
       )
-    )
+  )
+  OR EXISTS (
+    SELECT 1
+    FROM growth_group_participants gpr
+    WHERE gpr.person_id = people.id
+      AND gpr.status = 'active'
+      AND gpr.gc_id IN (
+        SELECT gc_id
+        FROM growth_group_participants supervisor_role
+        WHERE supervisor_role.role = 'supervisor'
+          AND supervisor_role.status = 'active'
+          AND supervisor_role.deleted_at IS NULL
+          AND supervisor_role.person_id IN (
+            SELECT person_id
+            FROM users
+            WHERE hierarchy_path LIKE (
+              SELECT hierarchy_path || '%'
+              FROM users WHERE id = auth.uid()
+            )
+          )
+      )
+  )
+  OR EXISTS (
+    SELECT 1
+    FROM visitors v
+    WHERE v.person_id = people.id
+      AND v.status = 'active'
+      AND v.gc_id IN (
+        SELECT gc_id
+        FROM growth_group_participants supervisor_role
+        WHERE supervisor_role.person_id = (SELECT person_id FROM users WHERE id = auth.uid())
+          AND supervisor_role.role = 'supervisor'
+          AND supervisor_role.status = 'active'
+          AND supervisor_role.deleted_at IS NULL
+      )
   )
 );
 
--- Admins view and manage all
 CREATE POLICY "admins_manage_all_people" ON people
 FOR ALL USING (
   EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND is_admin = TRUE)
 );
 
--- ===== VISITORS RLS POLICIES =====
-
--- Leaders view and manage visitors who attended their meetings
-CREATE POLICY "leaders_manage_meeting_visitors" ON visitors
-FOR ALL USING (
-  id IN (
-    SELECT ma.visitor_id FROM meeting_attendance ma
-    JOIN meetings m ON m.id = ma.meeting_id
-    WHERE m.gc_id IN (SELECT gc_id FROM gc_leaders WHERE user_id = auth.uid())
-  )
-);
-
--- Supervisors view visitors from supervised GC meetings
-CREATE POLICY "supervisors_view_visitors" ON visitors
-FOR SELECT USING (
-  id IN (
-    SELECT ma.visitor_id FROM meeting_attendance ma
-    JOIN meetings m ON m.id = ma.meeting_id
-    WHERE m.gc_id IN (SELECT gc_id FROM gc_supervisors WHERE user_id = auth.uid())
-  )
-);
-
--- Admins manage all
-CREATE POLICY "admins_manage_visitors" ON visitors
-FOR ALL USING (
-  EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND is_admin = TRUE)
-);
+COMMENT ON POLICY "leaders_view_people_in_gc" ON people IS 'Líderes/co-líderes enxergam pessoas vinculadas aos seus GCs (papéis e visitantes ativos).';
+COMMENT ON POLICY "supervisors_view_people" ON people IS 'Supervisores enxergam pessoas dos GCs supervisionados direta ou indiretamente.';

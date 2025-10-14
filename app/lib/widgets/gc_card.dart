@@ -29,16 +29,14 @@ class GCCard extends StatelessWidget {
                 children: [
                   // Ícone de modalidade
                   Icon(
-                    grupo.modalidade == 'presencial'
-                        ? Icons.home
-                        : Icons.videocam,
+                    grupo.mode == 'in_person' ? Icons.home : Icons.videocam,
                     color: Colors.blue.shade700,
                   ),
                   const SizedBox(width: 12),
                   // Nome do GC
                   Expanded(
                     child: Text(
-                      grupo.nome,
+                      grupo.name,
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.bold,
                           ),
@@ -51,15 +49,15 @@ class GCCard extends StatelessWidget {
               const SizedBox(height: 12),
 
               // Informações adicionais
-              if (grupo.modalidade == 'presencial' && grupo.endereco != null)
+              if (grupo.mode == 'in_person' && grupo.address != null)
                 _InfoRow(
                   icon: Icons.location_on,
-                  text: grupo.endereco!,
+                  text: grupo.address!,
                 ),
-              if (grupo.diaSemana != null && grupo.horario != null)
+              if (grupo.weekday != null && grupo.time != null)
                 _InfoRow(
                   icon: Icons.calendar_today,
-                  text: _formatDiaHorario(grupo.diaSemana!, grupo.horario!),
+                  text: _formatDiaHorario(grupo.weekday!, grupo.time!),
                 ),
 
               // Métricas (placeholder - será populado com dados reais)
@@ -69,10 +67,10 @@ class GCCard extends StatelessWidget {
                   _MetricChip(
                     icon: Icons.people,
                     label: 'Membros',
-                    value: '${grupo.totalMembrosAtivos ?? 0}',
+                    value: '${grupo.totalActiveMembers ?? 0}',
                   ),
                   const SizedBox(width: 8),
-                  _MetricChip(
+                  const _MetricChip(
                     icon: Icons.event,
                     label: 'Reuniões',
                     value: '0', // TODO: buscar do dashboard
@@ -107,32 +105,32 @@ class _StatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Color color;
+    MaterialColor baseColor;
     switch (status) {
-      case 'ativo':
-        color = Colors.green;
+      case 'active':
+        baseColor = Colors.green;
         break;
-      case 'multiplicando':
-        color = Colors.orange;
+      case 'multiplying':
+        baseColor = Colors.orange;
         break;
-      case 'inativo':
-        color = Colors.grey;
+      case 'inactive':
+        baseColor = Colors.grey;
         break;
       default:
-        color = Colors.grey;
+        baseColor = Colors.grey;
     }
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: baseColor.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: baseColor.withValues(alpha: 0.3)),
       ),
       child: Text(
         status.toUpperCase(),
         style: TextStyle(
-          color: color.shade700,
+          color: baseColor.shade700,
           fontSize: 10,
           fontWeight: FontWeight.bold,
         ),

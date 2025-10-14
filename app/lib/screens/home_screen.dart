@@ -19,7 +19,7 @@ class HomeScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Olá, ${user?.nome ?? "Usuário"}'),
+        title: Text('Olá, ${user?.name ?? "Usuário"}'),
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),

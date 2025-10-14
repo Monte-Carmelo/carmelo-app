@@ -9,10 +9,10 @@
 ### Backend & Database (100% - T024-T034)
 - ✅ 11 Migrations SQL criadas e prontas para deploy
   - users com hierarquia (adjacency list + materialized path)
-  - growth_groups, gc_leaders, gc_supervisors (many-to-many)
+  - growth_groups, growth_group_participants (roles), visitors
   - members, visitors
   - lesson_series, lessons
-  - meetings, meeting_attendance
+  - meetings, meeting_member_attendance, meeting_visitor_attendance
 - ✅ Triggers implementados
   - update_hierarchy_path (auto-atualiza hierarquia)
   - auto_convert_visitor (conversão automática após N visitas)
