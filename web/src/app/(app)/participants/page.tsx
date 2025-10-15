@@ -11,7 +11,7 @@ type SearchParams = {
 };
 
 async function ParticipantsContent({ searchParams }: { searchParams: SearchParams }) {
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
   const {
     data: { session },
   } = await supabase.auth.getSession();
@@ -23,9 +23,9 @@ async function ParticipantsContent({ searchParams }: { searchParams: SearchParam
   const params = supabase
     .from('growth_group_participants')
     .select(
-      `id, gc_id, role, status, joined_at,
+      `id, gc_id, person_id, role, status, joined_at,
        growth_groups ( id, name ),
-       people:people!growth_group_participants_person_id_fkey ( name, email, phone )`
+       people:people!growth_group_participants_person_id_fkey ( id, name, email, phone )`
     )
     .order('joined_at', { ascending: false })
     .limit(50);
@@ -60,7 +60,7 @@ async function ParticipantsContent({ searchParams }: { searchParams: SearchParam
     participantId: row.id,
     gcId: row.gc_id,
     gcName: row.growth_groups?.name ?? 'GC desconhecido',
-    personId: row.people?.id ?? '',
+    personId: row.person_id,
     name: row.people?.name ?? 'Sem nome',
     email: row.people?.email ?? null,
     phone: row.people?.phone ?? null,
@@ -72,10 +72,11 @@ async function ParticipantsContent({ searchParams }: { searchParams: SearchParam
   return <ParticipantList participants={participantViews} groups={groupsResult.data ?? []} />;
 }
 
-export default function ParticipantsPage({ searchParams }: { searchParams: SearchParams }) {
+export default async function ParticipantsPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
+  const resolvedParams = await searchParams;
   return (
     <Suspense fallback={<div className="p-8 text-slate-500">Carregando participantes...</div>}>
-      <ParticipantsContent searchParams={searchParams} />
+      <ParticipantsContent searchParams={resolvedParams} />
     </Suspense>
   );
 }

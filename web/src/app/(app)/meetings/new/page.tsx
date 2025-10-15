@@ -4,7 +4,7 @@ import { createSupabaseServerClient } from '@/lib/supabase/server-client';
 import { MeetingForm } from '@/components/meetings/MeetingForm';
 
 async function MeetingFormLoader() {
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
   const {
     data: { session },
   } = await supabase.auth.getSession();

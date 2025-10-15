@@ -4,7 +4,7 @@ import { createSupabaseServerClient } from '@/lib/supabase/server-client';
 import { ParticipantForm } from '@/components/participants/ParticipantForm';
 
 async function ParticipantFormLoader() {
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
   const {
     data: { session },
   } = await supabase.auth.getSession();

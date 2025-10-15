@@ -9,9 +9,9 @@ import { getSupabaseBrowserClient } from '@/lib/supabase/browser-client';
 import type { Database } from '@/lib/supabase/types';
 
 const schema = z.object({
-  gcId: z.string({ required_error: 'Selecione um GC' }),
-  meetingDate: z.string({ required_error: 'Informe a data da reunião' }),
-  meetingTime: z.string({ required_error: 'Informe o horário da reunião' }),
+  gcId: z.string({ message: 'Selecione um GC' }),
+  meetingDate: z.string({ message: 'Informe a data da reunião' }),
+  meetingTime: z.string({ message: 'Informe o horário da reunião' }),
   lessonTemplateId: z.string().optional(),
   customLessonTitle: z
     .string()

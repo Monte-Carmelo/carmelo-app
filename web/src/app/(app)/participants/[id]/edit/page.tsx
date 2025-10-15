@@ -4,11 +4,12 @@ import { createSupabaseServerClient } from '@/lib/supabase/server-client';
 import { ParticipantEditForm } from '@/components/participants/ParticipantEditForm';
 
 interface ParticipantEditPageProps {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 export default async function ParticipantEditPage({ params }: ParticipantEditPageProps) {
-  const supabase = createSupabaseServerClient();
+  const resolvedParams = await params;
+  const supabase = await createSupabaseServerClient();
   const {
     data: { session },
   } = await supabase.auth.getSession();
@@ -23,7 +24,7 @@ export default async function ParticipantEditPage({ params }: ParticipantEditPag
       `id, gc_id, role, status,
        people:people!growth_group_participants_person_id_fkey ( id, name, email, phone )`
     )
-    .eq('id', params.id)
+    .eq('id', resolvedParams.id)
     .single();
 
   if (participantResult.error || !participantResult.data) {

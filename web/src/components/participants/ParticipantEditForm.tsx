@@ -10,8 +10,8 @@ import type { Database } from '@/lib/supabase/types';
 
 const schema = z
   .object({
-    gcId: z.string({ required_error: 'Selecione um grupo' }),
-    name: z.string({ required_error: 'Informe o nome' }).min(3, 'Nome muito curto'),
+    gcId: z.string({ message: 'Selecione um grupo' }),
+    name: z.string({ message: 'Informe o nome' }).min(3, 'Nome muito curto'),
     email: z.string().email('E-mail inválido').optional().or(z.literal('')),
     phone: z.string().optional().or(z.literal('')),
     role: z.enum(['member', 'leader', 'co_leader', 'supervisor']),
@@ -59,8 +59,8 @@ export function ParticipantEditForm({ participant, groups }: ParticipantEditForm
       name: participant.name,
       email: participant.email ?? '',
       phone: participant.phone ?? '',
-      role: participant.role,
-      status: participant.status,
+      role: participant.role as 'member' | 'leader' | 'co_leader' | 'supervisor',
+      status: participant.status as 'active' | 'inactive' | 'transferred',
     },
   });
 

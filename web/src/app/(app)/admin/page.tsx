@@ -18,7 +18,7 @@ type UserDetailRow = {
 };
 
 async function AdminUsersContent() {
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
   const {
     data: { session },
   } = await supabase.auth.getSession();
@@ -51,20 +51,20 @@ async function AdminUsersContent() {
   );
 
   const summaries = (rolesResult.data as UserRoleRow[]).map((user) => {
-    const person = detailsMap.get(user.user_id);
+    const person = user.user_id ? detailsMap.get(user.user_id) : null;
 
     return {
-      id: user.user_id,
-      name: person?.name ?? user.name,
+      id: user.user_id ?? '',
+      name: person?.name ?? user.name ?? 'Sem nome',
       email: person?.email ?? user.email,
       phone: person?.phone ?? null,
-      isAdmin: user.is_admin,
-      isLeader: user.is_leader,
-      isSupervisor: user.is_supervisor,
-      isCoordinator: user.is_coordinator,
-      gcsLed: user.gcs_led,
-      gcsSupervised: user.gcs_supervised,
-      directSubordinates: user.direct_subordinates,
+      isAdmin: user.is_admin ?? false,
+      isLeader: user.is_leader ?? false,
+      isSupervisor: user.is_supervisor ?? false,
+      isCoordinator: user.is_coordinator ?? false,
+      gcsLed: user.gcs_led ?? 0,
+      gcsSupervised: user.gcs_supervised ?? 0,
+      directSubordinates: user.direct_subordinates ?? 0,
     };
   });
 

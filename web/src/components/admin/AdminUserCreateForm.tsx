@@ -9,14 +9,14 @@ import { createUser } from '@/app/(app)/admin/actions';
 
 const schema = z
   .object({
-    name: z.string({ required_error: 'Informe o nome completo.' }).min(3, 'Nome muito curto.'),
-    email: z.string({ required_error: 'Informe o e-mail.' }).email('E-mail inválido.'),
+    name: z.string({ message: 'Informe o nome completo.' }).min(3, 'Nome muito curto.'),
+    email: z.string({ message: 'Informe o e-mail.' }).email('E-mail inválido.'),
     phone: z.string().optional().or(z.literal('')),
-    password: z.string({ required_error: 'Defina uma senha temporária.' }).min(8, 'Senha deve ter pelo menos 8 caracteres.'),
+    password: z.string({ message: 'Defina uma senha temporária.' }).min(8, 'Senha deve ter pelo menos 8 caracteres.'),
     confirmPassword: z
-      .string({ required_error: 'Confirme a senha.' })
+      .string({ message: 'Confirme a senha.' })
       .min(8, 'Confirmação precisa ter pelo menos 8 caracteres.'),
-    isAdmin: z.boolean().default(false),
+    isAdmin: z.boolean(),
     hierarchyParentId: z.string().uuid().optional().or(z.literal('')),
   })
   .refine((values) => values.password === values.confirmPassword, {

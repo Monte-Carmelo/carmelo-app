@@ -9,9 +9,9 @@ import clsx from 'clsx';
 import { addUserAssignment, removeUserAssignment } from '@/app/(app)/admin/actions';
 
 const addAssignmentSchema = z.object({
-  gcId: z.string({ required_error: 'Selecione um GC.' }).uuid('GC inválido.'),
+  gcId: z.string({ message: 'Selecione um GC.' }).uuid('GC inválido.'),
   role: z.enum(['leader', 'co_leader', 'supervisor', 'member'], {
-    errorMap: () => ({ message: 'Selecione um papel.' }),
+    message: 'Selecione um papel.',
   }),
 });
 

@@ -7,7 +7,7 @@ interface SearchParams {
 }
 
 async function SupervisionContent({ searchParams }: { searchParams: SearchParams }) {
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
   const {
     data: { session },
   } = await supabase.auth.getSession();
@@ -138,10 +138,11 @@ async function SupervisionContent({ searchParams }: { searchParams: SearchParams
   );
 }
 
-export default function SupervisionPage({ searchParams }: { searchParams: SearchParams }) {
+export default async function SupervisionPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
+  const resolvedParams = await searchParams;
   return (
     <Suspense fallback={<div className="p-8 text-slate-500">Carregando supervisão...</div>}>
-      <SupervisionContent searchParams={searchParams} />
+      <SupervisionContent searchParams={resolvedParams} />
     </Suspense>
   );
 }

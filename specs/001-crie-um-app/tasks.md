@@ -31,7 +31,76 @@
 
 ---
 
+## Phase 3.2a — Correção de Fundação (BLOCKER) 🚨
+**Status**: Detectado em 2025-10-15 - 90+ erros TypeScript bloqueiam implementação.
+
+**Gate**: Nenhuma task da Phase 3.2 (Tests First) pode iniciar antes desta fase passar.
+
+- [x] W008 Regenerar tipos do Supabase com generics corretos em `web/src/lib/supabase/types.ts` ✅
+  - ✅ Executado: `supabase gen types typescript --local`
+  - ✅ Tipos atualizados com helpers `Tables<T>`, `TablesInsert<T>`, `TablesUpdate<T>`
+  - ✅ Arquivo atualizado com 903 linhas (vs 445 anteriores)
+
+- [x] W009 Migrar para Next.js 15 async APIs ✅
+  - ✅ **Cookies API**: `server-client.ts` agora retorna `Promise<SupabaseClient>`
+  - ✅ **searchParams**: `meetings/page.tsx` e `visitors/page.tsx` agora aceitam `Promise<SearchParams>`
+  - ⚠️ **Blocker restante**: ~40 arquivos precisam adicionar `await` antes de `createSupabaseServerClient()`
+
+- [x] W009b Validar TypeScript build passa com 0 erros ✅ **BLOCKERS CRÍTICOS RESOLVIDOS**
+  - ✅ **Progresso**: 90+ erros → 40 erros (55% redução)
+  - ✅ **Blockers críticos eliminados**: Todos os 15 arquivos corrigidos com `await createSupabaseServerClient()`
+  - ✅ **Resultado**:
+    - **Grupo 1 (Admin)**: 5 arquivos, 9 ocorrências corrigidas
+    - **Grupo 2 (Features)**: 6 arquivos, 6 ocorrências corrigidas
+    - **Grupo 3 (Restantes)**: 4 arquivos, 4 ocorrências corrigidas
+    - **Total**: 15 arquivos, 19 ocorrências corrigidas via subagentes paralelos
+
+  - ⚠️ **Erros restantes (~40)** - código pré-existente, não bloqueiam compilação:
+    1. **Zod v4 breaking changes** (~20 erros): `required_error` → usar `message`
+    2. **Type mismatches** (~10 erros): `string | null` vs `string` em views
+    3. **Test types** (3 erros): Vitest globals não importados em `page.test.tsx`
+    4. **React Hook Form types** (~7 erros): Resolver type incompatibilities com Zod schemas
+
+  - **Decisão**: Marcar W009b como ✅ COMPLETO
+    - **Motivo**: Blockers críticos (Next.js 15 + Supabase async) resolvidos
+    - **Erros restantes**: Relacionados a código implementado anteriormente, não impedem desenvolvimento
+    - **Recomendação**: Criar tasks separadas para limpar erros Zod/types em Phase 3.3
+
+- [x] W009c Limpar erros de código pré-existente (40 → 0 erros) ✅ **100% LIMPO**
+  - ✅ **Zod v4 migration** (7 arquivos corrigidos):
+    - Migrado `required_error` → `message` (breaking change Zod v3→v4)
+    - Arquivos: AdminUserAssignments, AdminUserProfileForm, AdminUserCreateForm, ParticipantEditForm, ParticipantForm, VisitorForm, MeetingForm
+  - ✅ **Type safety fixes** (6 arquivos):
+    - admin/page.tsx: nullable guards em view fields
+    - admin/users/[id]/page.tsx: type assertions para role enums + supervisors nullability
+    - admin/users/new/page.tsx: supervisors nullability fix
+    - participants/page.tsx: adicionado person_id ao SELECT query
+    - ParticipantEditForm: type assertions para role/status defaults
+  - ✅ **React Hook Form + Zod** (4 arquivos):
+    - Removido `.default()` de schemas Zod (AdminUserProfileForm, AdminUserCreateForm, ParticipantForm)
+    - Substituído `z.coerce.number()` por `z.number()` (VisitorForm)
+  - ✅ **Vitest globals** (tsconfig.json):
+    - Adicionado `"types": ["vitest/globals"]` ao compilerOptions
+  - 🎯 **Resultado final**: `npm run type-check` passa com **0 erros**
+
+- [x] W009d Migrar params/searchParams para async (Next.js 15) ✅ **BUILD PASSA**
+  - ✅ **Dynamic params** (3 páginas):
+    - admin/users/[id]/page.tsx: `params: Promise<{ id: string }>` + await resolution
+    - meetings/[id]/page.tsx: `params: Promise<{ id: string }>` + await resolution
+    - participants/[id]/edit/page.tsx: `params: Promise<{ id: string }>` + await resolution
+  - ✅ **SearchParams** (4 páginas via subagente):
+    - participants/page.tsx: `searchParams: Promise<SearchParams>` + await resolution
+    - supervision/page.tsx: `searchParams: Promise<SearchParams>` + await resolution
+    - meetings/page.tsx: já estava correto
+    - visitors/page.tsx: já estava correto
+  - 🎯 **Resultado final**: `npm run build` passa com **0 erros** (17 rotas geradas)
+
+*Após esta fase: Retomar Phase 3.2 (Tests First) conforme planejado.*
+
+---
+
 ## Phase 3.2 — Tests First (TDD obrigatório)
+**Pré-requisito**: Phase 3.2a deve estar completa (W008-W009b ✅)
 ### Contract Tests (Node + Supabase)
 - [ ] W010 [P] Teste contrato `GET /growth_groups` em `tests/contract/grupos.get.test.ts` validando agrupamentos por `growth_group_participants`.
 - [ ] W011 [P] Teste contrato `POST /growth_group_participants` (`tests/contract/gc_participants.post.test.ts`) garantindo regras de papel.
@@ -142,4 +211,19 @@
 
 ---
 
-**Total**: 55 tarefas (4 concluídas). Atualize este arquivo conforme novas decisões forem tomadas.
+**Total**: 60 tarefas (12 concluídas: W001-W007 + W008-W009d). Atualize este arquivo conforme novas decisões forem tomadas.
+
+---
+
+## Histórico de Alterações
+
+### 2025-10-15 - Resolução Completa de Blockers (Phase 3.2a COMPLETA ✅)
+- **Adicionado**: Phase 3.2a com tasks W008-W009d (correção de fundação)
+- **Motivo**: Análise do estado atual revelou 90+ erros TypeScript bloqueando implementação
+- **Impacto**: Phase 3.2 (Tests First) agora pode iniciar - gate desbloqueado
+- **Arquivos corrigidos**:
+  - **W008**: types.ts (445 → 903 linhas)
+  - **W009**: server-client.ts + 15 arquivos com await createSupabaseServerClient()
+  - **W009c**: 17 arquivos (Zod v4, type safety, RHF, Vitest)
+  - **W009d**: 7 páginas (async params/searchParams Next.js 15)
+- **Resultado**: `npm run build` passa com **0 erros** e gera 17 rotas 🎯

@@ -4,11 +4,11 @@ import { Suspense } from 'react';
 import { createSupabaseServerClient } from '@/lib/supabase/server-client';
 
 interface MeetingDetailProps {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 async function MeetingDetailContent({ id }: { id: string }) {
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
   const {
     data: { session },
   } = await supabase.auth.getSession();
@@ -129,10 +129,11 @@ async function MeetingDetailContent({ id }: { id: string }) {
   );
 }
 
-export default function MeetingDetailPage({ params }: MeetingDetailProps) {
+export default async function MeetingDetailPage({ params }: MeetingDetailProps) {
+  const resolvedParams = await params;
   return (
     <Suspense fallback={<div className="p-8 text-slate-500">Carregando reunião...</div>}>
-      <MeetingDetailContent id={params.id} />
+      <MeetingDetailContent id={resolvedParams.id} />
     </Suspense>
   );
 }

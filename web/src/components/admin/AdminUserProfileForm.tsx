@@ -8,10 +8,10 @@ import { z } from 'zod';
 import { updateUserProfile } from '@/app/(app)/admin/actions';
 
 const schema = z.object({
-  name: z.string({ required_error: 'Informe o nome completo.' }).min(3, 'Nome muito curto.'),
-  email: z.string({ required_error: 'Informe o e-mail.' }).email('E-mail inválido.'),
+  name: z.string({ message: 'Informe o nome completo.' }).min(3, 'Nome muito curto.'),
+  email: z.string({ message: 'Informe o e-mail.' }).email('E-mail inválido.'),
   phone: z.string().optional().or(z.literal('')),
-  isAdmin: z.boolean().default(false),
+  isAdmin: z.boolean(),
   hierarchyParentId: z.string().uuid().optional().or(z.literal('')),
 });
 

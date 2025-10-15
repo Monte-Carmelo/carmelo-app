@@ -10,7 +10,7 @@ type SearchParams = {
 };
 
 async function VisitorsContent({ searchParams }: { searchParams: SearchParams }) {
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
   const {
     data: { session },
   } = await supabase.auth.getSession();
@@ -100,10 +100,15 @@ async function VisitorsContent({ searchParams }: { searchParams: SearchParams })
   );
 }
 
-export default function VisitorsPage({ searchParams }: { searchParams: SearchParams }) {
+export default async function VisitorsPage({
+  searchParams,
+}: {
+  searchParams: Promise<SearchParams>;
+}) {
+  const resolvedParams = await searchParams;
   return (
     <Suspense fallback={<div className="p-8 text-slate-500">Carregando...</div>}>
-      <VisitorsContent searchParams={searchParams} />
+      <VisitorsContent searchParams={resolvedParams} />
     </Suspense>
   );
 }

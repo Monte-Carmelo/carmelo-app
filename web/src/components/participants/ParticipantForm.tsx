@@ -11,11 +11,11 @@ import { useSession } from '@/lib/auth/session-context';
 
 const schema = z
   .object({
-    gcId: z.string({ required_error: 'Selecione um grupo' }),
-    name: z.string({ required_error: 'Informe o nome' }).min(3, 'Nome muito curto'),
+    gcId: z.string({ message: 'Selecione um grupo' }),
+    name: z.string({ message: 'Informe o nome' }).min(3, 'Nome muito curto'),
     email: z.string().email('E-mail inválido').optional().or(z.literal('')),
     phone: z.string().optional().or(z.literal('')),
-    role: z.enum(['member', 'leader', 'co_leader', 'supervisor']).default('member'),
+    role: z.enum(['member', 'leader', 'co_leader', 'supervisor']),
   })
   .refine((value) => value.email?.trim() || value.phone?.trim(), {
     message: 'Informe e-mail ou telefone',

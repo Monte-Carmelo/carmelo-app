@@ -8,7 +8,7 @@ type SearchParams = {
 };
 
 async function MeetingsContent({ searchParams }: { searchParams: SearchParams }) {
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
   const {
     data: { session },
   } = await supabase.auth.getSession();
@@ -147,10 +147,15 @@ async function MeetingsContent({ searchParams }: { searchParams: SearchParams })
   );
 }
 
-export default function MeetingsPage({ searchParams }: { searchParams: SearchParams }) {
+export default async function MeetingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<SearchParams>;
+}) {
+  const resolvedParams = await searchParams;
   return (
     <Suspense fallback={<div className="p-8 text-slate-500">Carregando...</div>}>
-      <MeetingsContent searchParams={searchParams} />
+      <MeetingsContent searchParams={resolvedParams} />
     </Suspense>
   );
 }

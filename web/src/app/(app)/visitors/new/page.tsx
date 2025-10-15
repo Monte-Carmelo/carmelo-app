@@ -4,7 +4,7 @@ import { createSupabaseServerClient } from '@/lib/supabase/server-client';
 import { VisitorForm } from '@/components/visitors/VisitorForm';
 
 async function VisitorFormLoader() {
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
   const {
     data: { session },
   } = await supabase.auth.getSession();

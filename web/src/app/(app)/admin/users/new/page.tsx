@@ -4,7 +4,7 @@ import { createSupabaseServerClient } from '@/lib/supabase/server-client';
 import { AdminUserCreateForm } from '@/components/admin/AdminUserCreateForm';
 
 async function AdminNewUserContent() {
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
   const {
     data: { session },
   } = await supabase.auth.getSession();
@@ -23,8 +23,8 @@ async function AdminNewUserContent() {
   }
 
   const supervisors = (supervisorRows ?? []).map((row) => ({
-    id: row.user_id,
-    name: row.name,
+    id: row.user_id ?? '',
+    name: row.name ?? 'Sem nome',
   }));
 
   return <AdminUserCreateForm supervisors={supervisors} />;

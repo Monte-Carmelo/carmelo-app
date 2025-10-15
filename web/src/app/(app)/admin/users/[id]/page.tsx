@@ -6,8 +6,8 @@ import { AdminUserProfileForm } from '@/components/admin/AdminUserProfileForm';
 import { AdminUserAssignments } from '@/components/admin/AdminUserAssignments';
 
 interface AdminUserPageProps {
-  params: { id: string };
-  searchParams: Record<string, string | string[] | undefined>;
+  params: Promise<{ id: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
 
 type UserRow = {
@@ -38,8 +38,8 @@ type RoleRow = Database['public']['Views']['user_gc_roles']['Row'];
 
 type GrowthGroupRow = Database['public']['Tables']['growth_groups']['Row'];
 
-async function AdminUserDetailContent({ userId, searchParams }: { userId: string; searchParams: AdminUserPageProps['searchParams'] }) {
-  const supabase = createSupabaseServerClient();
+async function AdminUserDetailContent({ userId, searchParams }: { userId: string; searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  const supabase = await createSupabaseServerClient();
   const {
     data: { session },
   } = await supabase.auth.getSession();
@@ -102,7 +102,7 @@ async function AdminUserDetailContent({ userId, searchParams }: { userId: string
       assignmentId: assignment.id,
       gcId: assignment.gc_id,
       gcName: assignment.growth_groups?.name ?? 'GC desconhecido',
-      role: assignment.role,
+      role: assignment.role as 'leader' | 'co_leader' | 'supervisor' | 'member',
     }));
 
   const availableGroups = (groupsResult.data as GrowthGroupRow[]).map((group) => ({
@@ -112,7 +112,7 @@ async function AdminUserDetailContent({ userId, searchParams }: { userId: string
 
   const roleRows = rolesResult.data as RoleRow[];
   const roleSummary = roleRows.find((row) => row.user_id === userId);
-  const supervisors = roleRows.map((row) => ({ id: row.user_id, name: row.name }));
+  const supervisors = roleRows.map((row) => ({ id: row.user_id ?? '', name: row.name ?? 'Sem nome' }));
 
   const roleBadges: string[] = [];
   if (user.is_admin) roleBadges.push('Admin');
@@ -120,7 +120,8 @@ async function AdminUserDetailContent({ userId, searchParams }: { userId: string
   if (roleSummary?.is_supervisor) roleBadges.push('Supervisor');
   if (roleSummary?.is_coordinator) roleBadges.push('Coordenador');
 
-  const createdRecently = searchParams.created === 'true';
+  const resolvedParams = await searchParams;
+  const createdRecently = resolvedParams.created === 'true';
 
   return (
     <section className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-10">
@@ -186,10 +187,11 @@ async function AdminUserDetailContent({ userId, searchParams }: { userId: string
   );
 }
 
-export default function AdminUserDetailPage({ params, searchParams }: AdminUserPageProps) {
+export default async function AdminUserDetailPage({ params, searchParams }: AdminUserPageProps) {
+  const resolvedParams = await params;
   return (
     <Suspense fallback={<div className="p-8 text-slate-500">Carregando usuário...</div>}>
-      <AdminUserDetailContent userId={params.id} searchParams={searchParams} />
+      <AdminUserDetailContent userId={resolvedParams.id} searchParams={searchParams} />
     </Suspense>
   );
 }

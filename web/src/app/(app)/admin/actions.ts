@@ -31,7 +31,7 @@ export async function createUser(input: CreateUserInput) {
 
   const normalizedPhone = parsed.phone?.trim() ? parsed.phone.trim() : null;
 
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
   const {
     data: { session },
     error: sessionError,
@@ -196,7 +196,7 @@ export async function updateUserProfile(input: UpdateUserInput) {
 
   const normalizedPhone = parsed.phone?.trim() ? parsed.phone.trim() : null;
 
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
   const {
     data: { session },
     error: sessionError,
@@ -278,7 +278,7 @@ interface AddAssignmentInput {
 export async function addUserAssignment(input: AddAssignmentInput) {
   const parsed = addAssignmentSchema.parse(input);
 
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
   const {
     data: { session },
     error: sessionError,
@@ -347,7 +347,7 @@ interface RemoveAssignmentInput {
 export async function removeUserAssignment(input: RemoveAssignmentInput) {
   const parsed = removeAssignmentSchema.parse(input);
 
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
   const {
     data: { session },
     error: sessionError,
@@ -405,7 +405,7 @@ const deleteUserSchema = z.object({
 export async function deleteUser(userId: string) {
   const { userId: targetUserId } = deleteUserSchema.parse({ userId });
 
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
   const {
     data: { session },
     error: sessionError,
