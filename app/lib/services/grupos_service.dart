@@ -1,5 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/growth_group.dart';
+import '../models/growth_group_participant.dart';
+import 'gc_relationships_service.dart';
 
 class GruposService {
   final SupabaseClient _supabase;
@@ -74,21 +76,22 @@ class GruposService {
 
       final gcId = gcData['id'];
 
-      // Adicionar líderes
+      final relationships = GCRelationshipsService(_supabase);
+
       for (int i = 0; i < leaderIds.length; i++) {
-        await _supabase.from('gc_leaders').insert({
-          'gc_id': gcId,
-          'user_id': leaderIds[i],
-          'role': i == 0 ? 'leader' : 'co_leader',
-        });
+        final role = i == 0 ? 'leader' : 'co_leader';
+        await relationships.addLeader(
+          gcId: gcId,
+          userId: leaderIds[i],
+          role: role,
+        );
       }
 
-      // Adicionar supervisores
       for (final supervisorId in supervisorIds) {
-        await _supabase.from('gc_supervisors').insert({
-          'gc_id': gcId,
-          'user_id': supervisorId,
-        });
+        await relationships.addSupervisor(
+          gcId: gcId,
+          userId: supervisorId,
+        );
       }
 
       return GrowthGroup.fromJson(gcData);
@@ -170,42 +173,25 @@ class GruposService {
   }
 
   /// Get leaders of a GC
-  Future<List<Map<String, dynamic>>> getLeaders(String gcId) async {
-    try {
-      final response = await _supabase
-          .from('gc_leaders')
-          .select(
-              'user_id, role, added_at, user:users!inner(id, is_admin, hierarchy_parent_id, hierarchy_path, hierarchy_depth, person:people(name, email))')
-          .eq('gc_id', gcId);
-
-      return List<Map<String, dynamic>>.from(response);
-    } catch (e) {
-      throw Exception('Erro ao buscar líderes: $e');
-    }
+  Future<List<GrowthGroupParticipant>> getLeaders(String gcId) async {
+    final relationships = GCRelationshipsService(_supabase);
+    return relationships.listLeaders(gcId);
   }
 
   /// Get supervisors of a GC
-  Future<List<Map<String, dynamic>>> getSupervisors(String gcId) async {
-    try {
-      final response = await _supabase
-          .from('gc_supervisors')
-          .select(
-              'user_id, added_at, user:users!inner(id, is_admin, hierarchy_parent_id, hierarchy_path, hierarchy_depth, person:people(name, email))')
-          .eq('gc_id', gcId);
-
-      return List<Map<String, dynamic>>.from(response);
-    } catch (e) {
-      throw Exception('Erro ao buscar supervisores: $e');
-    }
+  Future<List<GrowthGroupParticipant>> getSupervisors(String gcId) async {
+    final relationships = GCRelationshipsService(_supabase);
+    return relationships.listSupervisors(gcId);
   }
 
   /// Get member count for a GC
   Future<int> getMemberCount(String gcId) async {
     try {
       final response = await _supabase
-          .from('members')
+          .from('growth_group_participants')
           .select()
           .eq('gc_id', gcId)
+          .eq('role', 'member')
           .eq('status', 'active')
           .isFilter('deleted_at', null)
           .count();

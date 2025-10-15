@@ -1,6 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { cookies } from 'next/headers';
 import { z } from 'zod';
 import { createSupabaseServerClient, getSupabaseServiceClient } from '@/lib/supabase';
 
@@ -10,7 +11,6 @@ const createUserSchema = z.object({
   phone: z.string().optional(),
   password: z.string().min(8, 'Senha deve ter ao menos 8 caracteres.'),
   isAdmin: z.boolean().default(false),
-  hierarchyParentId: z.string().uuid().nullable().optional(),
 });
 
 interface CreateUserInput {
@@ -19,19 +19,17 @@ interface CreateUserInput {
   phone?: string | null;
   password: string;
   isAdmin: boolean;
-  hierarchyParentId?: string | null;
 }
 
 export async function createUser(input: CreateUserInput) {
   const parsed = createUserSchema.parse({
     ...input,
     phone: input.phone ?? null,
-    hierarchyParentId: input.hierarchyParentId ?? null,
   });
 
   const normalizedPhone = parsed.phone?.trim() ? parsed.phone.trim() : null;
 
-  const supabase = await createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient(cookies());
   const {
     data: { session },
     error: sessionError,
@@ -146,7 +144,6 @@ export async function createUser(input: CreateUserInput) {
   const { error: insertUserError } = await supabase.from('users').insert({
     id: authUserId,
     person_id: personId,
-    hierarchy_parent_id: parsed.hierarchyParentId ?? null,
     is_admin: parsed.isAdmin,
   });
 
@@ -171,7 +168,6 @@ const updateUserSchema = z.object({
   email: z.string().email('E-mail inválido.'),
   phone: z.string().optional(),
   isAdmin: z.boolean(),
-  hierarchyParentId: z.string().uuid().nullable().optional(),
 });
 
 interface UpdateUserInput {
@@ -180,19 +176,13 @@ interface UpdateUserInput {
   email: string;
   phone?: string | null;
   isAdmin: boolean;
-  hierarchyParentId?: string | null;
 }
 
 export async function updateUserProfile(input: UpdateUserInput) {
   const parsed = updateUserSchema.parse({
     ...input,
     phone: input.phone ?? null,
-    hierarchyParentId: input.hierarchyParentId ?? null,
   });
-
-  if (parsed.hierarchyParentId && parsed.hierarchyParentId === parsed.userId) {
-    return { success: false, error: 'Supervisor direto não pode ser o próprio usuário.' } as const;
-  }
 
   const normalizedPhone = parsed.phone?.trim() ? parsed.phone.trim() : null;
 
@@ -243,7 +233,6 @@ export async function updateUserProfile(input: UpdateUserInput) {
     .from('users')
     .update({
       is_admin: parsed.isAdmin,
-      hierarchy_parent_id: parsed.hierarchyParentId ?? null,
     })
     .eq('id', parsed.userId);
 

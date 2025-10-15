@@ -6,8 +6,21 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 void main() {
   late SupabaseClient supabase;
   late String coordenadorUserId;
+  late String coordenadorPersonId;
   late String liderUserId;
+  late String liderPersonId;
   late String supervisorUserId;
+  late String supervisorPersonId;
+
+  Future<String> fetchPersonId(String userId) async {
+    final result = await Supabase.instance.client
+        .from('users')
+        .select('person_id')
+        .eq('id', userId)
+        .single();
+
+    return result['person_id'] as String;
+  }
 
   setUpAll(() async {
     await Supabase.initialize(
@@ -22,18 +35,32 @@ void main() {
       password: 'senha123',
     );
     coordenadorUserId = authResponse.user!.id;
+    coordenadorPersonId = await fetchPersonId(coordenadorUserId);
 
     // Buscar IDs de líder e supervisor para testes
-    final users = await supabase
-        .from('users')
-        .select('id, email')
-        .inFilter('email', ['lider1@test.com', 'supervisor1@test.com'])
-        .execute();
+    final liderAuth = await supabase.auth.signInWithPassword(
+      email: 'lider1@test.com',
+      password: 'senha123',
+    );
+    liderUserId = liderAuth.user!.id;
+    liderPersonId = await fetchPersonId(liderUserId);
 
-    for (var user in (users.data as List)) {
-      if (user['email'] == 'lider1@test.com') liderUserId = user['id'];
-      if (user['email'] == 'supervisor1@test.com') supervisorUserId = user['id'];
-    }
+    await supabase.auth.signOut();
+
+    final supervisorAuth = await supabase.auth.signInWithPassword(
+      email: 'supervisor1@test.com',
+      password: 'senha123',
+    );
+    supervisorUserId = supervisorAuth.user!.id;
+    supervisorPersonId = await fetchPersonId(supervisorUserId);
+
+    await supabase.auth.signOut();
+
+    // Reautenticar como coordenador para os testes
+    await supabase.auth.signInWithPassword(
+      email: 'coordenador1@test.com',
+      password: 'senha123',
+    );
   });
 
   tearDownAll() async {
@@ -49,9 +76,9 @@ void main() {
       final gcResponse = await supabase
           .from('growth_groups')
           .insert({
-            'nome': 'GC Test $timestamp',
-            'modalidade': 'online',
-            'status': 'ativo',
+            'name': 'GC Test $timestamp',
+            'mode': 'online',
+            'status': 'active',
           })
           .select()
           .single();
@@ -60,26 +87,27 @@ void main() {
       final gcId = gcResponse.data['id'];
 
       // 2. Adicionar líder
-      await supabase
-          .from('gc_leaders')
-          .insert({
-            'gc_id': gcId,
-            'user_id': liderUserId,
-            'role': 'leader',
-          });
+      await supabase.from('growth_group_participants').insert({
+        'gc_id': gcId,
+        'person_id': liderPersonId,
+        'role': 'leader',
+        'status': 'active',
+        'added_by_user_id': coordenadorUserId,
+      });
 
       // 3. Adicionar supervisor
-      await supabase
-          .from('gc_supervisors')
-          .insert({
-            'gc_id': gcId,
-            'user_id': supervisorUserId,
-          });
+      await supabase.from('growth_group_participants').insert({
+        'gc_id': gcId,
+        'person_id': supervisorPersonId,
+        'role': 'supervisor',
+        'status': 'active',
+        'added_by_user_id': coordenadorUserId,
+      });
 
       // Validar criação
-      expect(gcResponse.data['nome'], equals('GC Test $timestamp'));
-      expect(gcResponse.data['modalidade'], equals('online'));
-      expect(gcResponse.data['status'], equals('ativo'));
+      expect(gcResponse.data['name'], equals('GC Test $timestamp'));
+      expect(gcResponse.data['mode'], equals('online'));
+      expect(gcResponse.data['status'], equals('active'));
       expect(gcResponse.data['created_at'], isNotNull);
     });
 
@@ -89,20 +117,20 @@ void main() {
       final response = await supabase
           .from('growth_groups')
           .insert({
-            'nome': 'GC Presencial $timestamp',
-            'modalidade': 'presencial',
-            'endereco': 'Rua Test, 123',
-            'dia_semana': 3, // Quarta-feira
-            'horario': '19:30:00',
-            'status': 'ativo',
+            'name': 'GC Presencial $timestamp',
+            'mode': 'in_person',
+            'address': 'Rua Test, 123',
+            'weekday': 3, // Quarta-feira
+            'time': '19:30:00',
+            'status': 'active',
           })
           .select()
           .single();
 
-      expect(response.data['modalidade'], equals('presencial'));
-      expect(response.data['endereco'], equals('Rua Test, 123'));
-      expect(response.data['dia_semana'], equals(3));
-      expect(response.data['horario'], equals('19:30:00'));
+      expect(response.data['mode'], equals('in_person'));
+      expect(response.data['address'], equals('Rua Test, 123'));
+      expect(response.data['weekday'], equals(3));
+      expect(response.data['time'], equals('19:30:00'));
     });
 
     test('deve falhar ao criar GC presencial sem endereço', () async {
@@ -112,10 +140,10 @@ void main() {
         () async => await supabase
             .from('growth_groups')
             .insert({
-              'nome': 'GC Sem Endereco $timestamp',
-              'modalidade': 'presencial',
-              // endereco faltando - deve falhar no constraint
-              'status': 'ativo',
+              'name': 'GC Sem Endereco $timestamp',
+              'mode': 'in_person',
+              // address faltando - deve falhar no constraint
+              'status': 'active',
             })
             .execute(),
         throwsA(isA<PostgrestException>()),
@@ -129,9 +157,9 @@ void main() {
         () async => await supabase
             .from('growth_groups')
             .insert({
-              'nome': 'GC Modalidade Invalida $timestamp',
-              'modalidade': 'hibrido', // Não existe no enum
-              'status': 'ativo',
+              'name': 'GC Modalidade Invalida $timestamp',
+              'mode': 'invalid', // Não existe no enum
+              'status': 'active',
             })
             .execute(),
         throwsA(isA<PostgrestException>()),
@@ -145,9 +173,9 @@ void main() {
         () async => await supabase
             .from('growth_groups')
             .insert({
-              'nome': 'GC Status Invalido $timestamp',
-              'modalidade': 'online',
-              'status': 'arquivado', // Não existe no enum
+              'name': 'GC Status Invalido $timestamp',
+              'mode': 'online',
+              'status': 'archived', // Não existe no enum
             })
             .execute(),
         throwsA(isA<PostgrestException>()),
@@ -168,9 +196,9 @@ void main() {
         () async => await supabase
             .from('growth_groups')
             .insert({
-              'nome': 'GC Sem Permissao $timestamp',
-              'modalidade': 'online',
-              'status': 'ativo',
+              'name': 'GC Sem Permissao $timestamp',
+              'mode': 'online',
+              'status': 'active',
             })
             .execute(),
         throwsA(isA<PostgrestException>()),
@@ -191,10 +219,10 @@ void main() {
         () async => await supabase
             .from('growth_groups')
             .insert({
-              'nome': 'GC Dia Invalido $timestamp',
-              'modalidade': 'online',
-              'dia_semana': 7, // Inválido (0-6 apenas)
-              'status': 'ativo',
+              'name': 'GC Dia Invalido $timestamp',
+              'mode': 'online',
+              'weekday': 7, // Inválido (0-6 apenas)
+              'status': 'active',
             })
             .execute(),
         throwsA(isA<PostgrestException>()),

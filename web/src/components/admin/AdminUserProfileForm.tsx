@@ -12,15 +12,9 @@ const schema = z.object({
   email: z.string({ message: 'Informe o e-mail.' }).email('E-mail inválido.'),
   phone: z.string().optional().or(z.literal('')),
   isAdmin: z.boolean(),
-  hierarchyParentId: z.string().uuid().optional().or(z.literal('')),
 });
 
 type FormValues = z.infer<typeof schema>;
-
-interface SupervisorOption {
-  id: string;
-  name: string;
-}
 
 interface AdminUserProfileFormProps {
   userId: string;
@@ -29,12 +23,10 @@ interface AdminUserProfileFormProps {
     email: string | null;
     phone: string | null;
     isAdmin: boolean;
-    hierarchyParentId: string | null;
   };
-  supervisors: SupervisorOption[];
 }
 
-export function AdminUserProfileForm({ userId, initialValues, supervisors }: AdminUserProfileFormProps) {
+export function AdminUserProfileForm({ userId, initialValues }: AdminUserProfileFormProps) {
   const router = useRouter();
   const [feedback, setFeedback] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -51,7 +43,6 @@ export function AdminUserProfileForm({ userId, initialValues, supervisors }: Adm
       email: initialValues.email ?? '',
       phone: initialValues.phone ?? '',
       isAdmin: initialValues.isAdmin,
-      hierarchyParentId: initialValues.hierarchyParentId ?? '',
     },
   });
 
@@ -66,7 +57,6 @@ export function AdminUserProfileForm({ userId, initialValues, supervisors }: Adm
         email: values.email.trim().toLowerCase(),
         phone: values.phone?.trim() ? values.phone.trim() : null,
         isAdmin: values.isAdmin,
-        hierarchyParentId: values.hierarchyParentId || null,
       })
         .then((result) => {
           if (result.success) {
@@ -86,7 +76,7 @@ export function AdminUserProfileForm({ userId, initialValues, supervisors }: Adm
     <form onSubmit={onSubmit} className="grid gap-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
       <div>
         <h2 className="text-lg font-semibold text-slate-900">Dados do usuário</h2>
-        <p className="text-sm text-slate-600">Atualize os dados pessoais, permissões e supervisor direto.</p>
+        <p className="text-sm text-slate-600">Atualize os dados pessoais e permissões do usuário.</p>
       </div>
 
       {feedback ? (
@@ -132,27 +122,7 @@ export function AdminUserProfileForm({ userId, initialValues, supervisors }: Adm
         Acesso administrativo (Admin)
       </label>
 
-      <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">
-        Supervisor direto
-        <select
-          className="rounded-lg border border-slate-300 px-3 py-2 text-slate-900 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
-          {...register('hierarchyParentId')}
-        >
-          <option value="">Sem supervisor definido</option>
-          {supervisors
-            .filter((supervisor) => supervisor.id !== userId)
-            .map((supervisor) => (
-              <option key={supervisor.id} value={supervisor.id}>
-                {supervisor.name}
-              </option>
-            ))}
-        </select>
-        {errors.hierarchyParentId ? (
-          <span className="text-xs text-red-600">{errors.hierarchyParentId.message}</span>
-        ) : null}
-      </label>
-
-      <div className="flex items-center justify-end">
+     <div className="flex items-center justify-end">
         <button
           type="submit"
           disabled={isPending}

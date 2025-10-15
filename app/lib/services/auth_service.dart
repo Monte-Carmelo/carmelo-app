@@ -43,8 +43,7 @@ class AuthService {
             'person_id': personData['id'],
           })
           .select(
-            'id, hierarchy_parent_id, hierarchy_path, hierarchy_depth, '
-            'is_admin, created_at, updated_at, deleted_at, '
+            'id, person_id, is_admin, created_at, updated_at, deleted_at, '
             'person:people(name, email, phone)',
           )
           .single();
@@ -76,8 +75,7 @@ class AuthService {
       final userData = await _supabase
           .from('users')
           .select(
-            'id, hierarchy_parent_id, hierarchy_path, hierarchy_depth, '
-            'is_admin, created_at, updated_at, deleted_at, '
+            'id, person_id, is_admin, created_at, updated_at, deleted_at, '
             'person:people(name, email, phone)',
           )
           .eq('id', response.user!.id)
@@ -111,8 +109,7 @@ class AuthService {
       final userData = await _supabase
           .from('users')
           .select(
-            'id, hierarchy_parent_id, hierarchy_path, hierarchy_depth, '
-            'is_admin, created_at, updated_at, deleted_at, '
+            'id, person_id, is_admin, created_at, updated_at, deleted_at, '
             'person:people(name, email, phone)',
           )
           .eq('id', currentUser.id)

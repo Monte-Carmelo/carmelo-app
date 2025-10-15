@@ -1,0 +1,67 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e4]:
+        - generic [ref=e5]:
+          - link "Carmelo" [ref=e6] [cursor=pointer]:
+            - /url: /dashboard
+          - navigation [ref=e7]:
+            - link "Dashboard" [ref=e8] [cursor=pointer]:
+              - /url: /dashboard
+            - link "Reuniões" [ref=e9] [cursor=pointer]:
+              - /url: /meetings
+            - link "Participantes" [ref=e10] [cursor=pointer]:
+              - /url: /participants
+            - link "Visitantes" [ref=e11] [cursor=pointer]:
+              - /url: /visitors
+        - generic [ref=e12]:
+          - generic [ref=e13]:
+            - generic [ref=e14]: João Líder
+            - generic [ref=e15]: Líder
+          - button "Sair" [ref=e16] [cursor=pointer]
+    - main [ref=e17]:
+      - generic [ref=e18]:
+        - generic [ref=e19]:
+          - heading "Cadastrar visitante" [level=1] [ref=e20]
+          - paragraph [ref=e21]: Preencha os dados básicos para registrar um novo visitante em um GC.
+        - generic [ref=e22]:
+          - generic [ref=e23]:
+            - text: Grupo de Crescimento
+            - combobox "Grupo de Crescimento" [ref=e24]:
+              - option "Selecione..."
+              - option "GC Esperança" [selected]
+              - option "GC Fé"
+          - generic [ref=e25]:
+            - text: Nome completo
+            - textbox "Nome completo" [ref=e26]:
+              - /placeholder: "Ex.: Maria da Silva"
+              - text: Visitante Playwright 1760552598521-mrpz1t
+          - generic [ref=e27]:
+            - generic [ref=e28]:
+              - text: E-mail
+              - textbox "E-mail" [ref=e29]:
+                - /placeholder: email@exemplo.com
+                - text: visitante-1760552598521-mrpz1t@example.com
+            - generic [ref=e30]:
+              - text: Telefone
+              - textbox "Telefone" [ref=e31]:
+                - /placeholder: (11) 99999-9999
+                - text: "11999999999"
+          - generic [ref=e32]:
+            - text: Visitas já realizadas
+            - spinbutton "Visitas já realizadas" [ref=e33]: "0"
+        - generic [ref=e34]: new row violates row-level security policy for table "people"
+        - generic [ref=e35]:
+          - button "Cancelar" [ref=e36] [cursor=pointer]
+          - button "Cadastrar visitante" [ref=e37] [cursor=pointer]
+  - generic [ref=e38]:
+    - img [ref=e40]
+    - button "Open Tanstack query devtools" [ref=e88] [cursor=pointer]:
+      - img [ref=e89]
+  - button "Open Next.js Dev Tools" [ref=e142] [cursor=pointer]:
+    - img [ref=e143]
+  - alert [ref=e146]
+```

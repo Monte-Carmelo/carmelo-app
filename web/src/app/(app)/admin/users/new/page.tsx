@@ -13,21 +13,7 @@ async function AdminNewUserContent() {
     redirect('/login');
   }
 
-  const { data: supervisorRows, error } = await supabase
-    .from('user_gc_roles')
-    .select('user_id, name')
-    .order('name', { ascending: true });
-
-  if (error) {
-    throw error;
-  }
-
-  const supervisors = (supervisorRows ?? []).map((row) => ({
-    id: row.user_id ?? '',
-    name: row.name ?? 'Sem nome',
-  }));
-
-  return <AdminUserCreateForm supervisors={supervisors} />;
+  return <AdminUserCreateForm />;
 }
 
 export default function AdminNewUserPage() {

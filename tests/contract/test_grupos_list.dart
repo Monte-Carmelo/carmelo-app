@@ -2,10 +2,11 @@ import 'package:test/test.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// T008 - Contract test GET /growth_groups
-/// Valida select com gc_leaders/gc_supervisors joins, RLS filtering
+/// Valida select com growth_group_participants e filtros de RLS
 void main() {
   late SupabaseClient supabase;
   late String authUserId;
+  late String authPersonId;
 
   setUpAll(() async {
     await Supabase.initialize(
@@ -20,6 +21,12 @@ void main() {
       password: 'senha123',
     );
     authUserId = authResponse.user!.id;
+    final personResult = await supabase
+        .from('users')
+        .select('person_id')
+        .eq('id', authUserId)
+        .single();
+    authPersonId = personResult['person_id'] as String;
   });
 
   tearDownAll(() async {
@@ -28,25 +35,23 @@ void main() {
   });
 
   group('GET /growth_groups', () {
-    test('deve listar GCs com joins de líderes e supervisores', () async {
+    test('deve listar GCs com participantes e papéis', () async {
       final response = await supabase
           .from('growth_groups')
-          .select('*,gc_leaders(*,user:users(*)),gc_supervisors(*,user:users(*))')
+          .select(
+              'id, name, mode, status, participants:growth_group_participants(role, status, person:person_id(name, email))')
           .execute();
 
       expect(response.data, isA<List>());
       if ((response.data as List).isNotEmpty) {
         final firstGC = (response.data as List).first;
         expect(firstGC, containsPair('id', isA<String>()));
-        expect(firstGC, containsPair('nome', isA<String>()));
-        expect(firstGC, containsPair('modalidade', isA<String>()));
+        expect(firstGC, containsPair('name', isA<String>()));
+        expect(firstGC, containsPair('mode', isA<String>()));
         expect(firstGC, containsPair('status', isA<String>()));
 
-        // Verificar relacionamentos
-        expect(firstGC, contains('gc_leaders'));
-        expect(firstGC['gc_leaders'], isA<List>());
-        expect(firstGC, contains('gc_supervisors'));
-        expect(firstGC['gc_supervisors'], isA<List>());
+        expect(firstGC, contains('participants'));
+        expect(firstGC['participants'], isA<List>());
       }
     });
 
@@ -54,32 +59,38 @@ void main() {
       final response = await supabase
           .from('growth_groups')
           .select()
-          .eq('status', 'ativo')
+          .eq('status', 'active')
           .execute();
 
       expect(response.data, isA<List>());
       for (var gc in (response.data as List)) {
-        expect(gc['status'], equals('ativo'));
+        expect(gc['status'], equals('active'));
       }
     });
 
     test('deve respeitar RLS - líder vê apenas seus GCs', () async {
       final response = await supabase
           .from('growth_groups')
-          .select('*,gc_leaders!inner(user_id)')
-          .eq('gc_leaders.user_id', authUserId)
+          .select(
+              'id, name, participants:growth_group_participants!inner(person_id, role, status)')
+          .eq('participants.person_id', authPersonId)
+          .inFilter('participants.role', ['leader', 'co_leader'])
+          .eq('participants.status', 'active')
           .execute();
 
       expect(response.data, isA<List>());
 
       // Verificar que todos os GCs retornados têm o usuário como líder
       for (var gc in (response.data as List)) {
-        final leaders = gc['gc_leaders'] as List;
-        expect(
-          leaders.any((l) => l['user_id'] == authUserId),
-          isTrue,
-          reason: 'GC deve ter usuário autenticado como líder',
+        final participants = gc['participants'] as List;
+        final matches = participants.where(
+          (p) =>
+              p['person_id'] == authPersonId &&
+              (p['role'] == 'leader' || p['role'] == 'co_leader') &&
+              p['status'] == 'active',
         );
+        expect(matches.isNotEmpty, isTrue,
+            reason: 'GC deve listar o usuário autenticado como líder ou co-líder');
       }
     });
 
@@ -115,19 +126,19 @@ void main() {
 
       // Campos obrigatórios
       expect(gc['id'], isA<String>());
-      expect(gc['nome'], isA<String>());
-      expect(gc['modalidade'], isIn(['presencial', 'online']));
-      expect(gc['status'], isIn(['ativo', 'inativo', 'multiplicando']));
+      expect(gc['name'], isA<String>());
+      expect(gc['mode'], isIn(['in_person', 'online', 'hybrid']));
+      expect(gc['status'], isIn(['active', 'inactive', 'multiplying']));
       expect(gc['created_at'], isA<String>());
       expect(gc['updated_at'], isA<String>());
 
       // Campos opcionais
-      if (gc['endereco'] != null) expect(gc['endereco'], isA<String>());
-      if (gc['dia_semana'] != null) {
-        expect(gc['dia_semana'], isA<int>());
-        expect(gc['dia_semana'], inInclusiveRange(0, 6));
+      if (gc['address'] != null) expect(gc['address'], isA<String>());
+      if (gc['weekday'] != null) {
+        expect(gc['weekday'], isA<int>());
+        expect(gc['weekday'], inInclusiveRange(0, 6));
       }
-      if (gc['horario'] != null) expect(gc['horario'], isA<String>());
+      if (gc['time'] != null) expect(gc['time'], isA<String>());
     });
   });
 }

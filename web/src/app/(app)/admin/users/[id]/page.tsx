@@ -14,7 +14,6 @@ type UserRow = {
   id: string;
   person_id: string;
   is_admin: boolean;
-  hierarchy_parent_id: string | null;
   people: {
     id: string;
     name: string;
@@ -52,7 +51,7 @@ async function AdminUserDetailContent({ userId, searchParams }: { userId: string
     supabase
       .from('users')
       .select(
-        `id, person_id, is_admin, hierarchy_parent_id,
+        `id, person_id, is_admin,
          people:person_id ( id, name, email, phone ),
          assignments:growth_group_participants!growth_group_participants_person_id_fkey (
            id, gc_id, role, status, deleted_at,
@@ -112,7 +111,6 @@ async function AdminUserDetailContent({ userId, searchParams }: { userId: string
 
   const roleRows = rolesResult.data as RoleRow[];
   const roleSummary = roleRows.find((row) => row.user_id === userId);
-  const supervisors = roleRows.map((row) => ({ id: row.user_id ?? '', name: row.name ?? 'Sem nome' }));
 
   const roleBadges: string[] = [];
   if (user.is_admin) roleBadges.push('Admin');
@@ -173,9 +171,7 @@ async function AdminUserDetailContent({ userId, searchParams }: { userId: string
           email: person.email,
           phone: person.phone,
           isAdmin: user.is_admin,
-          hierarchyParentId: user.hierarchy_parent_id,
         }}
-        supervisors={supervisors}
       />
 
       <AdminUserAssignments

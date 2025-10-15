@@ -469,9 +469,6 @@ export type Database = {
         Row: {
           created_at: string
           deleted_at: string | null
-          hierarchy_depth: number
-          hierarchy_parent_id: string | null
-          hierarchy_path: string
           id: string
           is_admin: boolean
           person_id: string
@@ -480,9 +477,6 @@ export type Database = {
         Insert: {
           created_at?: string
           deleted_at?: string | null
-          hierarchy_depth?: number
-          hierarchy_parent_id?: string | null
-          hierarchy_path?: string
           id: string
           is_admin?: boolean
           person_id: string
@@ -491,9 +485,6 @@ export type Database = {
         Update: {
           created_at?: string
           deleted_at?: string | null
-          hierarchy_depth?: number
-          hierarchy_parent_id?: string | null
-          hierarchy_path?: string
           id?: string
           is_admin?: boolean
           person_id?: string
@@ -501,24 +492,17 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "users_hierarchy_parent_id_fkey"
-            columns: ["hierarchy_parent_id"]
-            isOneToOne: false
-            referencedRelation: "user_gc_roles"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "users_hierarchy_parent_id_fkey"
-            columns: ["hierarchy_parent_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "users_person_id_fkey"
             columns: ["person_id"]
             isOneToOne: true
             referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "users_auth_user_fkey"
+            columns: ["id"]
+            isOneToOne: true
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
@@ -718,14 +702,14 @@ export type Database = {
       }
       user_gc_roles: {
         Row: {
-          direct_subordinates: number | null
+          direct_subordinates: number
           email: string | null
-          gcs_led: number | null
-          gcs_supervised: number | null
-          is_admin: boolean | null
-          is_coordinator: boolean | null
-          is_leader: boolean | null
-          is_supervisor: boolean | null
+          gcs_led: number
+          gcs_supervised: number
+          is_admin: boolean
+          is_coordinator: boolean
+          is_leader: boolean
+          is_supervisor: boolean
           name: string | null
           user_id: string | null
         }

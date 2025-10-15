@@ -153,6 +153,7 @@
 - [ ] W204 Serviço de visitantes (`web/src/lib/api/visitors.ts`) com contagem de visitas.
 - [ ] W205 Implementar conversão manual → cria registro em `visitor_conversion_events` (`web/src/components/visitors/convert-dialog.tsx`).
 - [ ] W206 Atualizar dashboards com indicadores de frequência/conversão (`web/src/components/dashboard/conversion-banner.tsx`).
+- [ ] W207 Ajustar RLS para permitir líderes/co-líderes criarem/atualizarem pessoas/visitantes nos próprios GCs e validar com Playwright (`supabase/migrations/013_refactor_rls.sql`, `web/tests/e2e/meetings.spec.ts`).
 
 ### Testes Sprint 2
 - [ ] W210 Atualizar testes Vitest para hooks/serviços de participantes e visitantes.

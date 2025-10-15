@@ -17,7 +17,6 @@ const schema = z
       .string({ message: 'Confirme a senha.' })
       .min(8, 'Confirmação precisa ter pelo menos 8 caracteres.'),
     isAdmin: z.boolean(),
-    hierarchyParentId: z.string().uuid().optional().or(z.literal('')),
   })
   .refine((values) => values.password === values.confirmPassword, {
     message: 'Senhas não conferem.',
@@ -26,16 +25,7 @@ const schema = z
 
 type FormValues = z.infer<typeof schema>;
 
-interface SupervisorOption {
-  id: string;
-  name: string;
-}
-
-interface AdminUserCreateFormProps {
-  supervisors: SupervisorOption[];
-}
-
-export function AdminUserCreateForm({ supervisors }: AdminUserCreateFormProps) {
+export function AdminUserCreateForm() {
   const router = useRouter();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -64,7 +54,6 @@ export function AdminUserCreateForm({ supervisors }: AdminUserCreateFormProps) {
         phone: values.phone?.trim() ? values.phone.trim() : null,
         password: values.password,
         isAdmin: values.isAdmin,
-        hierarchyParentId: values.hierarchyParentId || null,
       })
         .then((result) => {
           if (result.success && result.userId) {
@@ -76,7 +65,6 @@ export function AdminUserCreateForm({ supervisors }: AdminUserCreateFormProps) {
               password: '',
               confirmPassword: '',
               isAdmin: false,
-              hierarchyParentId: '',
             });
             router.replace(`/admin/users/${result.userId}?created=true`);
           } else {
@@ -94,7 +82,7 @@ export function AdminUserCreateForm({ supervisors }: AdminUserCreateFormProps) {
       <header className="flex flex-col gap-2">
         <h1 className="text-2xl font-semibold text-slate-900">Novo usuário</h1>
         <p className="text-sm text-slate-600">
-          Cadastre um novo usuário com acesso ao app. Defina uma senha temporária e atribua, se necessário, o supervisor direto.
+          Cadastre um novo usuário com acesso ao app. Defina uma senha temporária; atribua papéis posteriormente nos detalhes do usuário.
         </p>
       </header>
 
@@ -167,25 +155,6 @@ export function AdminUserCreateForm({ supervisors }: AdminUserCreateFormProps) {
         <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
           <input type="checkbox" className="h-4 w-4" {...register('isAdmin')} />
           Conceder acesso administrativo (Admin)
-        </label>
-
-        <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">
-          Supervisor direto (opcional)
-          <select
-            className="rounded-lg border border-slate-300 px-3 py-2 text-slate-900 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
-            {...register('hierarchyParentId')}
-            defaultValue=""
-          >
-            <option value="">Sem supervisor definido</option>
-            {supervisors.map((supervisor) => (
-              <option key={supervisor.id} value={supervisor.id}>
-                {supervisor.name}
-              </option>
-            ))}
-          </select>
-          {errors.hierarchyParentId ? (
-            <span className="text-xs text-red-600">{errors.hierarchyParentId.message}</span>
-          ) : null}
         </label>
       </div>
 

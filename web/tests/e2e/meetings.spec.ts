@@ -1,8 +1,42 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 
 const loginEmail = process.env.E2E_SUPABASE_EMAIL;
 const loginPassword = process.env.E2E_SUPABASE_PASSWORD;
 const shouldSkip = !loginEmail || !loginPassword;
+
+async function navigateToSection(page: Page, url: string, linkPattern: RegExp) {
+  const navLink = page.getByRole('link', { name: linkPattern });
+  const targetPattern = `**${url.startsWith('/') ? url : `/${url}`}*`;
+
+  if ((await navLink.count()) > 0) {
+    await Promise.all([navLink.first().click(), page.waitForURL(targetPattern)]);
+    return;
+  }
+
+  await page.goto(url);
+  await page.waitForURL(targetPattern);
+}
+
+async function ensureConvertibleVisitor(page: Page) {
+  const convertButtons = page.getByRole('button', { name: /converter em membro/i });
+  if ((await convertButtons.count()) > 0) {
+    return;
+  }
+
+  await page.getByRole('link', { name: /Adicionar visitante/i }).click();
+  await page.waitForURL('**/visitors/new');
+
+  const uniqueSuffix = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+  const gcSelect = page.locator('select[name="gcId"]');
+  await gcSelect.selectOption({ index: 1 });
+  await page.getByLabel('Nome completo').fill(`Visitante Playwright ${uniqueSuffix}`);
+  await page.getByLabel('E-mail').fill(`visitante-${uniqueSuffix}@example.com`);
+  await page.getByLabel('Telefone').fill('11999999999');
+  await page.getByRole('button', { name: /Cadastrar visitante/i }).click();
+  await page.waitForURL('**/visitors');
+  await expect(page.getByRole('heading', { name: /visitantes/i })).toBeVisible();
+}
 
 test.describe('Reuniões e Visitantes', () => {
   test.skip(shouldSkip, 'Defina E2E_SUPABASE_EMAIL e E2E_SUPABASE_PASSWORD para executar este fluxo.');
@@ -14,8 +48,7 @@ test.describe('Reuniões e Visitantes', () => {
     await page.getByRole('button', { name: /entrar/i }).click();
     await page.waitForURL('**/dashboard');
 
-    await page.getByRole('link', { name: /reuniões/i }).click();
-    await page.waitForURL('**/meetings*');
+    await navigateToSection(page, '/meetings', /reuniões/i);
     await page.getByRole('link', { name: /registrar nova reunião/i }).click();
     await page.waitForURL('**/meetings/new');
 
@@ -47,18 +80,27 @@ test.describe('Reuniões e Visitantes', () => {
     await page.getByRole('button', { name: /entrar/i }).click();
     await page.waitForURL('**/dashboard');
 
-    await page.getByRole('link', { name: /visitantes/i }).click();
-    await page.waitForURL('**/visitors');
+    await navigateToSection(page, '/visitors', /visitantes/i);
+
+    await expect(page.getByRole('heading', { name: /visitantes/i })).toBeVisible();
+
+    await ensureConvertibleVisitor(page);
 
     const convertButtons = page.getByRole('button', { name: /converter em membro/i });
-    const count = await convertButtons.count();
-    for (let i = 0; i < count; i += 1) {
+    await expect(convertButtons).not.toHaveCount(0);
+    const initialCount = await convertButtons.count();
+    let converted = false;
+
+    for (let i = 0; i < initialCount; i += 1) {
       const button = convertButtons.nth(i);
       if (await button.isEnabled()) {
         await button.click();
-        await expect(button).toBeDisabled();
+        await expect.poll(async () => await convertButtons.count()).toBeLessThan(initialCount);
+        converted = true;
         break;
       }
     }
+
+    expect(converted).toBeTruthy();
   });
 });

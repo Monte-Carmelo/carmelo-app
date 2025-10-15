@@ -33,4 +33,4 @@ dart test tests/contract/test_auth_signup.dart
 
 - **RLS**: SELECT retorna array vazio (não 403) quando bloqueado
 - **TDD**: Testes foram escritos ANTES da implementação do app Flutter
-- **Múltiplos líderes/supervisores**: gc_leaders e gc_supervisors são many-to-many
+- **Papéis de GC**: líderes, co-líderes, supervisores e membros vivem em `growth_group_participants`

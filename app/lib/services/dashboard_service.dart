@@ -39,74 +39,35 @@ class DashboardService {
   /// Get roles for a user (is_leader, is_supervisor, is_coordinator)
   Future<Map<String, dynamic>> getRolesForUser(String userId) async {
     try {
-      // Check if user is leader (has GCs in gc_leaders)
-      final leaderResponse = await _supabase
-          .from('gc_leaders')
-          .select('gc_id')
+      final response = await _supabase
+          .from('user_gc_roles')
+          .select(
+            'is_leader, is_supervisor, is_coordinator, is_admin, '
+            'gcs_led, gcs_supervised, direct_subordinates',
+          )
           .eq('user_id', userId)
-          .limit(1)
           .maybeSingle();
 
-      final isLeader = leaderResponse != null;
-
-      // Check if user is supervisor (has GCs in gc_supervisors)
-      final supervisorResponse = await _supabase
-          .from('gc_supervisors')
-          .select('gc_id')
-          .eq('user_id', userId)
-          .limit(1)
-          .maybeSingle();
-
-      final isSupervisor = supervisorResponse != null;
-
-      // Check if user is coordinator (has subordinates in hierarchy)
-      final coordinatorResponse = await _supabase
-          .from('users')
-          .select('id')
-          .eq('hierarchy_parent_id', userId)
-          .limit(1)
-          .maybeSingle();
-
-      final isCoordinator = coordinatorResponse != null;
-
-      // Get admin status
-      final userResponse = await _supabase
-          .from('users')
-          .select('is_admin')
-          .eq('id', userId)
-          .single();
-
-      final isAdmin = userResponse['is_admin'] as bool;
-
-      // Count GCs led
-      final leaderCountResponse = await _supabase
-          .from('gc_leaders')
-          .select()
-          .eq('user_id', userId)
-          .count();
-
-      // Count GCs supervised
-      final supervisorCountResponse = await _supabase
-          .from('gc_supervisors')
-          .select()
-          .eq('user_id', userId)
-          .count();
-
-      // Count subordinates
-      final subordinatesCountResponse = await _supabase
-          .from('users')
-          .select()
-          .eq('hierarchy_parent_id', userId)
-          .count();
+      if (response == null) {
+        return {
+          'is_leader': false,
+          'is_supervisor': false,
+          'is_coordinator': false,
+          'is_admin': false,
+          'total_gcs_liderados': 0,
+          'total_gcs_supervisionados': 0,
+          'total_subordinados': 0,
+        };
+      }
 
       return {
-        'is_leader': isLeader,
-        'is_supervisor': isSupervisor,
-        'is_coordinator': isCoordinator,
-        'is_admin': isAdmin,
-        'total_gcs_liderados': leaderCountResponse.count,
-        'total_gcs_supervisionados': supervisorCountResponse.count,
-        'total_subordinados': subordinatesCountResponse.count,
+        'is_leader': response['is_leader'] ?? false,
+        'is_supervisor': response['is_supervisor'] ?? false,
+        'is_coordinator': response['is_coordinator'] ?? false,
+        'is_admin': response['is_admin'] ?? false,
+        'total_gcs_liderados': response['gcs_led'] ?? 0,
+        'total_gcs_supervisionados': response['gcs_supervised'] ?? 0,
+        'total_subordinados': response['direct_subordinates'] ?? 0,
       };
     } catch (e) {
       throw Exception('Erro ao buscar papéis do usuário: $e');
@@ -138,10 +99,23 @@ class DashboardService {
   Future<List<Map<String, dynamic>>> getMetricasForSupervisor(String userId) async {
     try {
       // Get GCs directly supervised by user
+      final userRecord = await _supabase
+          .from('users')
+          .select('person_id')
+          .eq('id', userId)
+          .maybeSingle();
+
+      if (userRecord == null) {
+        return [];
+      }
+
       final supervisedGCs = await _supabase
-          .from('gc_supervisors')
+          .from('growth_group_participants')
           .select('gc_id')
-          .eq('user_id', userId);
+          .eq('person_id', userRecord['person_id'])
+          .eq('role', 'supervisor')
+          .eq('status', 'active')
+          .isFilter('deleted_at', null);
 
       final gcIds = supervisedGCs.map((item) => item['gc_id']).toList();
 
