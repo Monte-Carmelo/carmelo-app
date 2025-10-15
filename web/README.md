@@ -17,6 +17,7 @@ Aplicação web responsiva (mobile-first) para gestão de Grupos de Crescimento,
    ```bash
    npm run lint
    npm run test
+   npm run test:e2e -- --list
    ```
 
 ## Scripts principais
@@ -25,17 +26,22 @@ Aplicação web responsiva (mobile-first) para gestão de Grupos de Crescimento,
 - `npm run start`: inicia o servidor em modo produção após o build.
 - `npm run lint`: roda ESLint com as regras do Next.js.
 - `npm run test`: executa testes unitários com Vitest + Testing Library.
-- `npm run test:e2e`: executa a suíte E2E com Playwright (placeholder, requer cenários).
+- `npm run test:e2e`: executa Playwright (projetos desktop e mobile). Defina `E2E_SUPABASE_EMAIL` e `E2E_SUPABASE_PASSWORD` com credenciais válidas para login automático.
+- `npm run storybook`: sobe o Storybook com builder Vite.
+- `npm run build-storybook`: gera Storybook estático em `web/storybook-static/`.
+- `npm run test:stories`: roda `@storybook/test-runner` contra o build estático.
 - `npm run type-check`: validação de tipos TypeScript.
 
 ## Estrutura
 - `src/app`: rotas App Router (Next.js 14) com layout global e providers.
-- `src/lib`: utilitários compartilhados (Supabase, env, etc.).
-- `src/app/docs/roadmap`: visão inicial dos incrementos planejados (Sprints 1-3).
+- `src/components`: componentes reutilizáveis (ex.: `landing/Hero`).
+- `src/lib`: utilitários compartilhados (Supabase, env, hooks, API).
+- `tests/e2e`: cenários Playwright (sprints futuras).
+- `.storybook`: configuração Storybook (builder Vite, addons essenciais).
 
-## Próximos passos
-- Integrar autenticação com Supabase (email/senha) usando `@supabase/ssr`.
-- Implementar layout autenticado e fluxos do dashboard do líder.
-- Adicionar Storybook e testes E2E conforme roadmap.
+## Observações
+- Playwright já está configurado com projetos `chromium-desktop` e `chromium-mobile`; use `npx playwright install` após instalar dependências.
+- Tipos do Supabase estão em `src/lib/supabase/types.ts` (gerados manualmente a partir das migrations).
+- Storybook utiliza builder Vite para compatibilidade com Next 15; o build gera logs sobre módulos Node externados — são avisos esperados.
 
 Consulte `specs/001-crie-um-app/web-stack-decisions.md` para detalhes de stack e racional.

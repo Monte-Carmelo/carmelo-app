@@ -25,9 +25,9 @@
 - [x] W002 Configurar lint, Vitest, Playwright, Husky/lint-staged (`web/package.json`, configs).
 - [x] W003 Criar utilitários Supabase (`web/src/lib/env.ts`, `web/src/lib/supabase/*`).
 - [x] W004 Publicar stack e roadmap web (`web/README.md`, `specs/001-crie-um-app/web-*.md`).
-- [ ] W005 Configurar Storybook 8 com Storybook Test Runner e integração Tailwind (`web/.storybook`).
-- [ ] W006 Preparar configuração Playwright (projeto mobile/desktop) + script `npm run test:e2e`.
-- [ ] W007 Gerar tipos do Supabase via CLI e publicar em `web/src/lib/supabase/types.ts`.
+- [x] W005 Configurar Storybook 8 com Storybook Test Runner e integração Tailwind (`web/.storybook`).
+- [x] W006 Preparar configuração Playwright (projeto mobile/desktop) + script `npm run test:e2e`.
+- [x] W007 Gerar tipos do Supabase via CLI e publicar em `web/src/lib/supabase/types.ts`.
 
 ---
 
