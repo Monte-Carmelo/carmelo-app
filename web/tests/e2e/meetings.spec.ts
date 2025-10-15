@@ -21,7 +21,7 @@ test.describe('Reuniões e Visitantes', () => {
 
     await expect(page.getByRole('heading', { name: /registrar reunião/i })).toBeVisible();
 
-    const gcSelect = page.getByLabel('Grupo de Crescimento');
+    const gcSelect = page.locator('select[name="gcId"]');
     await gcSelect.selectOption({ index: 1 });
 
     await page.getByLabel('Data').fill(new Date().toISOString().split('T')[0]);

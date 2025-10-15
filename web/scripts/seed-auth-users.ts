@@ -63,6 +63,7 @@ async function seedAuthUsers() {
     try {
       // Tentar criar usuário via Admin API
       const { data, error } = await supabase.auth.admin.createUser({
+        id: user.user_id,
         email: user.email,
         password: user.password,
         email_confirm: true, // Auto-confirmar email
