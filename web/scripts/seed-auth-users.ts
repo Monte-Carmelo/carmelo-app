@@ -18,12 +18,7 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey, {
 });
 
 const testUsers = [
-  {
-    email: 'lider1@test.com',
-    password: 'senha123',
-    name: 'João Líder',
-    user_id: '10000000-0000-0000-0000-000000000001',
-  },
+
   {
     email: 'lider2@test.com',
     password: 'senha123',
@@ -76,7 +71,7 @@ async function seedAuthUsers() {
         if (error.message.includes('already registered')) {
           console.log(`⏭️  ${user.email} - Já existe`);
         } else {
-          console.error(`❌ ${user.email} - Erro: ${error.message}`);
+          console.error(`❌ ${user.email} - Erro: ${error.message}`, error);
         }
       } else {
         console.log(`✅ ${user.email} - Criado (auth.id: ${data.user?.id})`);

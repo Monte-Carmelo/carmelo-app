@@ -5,9 +5,10 @@ import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { z } from 'zod';
-import { Calendar, FileText, Users, UserCheck } from 'lucide-react';
+import { Calendar, FileText, Users, UserCheck, Trash2 } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/browser-client';
 import type { Database } from '@/lib/supabase/types';
+import type { MeetingDetails } from '@/lib/supabase/queries/meetings';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,7 +18,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 
 const schema = z.object({
-  gcId: z.string({ message: 'Selecione um GC' }),
   meetingDate: z.string({ message: 'Informe a data da reunião' }),
   meetingTime: z.string({ message: 'Informe o horário da reunião' }),
   lessonTemplateId: z.string().optional(),
@@ -33,7 +33,6 @@ const schema = z.object({
 
 type FormValues = z.infer<typeof schema>;
 
-type GrowthGroup = Database['public']['Tables']['growth_groups']['Row'];
 type Lesson = Database['public']['Tables']['lessons']['Row'];
 
 type Participant = {
@@ -47,25 +46,12 @@ type Visitor = {
   name: string;
 };
 
-interface MeetingFormProps {
-  userId: string;
-  groups: Pick<GrowthGroup, 'id' | 'name'>[];
+interface EditMeetingFormProps {
+  meeting: MeetingDetails;
   lessonTemplates: Pick<Lesson, 'id' | 'title'>[];
-  defaultGcId?: string;
-  defaultGcName?: string;
-  defaultDate?: string;
-  defaultTime?: string;
 }
 
-export function MeetingForm({
-  userId,
-  groups,
-  lessonTemplates,
-  defaultGcId,
-  defaultGcName,
-  defaultDate,
-  defaultTime,
-}: MeetingFormProps) {
+export function EditMeetingForm({ meeting, lessonTemplates }: EditMeetingFormProps) {
   const router = useRouter();
   const supabase = getSupabaseBrowserClient();
 
@@ -74,51 +60,51 @@ export function MeetingForm({
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  // Extrair data e hora da datetime ISO
+  const datetime = new Date(meeting.datetime);
+  const defaultDate = datetime.toISOString().split('T')[0];
+  const defaultTime = datetime.toTimeString().substring(0, 5);
+
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
-      gcId: defaultGcId || '',
-      meetingDate: defaultDate || new Date().toISOString().split('T')[0],
-      meetingTime: defaultTime || '19:30',
-      members: [],
-      visitors: [],
+      meetingDate: defaultDate,
+      meetingTime: defaultTime,
+      lessonTemplateId: meeting.lesson_template_id || '',
+      customLessonTitle: meeting.lesson_title || '',
+      comments: meeting.comments || '',
+      members: meeting.meeting_member_attendance.map((att) => ({
+        participantId: att.participant_id,
+      })),
+      visitors: meeting.meeting_visitor_attendance.map((att) => ({
+        visitorId: att.visitor_id,
+      })),
     },
   });
 
   const membersFieldArray = useFieldArray({ name: 'members', control: form.control });
   const visitorsFieldArray = useFieldArray({ name: 'visitors', control: form.control });
 
-  // Carregar participantes e visitantes automaticamente se gcId vier pré-selecionado
+  // Carregar participantes e visitantes do GC
   useEffect(() => {
-    if (defaultGcId) {
-      handleGroupChange(defaultGcId);
-    }
+    loadParticipantsAndVisitors();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [defaultGcId]);
+  }, []);
 
-  const handleGroupChange = async (gcId: string) => {
-    form.reset({
-      ...form.getValues(),
-      gcId,
-      members: [],
-      visitors: [],
-    });
-
-    if (!gcId) return;
-
+  const loadParticipantsAndVisitors = async () => {
     setIsLoading(true);
     const [{ data: memberRows }, { data: visitorRows }] = await Promise.all([
       supabase
         .from('growth_group_participants')
         .select('id, role, people:person_id ( id, name )')
-        .eq('gc_id', gcId)
+        .eq('gc_id', meeting.gc_id)
         .eq('status', 'active')
         .in('role', ['member', 'leader', 'co_leader'])
         .order('role', { ascending: true }),
       supabase
         .from('visitors')
         .select('id, people:person_id ( id, name )')
-        .eq('gc_id', gcId)
+        .eq('gc_id', meeting.gc_id)
         .eq('status', 'active')
         .order('first_visit_date', { ascending: false }),
     ]);
@@ -151,64 +137,99 @@ export function MeetingForm({
 
     const datetime = new Date(`${values.meetingDate}T${values.meetingTime}:00`);
 
-    const { data: meeting, error: meetingError } = await supabase
+    // Atualizar dados da reunião
+    const { error: meetingError } = await supabase
       .from('meetings')
-      .insert({
-        gc_id: values.gcId,
+      .update({
         lesson_template_id: values.lessonTemplateId || null,
         lesson_title: lessonTitle,
         comments: values.comments?.trim() || null,
         datetime: datetime.toISOString(),
-        registered_by_user_id: userId,
       })
-      .select('id')
-      .single();
+      .eq('id', meeting.id);
 
-    if (meetingError || !meeting) {
-      setErrorMessage(meetingError?.message ?? 'Falha ao criar reunião');
+    if (meetingError) {
+      setErrorMessage(meetingError?.message ?? 'Falha ao atualizar reunião');
       setIsLoading(false);
       return;
     }
 
-    const attendancePayload = values.members.map((member) => ({
-      meeting_id: meeting.id,
-      participant_id: member.participantId,
-    }));
+    // Atualizar presença de membros
+    // 1. Deletar todas as presenças existentes
+    await supabase.from('meeting_member_attendance').delete().eq('meeting_id', meeting.id);
 
-    if (attendancePayload.length) {
+    // 2. Inserir novas presenças
+    if (values.members.length > 0) {
+      const attendancePayload = values.members.map((member) => ({
+        meeting_id: meeting.id,
+        participant_id: member.participantId,
+      }));
+
       const { error: memberAttendanceError } = await supabase
         .from('meeting_member_attendance')
         .insert(attendancePayload);
+
       if (memberAttendanceError) {
-        setErrorMessage('Reunião criada, mas faltou registrar presença de membros.');
+        setErrorMessage('Reunião atualizada, mas faltou registrar presença de membros.');
+        setIsLoading(false);
+        return;
       }
     }
 
-    const visitorPayload = values.visitors.map((visitor) => ({
-      meeting_id: meeting.id,
-      visitor_id: visitor.visitorId,
-    }));
+    // Atualizar presença de visitantes
+    // 1. Deletar todas as presenças existentes
+    await supabase.from('meeting_visitor_attendance').delete().eq('meeting_id', meeting.id);
 
-    if (visitorPayload.length) {
+    // 2. Inserir novas presenças
+    if (values.visitors.length > 0) {
+      const visitorPayload = values.visitors.map((visitor) => ({
+        meeting_id: meeting.id,
+        visitor_id: visitor.visitorId,
+      }));
+
       const { error: visitorAttendanceError } = await supabase
         .from('meeting_visitor_attendance')
         .insert(visitorPayload);
+
       if (visitorAttendanceError) {
-        setErrorMessage('Reunião criada, mas faltou registrar presença de visitantes.');
+        setErrorMessage('Reunião atualizada, mas faltou registrar presença de visitantes.');
+        setIsLoading(false);
+        return;
       }
     }
 
     setIsLoading(false);
-    router.replace('/dashboard');
+    router.push(`/gc/${meeting.gc_id}`);
     router.refresh();
   });
+
+  const handleDelete = async () => {
+    if (!confirm('Tem certeza que deseja excluir esta reunião?')) {
+      return;
+    }
+
+    setIsLoading(true);
+    const { error } = await supabase
+      .from('meetings')
+      .update({ deleted_at: new Date().toISOString() })
+      .eq('id', meeting.id);
+
+    if (error) {
+      setErrorMessage(error.message);
+      setIsLoading(false);
+      return;
+    }
+
+    router.push(`/gc/${meeting.gc_id}`);
+    router.refresh();
+  };
 
   return (
     <form onSubmit={handleSubmit} className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-4 py-8">
       <div className="space-y-2">
-        <h1 className="text-3xl font-bold tracking-tight">Registrar reunião</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Editar reunião</h1>
         <p className="text-muted-foreground">
-          Selecione o grupo, configure a lição e marque presenças de membros e visitantes.
+          Atualize as informações da reunião, lição e presença de membros e visitantes.
         </p>
       </div>
 
@@ -218,55 +239,28 @@ export function MeetingForm({
             <Calendar className="h-5 w-5" />
             Informações básicas
           </CardTitle>
-          <CardDescription>Defina o GC, data e horário da reunião</CardDescription>
+          <CardDescription>Defina data e horário da reunião</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="gcId">Grupo de Crescimento</Label>
-            {defaultGcId ? (
-              <div className="space-y-1">
-                <Input
-                  id="gcId"
-                  type="text"
-                  value={defaultGcName || ''}
-                  readOnly
-                  disabled
-                  className="bg-muted"
-                />
-                <p className="text-xs text-muted-foreground">
-                  GC pré-selecionado. Para alterar, volte ao dashboard.
-                </p>
-              </div>
-            ) : (
-              <Select
-                {...form.register('gcId')}
-                onValueChange={handleGroupChange}
-              >
-                <SelectTrigger id="gcId">
-                  <SelectValue placeholder="Selecione..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {groups.map((group) => (
-                    <SelectItem key={group.id} value={group.id}>
-                      {group.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-            {form.formState.errors.gcId && (
-              <p className="text-sm text-destructive">{form.formState.errors.gcId.message}</p>
-            )}
+            <Label htmlFor="gcName">Grupo de Crescimento</Label>
+            <Input
+              id="gcName"
+              type="text"
+              value={meeting.growth_groups.name}
+              readOnly
+              disabled
+              className="bg-muted"
+            />
+            <p className="text-xs text-muted-foreground">
+              O GC não pode ser alterado após criar a reunião.
+            </p>
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="meetingDate">Data</Label>
-              <Input
-                id="meetingDate"
-                type="date"
-                {...form.register('meetingDate')}
-              />
+              <Input id="meetingDate" type="date" {...form.register('meetingDate')} />
               {form.formState.errors.meetingDate && (
                 <p className="text-sm text-destructive">{form.formState.errors.meetingDate.message}</p>
               )}
@@ -274,11 +268,7 @@ export function MeetingForm({
 
             <div className="space-y-2">
               <Label htmlFor="meetingTime">Horário</Label>
-              <Input
-                id="meetingTime"
-                type="time"
-                {...form.register('meetingTime')}
-              />
+              <Input id="meetingTime" type="time" {...form.register('meetingTime')} />
               {form.formState.errors.meetingTime && (
                 <p className="text-sm text-destructive">{form.formState.errors.meetingTime.message}</p>
               )}
@@ -300,8 +290,10 @@ export function MeetingForm({
             <div className="space-y-2">
               <Label htmlFor="lessonTemplateId">Lição do catálogo</Label>
               <Select
-                defaultValue="none"
-                onValueChange={(value) => form.setValue('lessonTemplateId', value === 'none' ? '' : value)}
+                value={form.watch('lessonTemplateId') || 'none'}
+                onValueChange={(value) =>
+                  form.setValue('lessonTemplateId', value === 'none' ? '' : value)
+                }
               >
                 <SelectTrigger id="lessonTemplateId">
                   <SelectValue placeholder="Selecionar lição" />
@@ -360,7 +352,7 @@ export function MeetingForm({
             <div className="space-y-2">
               {participants.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
-                  Selecione um GC para carregar a lista de membros e líderes.
+                  Nenhum membro ativo encontrado neste GC.
                 </p>
               ) : (
                 participants.map((participant) => {
@@ -455,19 +447,20 @@ export function MeetingForm({
         </Card>
       )}
 
-      <div className="flex items-center justify-end gap-3">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => router.back()}
-          disabled={isLoading}
-        >
-          Cancelar
+      <div className="flex items-center justify-between gap-3">
+        <Button type="button" variant="destructive" onClick={handleDelete} disabled={isLoading}>
+          <Trash2 className="mr-2 h-4 w-4" />
+          Excluir reunião
         </Button>
-        <Button type="submit" disabled={isLoading}>
-          <Calendar className="mr-2 h-4 w-4" />
-          {isLoading ? 'Salvando...' : 'Registrar reunião'}
-        </Button>
+        <div className="flex gap-3">
+          <Button type="button" variant="outline" onClick={() => router.back()} disabled={isLoading}>
+            Cancelar
+          </Button>
+          <Button type="submit" disabled={isLoading}>
+            <Calendar className="mr-2 h-4 w-4" />
+            {isLoading ? 'Salvando...' : 'Salvar alterações'}
+          </Button>
+        </div>
       </div>
     </form>
   );

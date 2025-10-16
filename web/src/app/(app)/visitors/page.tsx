@@ -1,9 +1,14 @@
 import Link from 'next/link';
 import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
+import { UserPlus, Users } from 'lucide-react';
 import { createSupabaseServerClient } from '@/lib/supabase/server-client';
 import type { Database } from '@/lib/supabase/types';
 import { VisitorsList, type VisitorView } from '@/components/visitors/VisitorsList';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 type SearchParams = {
   status?: Database['public']['Tables']['visitors']['Row']['status'] | 'all';
@@ -28,6 +33,7 @@ async function VisitorsContent({ searchParams }: { searchParams: SearchParams })
     )
     .order('last_visit_date', { ascending: false });
 
+  // Only filter by status if it's not 'all'
   if (searchParams.status && searchParams.status !== 'all') {
     visitorsQuery.eq('status', searchParams.status);
   }
@@ -52,48 +58,52 @@ async function VisitorsContent({ searchParams }: { searchParams: SearchParams })
 
   return (
     <section className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-10">
-      <header className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div className="space-y-2">
-          <h1 className="text-3xl font-semibold text-slate-900">Visitantes</h1>
-          <p className="text-sm text-slate-600">Gerencie visitantes ativos, acompanhe visitas e realize conversões manuais.</p>
+          <h1 className="text-3xl font-bold tracking-tight">Visitantes</h1>
+          <p className="text-muted-foreground">
+            Gerencie visitantes ativos, acompanhe visitas e realize conversões manuais.
+          </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Link
-            href="/visitors/new"
-            className="inline-flex items-center rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-sm transition hover:brightness-110"
-          >
-            Adicionar visitante
-          </Link>
-          <Link
-            href="/participants/new"
-            className="inline-flex items-center rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-100"
-          >
-            Cadastrar participante
-          </Link>
+          <Button asChild>
+            <Link href="/visitors/new">
+              <UserPlus className="mr-2 h-4 w-4" />
+              Adicionar visitante
+            </Link>
+          </Button>
+          <Button variant="outline" asChild>
+            <Link href="/participants/new">
+              <Users className="mr-2 h-4 w-4" />
+              Cadastrar participante
+            </Link>
+          </Button>
         </div>
-      </header>
+      </div>
 
-      <form className="flex flex-wrap items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-        <label className="flex flex-col gap-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
-          Filtrar por status
-          <select
-            name="status"
-            defaultValue={searchParams.status ?? 'all'}
-            className="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
-          >
-            <option value="all">Todos</option>
-            <option value="active">Ativos</option>
-            <option value="converted">Convertidos</option>
-            <option value="inactive">Inativos</option>
-          </select>
-        </label>
-        <button
-          type="submit"
-          className="inline-flex items-center rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-100"
-        >
-          Aplicar filtro
-        </button>
-      </form>
+      <Card>
+        <CardContent className="pt-6">
+          <form className="flex flex-wrap items-end gap-3">
+            <div className="flex-1 space-y-2">
+              <Label htmlFor="status">Filtrar por status</Label>
+              <Select name="status" defaultValue={searchParams.status && searchParams.status !== 'all' ? searchParams.status : 'all'}>
+                <SelectTrigger id="status">
+                  <SelectValue placeholder="Todos" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="active">Ativos</SelectItem>
+                  <SelectItem value="converted">Convertidos</SelectItem>
+                  <SelectItem value="inactive">Inativos</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <Button type="submit" variant="outline">
+              Aplicar filtro
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
 
       <VisitorsList visitors={visitorViews} />
     </section>

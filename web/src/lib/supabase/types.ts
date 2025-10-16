@@ -498,13 +498,6 @@ export type Database = {
             referencedRelation: "people"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "users_auth_user_fkey"
-            columns: ["id"]
-            isOneToOne: true
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
         ]
       }
       visitor_conversion_events: {
@@ -702,14 +695,14 @@ export type Database = {
       }
       user_gc_roles: {
         Row: {
-          direct_subordinates: number
+          direct_subordinates: number | null
           email: string | null
-          gcs_led: number
-          gcs_supervised: number
-          is_admin: boolean
-          is_coordinator: boolean
-          is_leader: boolean
-          is_supervisor: boolean
+          gcs_led: number | null
+          gcs_supervised: number | null
+          is_admin: boolean | null
+          is_coordinator: boolean | null
+          is_leader: boolean | null
+          is_supervisor: boolean | null
           name: string | null
           user_id: string | null
         }
@@ -717,6 +710,42 @@ export type Database = {
       }
     }
     Functions: {
+      auth_gc_ids_for_roles: {
+        Args: { role_list: string[] }
+        Returns: string[]
+      }
+      auth_has_direct_reports: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
+      auth_is_admin: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
+      auth_managed_person_ids: {
+        Args: Record<PropertyKey, never>
+        Returns: string[]
+      }
+      auth_people_ids_for_gc_roles: {
+        Args: { role_list: string[] }
+        Returns: string[]
+      }
+      auth_people_ids_for_supervised_gcs: {
+        Args: Record<PropertyKey, never>
+        Returns: string[]
+      }
+      auth_person_id: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      auth_supervised_gc_ids: {
+        Args: Record<PropertyKey, never>
+        Returns: string[]
+      }
+      auth_supervisor_user_ids: {
+        Args: Record<PropertyKey, never>
+        Returns: string[]
+      }
       gtrgm_compress: {
         Args: { "": unknown }
         Returns: unknown
@@ -884,3 +913,4 @@ export const Constants = {
     Enums: {},
   },
 } as const
+

@@ -1,6 +1,11 @@
 import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
+import Link from 'next/link';
+import { Users, Calendar, TrendingUp, UserPlus } from 'lucide-react';
 import { createSupabaseServerClient } from '@/lib/supabase/server-client';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
 
 async function DashboardContent() {
   const supabase = await createSupabaseServerClient();
@@ -25,58 +30,90 @@ async function DashboardContent() {
   if (!metrics?.length) {
     return (
       <section className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-10">
-        <header className="flex flex-col gap-2">
-          <h1 className="text-3xl font-semibold text-slate-900">Dashboard</h1>
-          <p className="text-sm text-slate-600">Nenhum grupo disponível no momento.</p>
-        </header>
+        <div className="space-y-2">
+          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+          <p className="text-muted-foreground">Nenhum grupo disponível no momento.</p>
+        </div>
       </section>
     );
   }
 
   return (
     <section className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-10">
-      <header className="flex flex-col gap-2">
-        <h1 className="text-3xl font-semibold text-slate-900">Dashboard</h1>
-        <p className="text-sm text-slate-600">Acompanhe presença, crescimento e conversões dos seus Grupos de Crescimento.</p>
-      </header>
+      <div className="space-y-2">
+        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+        <p className="text-muted-foreground">Acompanhe presença, crescimento e conversões dos seus Grupos de Crescimento.</p>
+      </div>
 
       <div className="grid gap-4 md:grid-cols-2">
         {metrics.map((metric) => (
-          <article key={metric.gc_id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <div className="flex items-start justify-between">
-              <div>
-                <h2 className="text-lg font-semibold text-slate-900">{metric.gc_name}</h2>
-                <p className="text-xs uppercase tracking-wide text-slate-400">{metric.total_active_members ?? 0} membros ativos</p>
-              </div>
-            </div>
+          <Link key={metric.gc_id} href={`/gc/${metric.gc_id}`}>
+            <Card className="cursor-pointer transition-shadow hover:shadow-md">
+              <CardHeader>
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <CardTitle className="text-xl">{metric.gc_name}</CardTitle>
+                    <CardDescription className="mt-1 flex items-center gap-1">
+                      <Users className="h-3 w-3" />
+                      {metric.total_active_members ?? 0} membros ativos
+                    </CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Calendar className="h-4 w-4" />
+                    <span>Reuniões (mês)</span>
+                  </div>
+                  <span className="font-semibold">{metric.meetings_current_month ?? 0}</span>
+                </div>
 
-            <dl className="mt-4 grid gap-2 text-sm text-slate-600">
-              <div className="flex justify-between">
-                <dt>Reuniões (mês)</dt>
-                <dd className="font-semibold text-slate-800">{metric.meetings_current_month ?? 0}</dd>
+                <Separator />
+
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Presença média (30d)</span>
+                  <span className="font-semibold">{metric.average_attendance ?? 0}</span>
+                </div>
+
+                <Separator />
+
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <UserPlus className="h-4 w-4" />
+                    <span>Novos membros (30d)</span>
+                  </div>
+                  <Badge variant="default">{metric.growth_30d ?? 0}</Badge>
+                </div>
+
+                <Separator />
+
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <TrendingUp className="h-4 w-4" />
+                    <span>Conversões (30d)</span>
+                  </div>
+                  <Badge variant="default">{metric.conversions_30d ?? 0}</Badge>
+                </div>
+
+                <Separator />
+
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Taxa de conversão</span>
+                  <span className="font-semibold">{metric.conversion_rate_pct ?? 0}%</span>
+                </div>
+
+                <Separator />
+
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Visitantes únicos (30d)</span>
+                  <span className="font-semibold">{metric.unique_visitors_30d ?? 0}</span>
+                </div>
               </div>
-              <div className="flex justify-between">
-                <dt>Presença média (30d)</dt>
-                <dd className="font-semibold text-slate-800">{metric.average_attendance ?? 0}</dd>
-              </div>
-              <div className="flex justify-between">
-                <dt>Novo membros (30d)</dt>
-                <dd className="font-semibold text-emerald-600">{metric.growth_30d ?? 0}</dd>
-              </div>
-              <div className="flex justify-between">
-                <dt>Conversões (30d)</dt>
-                <dd className="font-semibold text-emerald-600">{metric.conversions_30d ?? 0}</dd>
-              </div>
-              <div className="flex justify-between">
-                <dt>Taxa de conversão</dt>
-                <dd className="font-semibold text-slate-800">{metric.conversion_rate_pct ?? 0}%</dd>
-              </div>
-              <div className="flex justify-between">
-                <dt>Visitantes únicos (30d)</dt>
-                <dd className="font-semibold text-slate-800">{metric.unique_visitors_30d ?? 0}</dd>
-              </div>
-            </dl>
-          </article>
+            </CardContent>
+          </Card>
+          </Link>
         ))}
       </div>
     </section>
