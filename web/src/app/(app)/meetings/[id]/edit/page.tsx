@@ -3,7 +3,8 @@ import { createSupabaseServerClient } from '@/lib/supabase/server-client';
 import { EditMeetingForm } from '@/components/meetings/EditMeetingForm';
 import { getMeetingById } from '@/lib/supabase/queries/meetings';
 
-export default async function EditMeetingPage({ params }: { params: { id: string } }) {
+export default async function EditMeetingPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const supabase = await createSupabaseServerClient();
 
   // Verificar autenticação
@@ -16,7 +17,7 @@ export default async function EditMeetingPage({ params }: { params: { id: string
   }
 
   // Buscar dados da reunião
-  const { data: meeting, error: meetingError } = await getMeetingById(supabase, params.id);
+  const { data: meeting, error: meetingError } = await getMeetingById(supabase, id);
 
   if (meetingError || !meeting) {
     redirect('/dashboard');

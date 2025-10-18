@@ -157,7 +157,7 @@ export async function updateVisitor(
   }
 
   // Atualizar dados da pessoa
-  const updateData: any = {};
+  const updateData: Partial<Database['public']['Tables']['people']['Update']> = {};
 
   if (input.name !== undefined) {
     updateData.name = input.name.trim();

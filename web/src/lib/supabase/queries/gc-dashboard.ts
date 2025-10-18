@@ -135,14 +135,17 @@ export async function getUpcomingMeetings(
     return [];
   }
 
-  return data.map((meeting) => ({
-    id: meeting.id,
-    gc_id: meeting.gc_id,
-    lesson_title: meeting.lesson_title,
-    datetime: meeting.datetime,
-    comments: meeting.comments,
-    gc_name: (meeting.growth_groups as any)?.name ?? 'GC sem nome',
-  }));
+  return data.map((meeting) => {
+    const gcData = meeting.growth_groups && typeof meeting.growth_groups === 'object' && 'name' in meeting.growth_groups ? meeting.growth_groups : null;
+    return {
+      id: meeting.id,
+      gc_id: meeting.gc_id,
+      lesson_title: meeting.lesson_title,
+      datetime: meeting.datetime,
+      comments: meeting.comments,
+      gc_name: gcData?.name ?? 'GC sem nome',
+    };
+  });
 }
 
 /**
@@ -164,13 +167,16 @@ export async function getGCMembers(
     return [];
   }
 
-  return data.map((row) => ({
-    id: row.id,
-    person_id: row.person_id,
-    name: (row.people as any)?.name ?? 'Sem nome',
-    role: row.role,
-    status: row.status,
-  }));
+  return data.map((row) => {
+    const personData = row.people && typeof row.people === 'object' && 'name' in row.people ? row.people : null;
+    return {
+      id: row.id,
+      person_id: row.person_id,
+      name: personData?.name ?? 'Sem nome',
+      role: row.role,
+      status: row.status,
+    };
+  });
 }
 
 /**
@@ -192,12 +198,15 @@ export async function getGCVisitors(
     return [];
   }
 
-  return data.map((row) => ({
-    id: row.id,
-    person_id: row.person_id,
-    name: (row.people as any)?.name ?? 'Sem nome',
-    visit_count: row.visit_count,
-    status: row.status,
-    first_visit_date: row.first_visit_date,
-  }));
+  return data.map((row) => {
+    const personData = row.people && typeof row.people === 'object' && 'name' in row.people ? row.people : null;
+    return {
+      id: row.id,
+      person_id: row.person_id,
+      name: personData?.name ?? 'Sem nome',
+      visit_count: row.visit_count,
+      status: row.status,
+      first_visit_date: row.first_visit_date,
+    };
+  });
 }

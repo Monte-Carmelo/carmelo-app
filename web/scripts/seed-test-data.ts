@@ -106,8 +106,9 @@ async function seedTestData() {
     { name: 'GC Amor', mode: 'in_person', address: 'Av. Principal 456', weekday: 5, time: '20:00', status: 'active' },
   ]).select();
 
-  if (gcsError) {
-    console.error(`❌ Erro ao criar GCs: ${gcsError.message}`);
+  if (gcsError || !gcs) {
+    console.error(`❌ Erro ao criar GCs: ${gcsError?.message || 'GCs não foram criados'}`);
+    return;
   } else {
     console.log(`✅ GCs criados:`, gcs);
   }
@@ -136,8 +137,9 @@ async function seedTestData() {
     { gc_id: gcs[1].id, lesson_title: 'Celebração Especial da Fé', datetime: new Date().toISOString(), registered_by_user_id: testUsers[0].user_id },
   ]).select();
 
-  if (meetingsError) {
-    console.error(`❌ Erro ao criar reuniões: ${meetingsError.message}`);
+  if (meetingsError || !meetings) {
+    console.error(`❌ Erro ao criar reuniões: ${meetingsError?.message || 'Reuniões não foram criadas'}`);
+    return;
   } else {
     console.log(`✅ Reuniões criadas:`, meetings);
   }

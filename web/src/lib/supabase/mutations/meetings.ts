@@ -105,7 +105,7 @@ export async function updateMeeting(
   supabase: SupabaseClient<Database>,
   input: UpdateMeetingInput
 ): Promise<UpdateMeetingResult> {
-  const updateData: any = {};
+  const updateData: Partial<Database['public']['Tables']['meetings']['Update']> = {};
 
   if (input.lessonTitle !== undefined) {
     updateData.lesson_title = input.lessonTitle;

@@ -9,6 +9,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Loading } from '@/components/ui/spinner';
 
 type SearchParams = {
   status?: Database['public']['Tables']['visitors']['Row']['status'] | 'all';
@@ -117,7 +118,7 @@ export default async function VisitorsPage({
 }) {
   const resolvedParams = await searchParams;
   return (
-    <Suspense fallback={<div className="p-8 text-slate-500">Carregando...</div>}>
+    <Suspense fallback={<Loading message="Carregando visitantes..." />}>
       <VisitorsContent searchParams={resolvedParams} />
     </Suspense>
   );

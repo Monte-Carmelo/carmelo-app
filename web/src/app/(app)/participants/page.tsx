@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import type { Database } from '@/lib/supabase/types';
 import { createSupabaseServerClient } from '@/lib/supabase/server-client';
 import { ParticipantList } from '@/components/participants/ParticipantList';
+import { Loading } from '@/components/ui/spinner';
 
 type SearchParams = {
   gcId?: string;
@@ -75,7 +76,7 @@ async function ParticipantsContent({ searchParams }: { searchParams: SearchParam
 export default async function ParticipantsPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
   const resolvedParams = await searchParams;
   return (
-    <Suspense fallback={<div className="p-8 text-slate-500">Carregando participantes...</div>}>
+    <Suspense fallback={<Loading message="Carregando..." />}>
       <ParticipantsContent searchParams={resolvedParams} />
     </Suspense>
   );

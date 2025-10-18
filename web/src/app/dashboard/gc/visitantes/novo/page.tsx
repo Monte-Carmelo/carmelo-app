@@ -6,8 +6,9 @@ import { redirect } from 'next/navigation';
 export default async function AddVisitorPage({
   searchParams,
 }: {
-  searchParams: { gcId?: string };
+  searchParams: Promise<{ gcId?: string }>;
 }) {
+  const { gcId } = await searchParams;
   const supabase = await createSupabaseServerClient();
 
   // Verificar autenticação
@@ -27,16 +28,19 @@ export default async function AddVisitorPage({
     .eq('status', 'active');
 
   const groups =
-    growthGroups?.map((row: any) => ({
-      id: row.growth_groups?.id ?? '',
-      name: row.growth_groups?.name ?? 'GC sem nome',
-    })) ?? [];
+    growthGroups?.map((row) => {
+      const gcData = row.growth_groups && typeof row.growth_groups === 'object' && 'id' in row.growth_groups ? row.growth_groups : null;
+      return {
+        id: gcData?.id ?? '',
+        name: gcData && 'name' in gcData ? (gcData.name as string) : 'GC sem nome',
+      };
+    }) ?? [];
 
   return (
     <div className="min-h-screen bg-slate-50">
       <AddVisitorForm
         growthGroups={groups}
-        preselectedGcId={searchParams.gcId}
+        preselectedGcId={gcId}
         onSubmit={async (input) => {
           'use server';
           const supabaseAction = await createSupabaseServerClient();

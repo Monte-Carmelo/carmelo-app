@@ -9,7 +9,8 @@ import {
 } from '@/lib/supabase/mutations/attendance';
 import { redirect } from 'next/navigation';
 
-export default async function MeetingDetailsPage({ params }: { params: { id: string } }) {
+export default async function MeetingDetailsPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const supabase = await createSupabaseServerClient();
 
   // Verificar autenticação
@@ -25,7 +26,7 @@ export default async function MeetingDetailsPage({ params }: { params: { id: str
   const { data: meeting } = await supabase
     .from('meetings')
     .select('*, growth_groups(id, name)')
-    .eq('id', params.id)
+    .eq('id', id)
     .single();
 
   if (!meeting) {
@@ -44,12 +45,12 @@ export default async function MeetingDetailsPage({ params }: { params: { id: str
   const { data: memberAttendance } = await supabase
     .from('meeting_member_attendance')
     .select('participant_id')
-    .eq('meeting_id', params.id);
+    .eq('meeting_id', id);
 
   const { data: visitorAttendance } = await supabase
     .from('meeting_visitor_attendance')
     .select('visitor_id')
-    .eq('meeting_id', params.id);
+    .eq('meeting_id', id);
 
   const initialMemberAttendance = memberAttendance?.map((row) => row.participant_id) ?? [];
   const initialVisitorAttendance = visitorAttendance?.map((row) => row.visitor_id) ?? [];
@@ -61,7 +62,7 @@ export default async function MeetingDetailsPage({ params }: { params: { id: str
         <div className="mb-8">
           <h1 className="text-2xl font-semibold text-slate-900">{meeting.lesson_title}</h1>
           <p className="mt-1 text-sm text-slate-600">
-            {(meeting.growth_groups as any)?.name} •{' '}
+            {meeting.growth_groups && typeof meeting.growth_groups === 'object' && 'name' in meeting.growth_groups ? meeting.growth_groups.name : 'GC sem nome'} •{' '}
             {new Date(meeting.datetime).toLocaleDateString('pt-BR', {
               weekday: 'long',
               day: 'numeric',
@@ -78,7 +79,6 @@ export default async function MeetingDetailsPage({ params }: { params: { id: str
 
         {/* Lista de presença */}
         <AttendanceList
-          meetingId={params.id}
           members={members}
           visitors={visitors}
           initialMemberAttendance={initialMemberAttendance}
@@ -88,12 +88,12 @@ export default async function MeetingDetailsPage({ params }: { params: { id: str
             const supabaseAction = await createSupabaseServerClient();
             if (isPresent) {
               return await markMemberAttendance(supabaseAction, {
-                meetingId: params.id,
+                meetingId: id,
                 participantId,
               });
             } else {
               return await unmarkMemberAttendance(supabaseAction, {
-                meetingId: params.id,
+                meetingId: id,
                 participantId,
               });
             }
@@ -103,12 +103,12 @@ export default async function MeetingDetailsPage({ params }: { params: { id: str
             const supabaseAction = await createSupabaseServerClient();
             if (isPresent) {
               return await markVisitorAttendance(supabaseAction, {
-                meetingId: params.id,
+                meetingId: id,
                 visitorId,
               });
             } else {
               return await unmarkVisitorAttendance(supabaseAction, {
-                meetingId: params.id,
+                meetingId: id,
                 visitorId,
               });
             }

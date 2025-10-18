@@ -2,12 +2,13 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Calendar, MapPin, Users, UserPlus } from 'lucide-react';
+import { Calendar, MapPin, Users } from 'lucide-react';
 import type { GrowthGroupDashboardData, UpcomingMeeting } from '@/lib/supabase/queries/gc-dashboard';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Loading } from '@/components/ui/spinner';
 
 export interface GCDashboardProps {
   groups: GrowthGroupDashboardData[];
@@ -30,10 +31,7 @@ export function GCDashboard({ groups, upcomingMeetings, isLoading, error }: GCDa
   if (isLoading) {
     return (
       <div className="flex min-h-[400px] items-center justify-center">
-        <div className="text-center">
-          <div className="mx-auto h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
-          <p className="mt-4 text-sm text-muted-foreground">Carregando dados...</p>
-        </div>
+        <Loading message="Carregando dados..." />
       </div>
     );
   }

@@ -6,10 +6,9 @@ import type { GCMember, GCVisitor } from '@/lib/supabase/queries/gc-dashboard';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
+import { Loading } from '@/components/ui/spinner';
 
 export interface AttendanceListProps {
-  meetingId: string;
   members: GCMember[];
   visitors: GCVisitor[];
   initialMemberAttendance?: string[]; // participant_ids
@@ -20,7 +19,6 @@ export interface AttendanceListProps {
 }
 
 export function AttendanceList({
-  meetingId,
   members,
   visitors,
   initialMemberAttendance = [],
@@ -141,7 +139,7 @@ export function AttendanceList({
     return (
       <Card>
         <CardContent className="flex min-h-[200px] items-center justify-center">
-          <p className="text-sm text-muted-foreground">Carregando lista de presença...</p>
+          <Loading message="Carregando lista de presença..." />
         </CardContent>
       </Card>
     );

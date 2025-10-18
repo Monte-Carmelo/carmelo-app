@@ -2,6 +2,7 @@ import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 import { createSupabaseServerClient } from '@/lib/supabase/server-client';
 import { VisitorForm } from '@/components/visitors/VisitorForm';
+import { Loading } from '@/components/ui/spinner';
 
 async function VisitorFormLoader() {
   const supabase = await createSupabaseServerClient();
@@ -27,7 +28,7 @@ async function VisitorFormLoader() {
 
 export default function NewVisitorPage() {
   return (
-    <Suspense fallback={<div className="p-8 text-slate-500">Carregando formulário...</div>}>
+    <Suspense fallback={<Loading />}>
       <VisitorFormLoader />
     </Suspense>
   );

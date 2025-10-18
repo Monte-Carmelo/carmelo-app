@@ -2,6 +2,7 @@ import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 import { createSupabaseServerClient } from '@/lib/supabase/server-client';
 import { MeetingForm } from '@/components/meetings/MeetingForm';
+import { Loading } from '@/components/ui/spinner';
 
 type SearchParams = {
   gcId?: string;
@@ -94,7 +95,7 @@ export default async function NewMeetingPage({ searchParams }: PageProps) {
   const resolvedParams = await searchParams;
 
   return (
-    <Suspense fallback={<div className="p-8 text-slate-500">Carregando...</div>}>
+    <Suspense fallback={<Loading />}>
       <MeetingFormLoader searchParams={resolvedParams} />
     </Suspense>
   );

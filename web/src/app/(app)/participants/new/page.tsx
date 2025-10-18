@@ -2,6 +2,7 @@ import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 import { createSupabaseServerClient } from '@/lib/supabase/server-client';
 import { ParticipantForm } from '@/components/participants/ParticipantForm';
+import { Loading } from '@/components/ui/spinner';
 
 async function ParticipantFormLoader() {
   const supabase = await createSupabaseServerClient();
@@ -27,7 +28,7 @@ async function ParticipantFormLoader() {
 
 export default function NewParticipantPage() {
   return (
-    <Suspense fallback={<div className="p-8 text-slate-500">Carregando formulário de participante...</div>}>
+    <Suspense fallback={<Loading />}>
       <ParticipantFormLoader />
     </Suspense>
   );

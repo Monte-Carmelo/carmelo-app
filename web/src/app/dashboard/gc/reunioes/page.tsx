@@ -1,5 +1,4 @@
 import { createSupabaseServerClient } from '@/lib/supabase/server-client';
-import { getSupabaseBrowserClient } from '@/lib/supabase/browser-client';
 import { ScheduleMeetingForm } from '@/components/gc/schedule-meeting-form';
 import { createMeeting } from '@/lib/supabase/mutations/meetings';
 import { redirect } from 'next/navigation';
@@ -24,10 +23,13 @@ export default async function ScheduleMeetingPage() {
     .eq('status', 'active');
 
   const groups =
-    growthGroups?.map((row: any) => ({
-      id: row.growth_groups?.id ?? '',
-      name: row.growth_groups?.name ?? 'GC sem nome',
-    })) ?? [];
+    growthGroups?.map((row) => {
+      const gcData = row.growth_groups && typeof row.growth_groups === 'object' && 'id' in row.growth_groups ? row.growth_groups : null;
+      return {
+        id: gcData?.id ?? '',
+        name: gcData && 'name' in gcData ? (gcData.name as string) : 'GC sem nome',
+      };
+    }) ?? [];
 
   // Buscar lições do catálogo (opcional)
   const { data: lessons } = await supabase

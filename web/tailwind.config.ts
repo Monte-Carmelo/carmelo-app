@@ -7,9 +7,11 @@ const config: Config = {
   	extend: {
   		colors: {
   			primary: {
-  				DEFAULT: 'hsl(var(--primary))',
-  				foreground: 'hsl(var(--primary-foreground))'
+  				DEFAULT: '#17a2b8',
+  				foreground: '#ffffff'
   			},
+  			'text-dark': '#5a5a5a',
+  			'text-light': '#999999',
   			background: 'hsl(var(--background))',
   			surface: '#f8fafc',
   			foreground: 'hsl(var(--foreground))',

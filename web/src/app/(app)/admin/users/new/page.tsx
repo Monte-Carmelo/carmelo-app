@@ -2,6 +2,7 @@ import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 import { createSupabaseServerClient } from '@/lib/supabase/server-client';
 import { AdminUserCreateForm } from '@/components/admin/AdminUserCreateForm';
+import { Loading } from '@/components/ui/spinner';
 
 async function AdminNewUserContent() {
   const supabase = await createSupabaseServerClient();
@@ -18,7 +19,7 @@ async function AdminNewUserContent() {
 
 export default function AdminNewUserPage() {
   return (
-    <Suspense fallback={<div className="p-8 text-slate-500">Carregando formulário...</div>}>
+    <Suspense fallback={<Loading />}>
       <AdminNewUserContent />
     </Suspense>
   );

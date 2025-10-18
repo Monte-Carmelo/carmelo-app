@@ -4,6 +4,7 @@ import type { Database } from '@/lib/supabase';
 import { createSupabaseServerClient } from '@/lib/supabase/server-client';
 import { AdminUserProfileForm } from '@/components/admin/AdminUserProfileForm';
 import { AdminUserAssignments } from '@/components/admin/AdminUserAssignments';
+import { Loading } from '@/components/ui/spinner';
 
 interface AdminUserPageProps {
   params: Promise<{ id: string }>;
@@ -186,7 +187,7 @@ async function AdminUserDetailContent({ userId, searchParams }: { userId: string
 export default async function AdminUserDetailPage({ params, searchParams }: AdminUserPageProps) {
   const resolvedParams = await params;
   return (
-    <Suspense fallback={<div className="p-8 text-slate-500">Carregando usuário...</div>}>
+    <Suspense fallback={<Loading />}>
       <AdminUserDetailContent userId={resolvedParams.id} searchParams={searchParams} />
     </Suspense>
   );

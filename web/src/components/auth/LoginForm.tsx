@@ -6,6 +6,7 @@ import { useForm } from 'react-hook-form';
 import { useRouter } from 'next/navigation';
 import { z } from 'zod';
 import { getSupabaseBrowserClient } from '@/lib/supabase/browser-client';
+import { Spinner } from '@/components/ui/spinner';
 
 const schema = z.object({
   email: z.string().min(1, 'Informe seu e-mail').email('E-mail inválido'),
@@ -86,8 +87,9 @@ export function LoginForm() {
       <button
         type="submit"
         disabled={isSubmitting}
-        className="inline-flex items-center justify-center rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-70"
+        className="inline-flex items-center justify-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-70"
       >
+        {isSubmitting && <Spinner size="sm" className="border-white border-t-transparent" />}
         {isSubmitting ? 'Entrando...' : 'Entrar'}
       </button>
     </form>

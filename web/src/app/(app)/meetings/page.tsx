@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { Loading } from '@/components/ui/spinner';
 
 type SearchParams = {
   gcId?: string;
@@ -174,7 +175,7 @@ export default async function MeetingsPage({
 }) {
   const resolvedParams = await searchParams;
   return (
-    <Suspense fallback={<div className="p-8 text-slate-500">Carregando...</div>}>
+    <Suspense fallback={<Loading />}>
       <MeetingsContent searchParams={resolvedParams} />
     </Suspense>
   );

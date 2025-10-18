@@ -2,6 +2,7 @@ import { Suspense } from 'react';
 import { redirect, notFound } from 'next/navigation';
 import { createSupabaseServerClient } from '@/lib/supabase/server-client';
 import { GCEditForm } from '@/components/gc/GCEditForm';
+import { Loading } from '@/components/ui/spinner';
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -64,7 +65,7 @@ async function GCEditContent({ gcId }: { gcId: string }) {
 export default async function GCEditPage({ params }: PageProps) {
   const { id } = await params;
   return (
-    <Suspense fallback={<div className="p-8 text-slate-500">Carregando...</div>}>
+    <Suspense fallback={<Loading />}>
       <GCEditContent gcId={id} />
     </Suspense>
   );

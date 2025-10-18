@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import type { Database } from '@/lib/supabase';
 import { createSupabaseServerClient } from '@/lib/supabase/server-client';
 import { AdminUserList } from '@/components/admin/AdminUserList';
+import { Loading } from '@/components/ui/spinner';
 
 type UserRoleRow = Database['public']['Views']['user_gc_roles']['Row'];
 
@@ -73,7 +74,7 @@ async function AdminUsersContent() {
 
 export default function AdminPage() {
   return (
-    <Suspense fallback={<div className="p-8 text-slate-500">Carregando usuários...</div>}>
+    <Suspense fallback={<Loading message="Carregando..." />}>
       <AdminUsersContent />
     </Suspense>
   );

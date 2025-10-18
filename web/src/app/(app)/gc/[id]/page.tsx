@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Loading } from '@/components/ui/spinner';
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -372,7 +373,7 @@ async function GCDetailsContent({ gcId }: { gcId: string }) {
 export default async function GCDetailsPage({ params }: PageProps) {
   const { id } = await params;
   return (
-    <Suspense fallback={<div className="p-8 text-slate-500">Carregando...</div>}>
+    <Suspense fallback={<Loading />}>
       <GCDetailsContent gcId={id} />
     </Suspense>
   );

@@ -1,6 +1,7 @@
 import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 import { createSupabaseServerClient } from '@/lib/supabase/server-client';
+import { Loading } from '@/components/ui/spinner';
 
 interface SearchParams {
   highlight?: string;
@@ -141,7 +142,7 @@ async function SupervisionContent({ searchParams }: { searchParams: SearchParams
 export default async function SupervisionPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
   const resolvedParams = await searchParams;
   return (
-    <Suspense fallback={<div className="p-8 text-slate-500">Carregando supervisão...</div>}>
+    <Suspense fallback={<Loading />}>
       <SupervisionContent searchParams={resolvedParams} />
     </Suspense>
   );
