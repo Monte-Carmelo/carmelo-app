@@ -39,7 +39,7 @@
 - [x] T019 Integre a lógica de adição de visitantes (T015) com o formulário (T011).
 
 ## Phase 3.5: Polish
-- [ ] T020 [P] Crie testes E2E com Playwright para os cenários do `quickstart.md` em `tests/e2e/`.
+- [x] T020 [P] Crie testes E2E com Playwright para os cenários do `quickstart.md` em `tests/e2e/`.
 - [x] T021 [P] Estilize as novas páginas e componentes com Tailwind CSS para garantir uma boa UX e responsividade.
 - [x] T022 [P] Adicione estados de carregamento (loading) e erro para todas as interações de dados.
 - [ ] T023 Execute os testes manuais do `quickstart.md` para validar a feature.

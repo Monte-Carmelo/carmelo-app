@@ -8,6 +8,7 @@ import { z } from 'zod';
 import { Calendar, FileText, Users, UserCheck } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/browser-client';
 import type { Database } from '@/lib/supabase/types';
+import { translateRole } from '@/lib/role-translations';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,20 +17,33 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 
-const schema = z.object({
-  gcId: z.string({ message: 'Selecione um GC' }),
-  meetingDate: z.string({ message: 'Informe a data da reunião' }),
-  meetingTime: z.string({ message: 'Informe o horário da reunião' }),
-  lessonTemplateId: z.string().optional(),
-  customLessonTitle: z
-    .string()
-    .max(255, 'Título muito longo')
-    .optional()
-    .or(z.literal('')),
-  comments: z.string().max(1000, 'Texto muito longo').optional(),
-  members: z.array(z.object({ participantId: z.string() })),
-  visitors: z.array(z.object({ visitorId: z.string() })),
-});
+const schema = z
+  .object({
+    gcId: z.string({ message: 'Selecione um GC' }),
+    meetingDate: z.string({ message: 'Informe a data da reunião' }),
+    meetingTime: z.string({ message: 'Informe o horário da reunião' }),
+    lessonType: z.enum(['catalog', 'custom'], { message: 'Escolha o tipo de lição' }),
+    lessonTemplateId: z.string().optional(),
+    customLessonTitle: z.string().max(255, 'Título muito longo').optional(),
+    comments: z.string().max(1000, 'Texto muito longo').optional(),
+    members: z.array(z.object({ participantId: z.string() })),
+    visitors: z.array(z.object({ visitorId: z.string() })),
+  })
+  .refine(
+    (data) => {
+      if (data.lessonType === 'catalog') {
+        return !!data.lessonTemplateId;
+      }
+      if (data.lessonType === 'custom') {
+        return !!data.customLessonTitle && data.customLessonTitle.trim().length > 0;
+      }
+      return false;
+    },
+    {
+      message: 'Selecione uma lição do catálogo ou informe um título personalizado',
+      path: ['lessonTemplateId'],
+    }
+  );
 
 type FormValues = z.infer<typeof schema>;
 
@@ -80,6 +94,9 @@ export function MeetingForm({
       gcId: defaultGcId || '',
       meetingDate: defaultDate || new Date().toISOString().split('T')[0],
       meetingTime: defaultTime || '19:30',
+      lessonType: 'catalog',
+      lessonTemplateId: '',
+      customLessonTitle: '',
       members: [],
       visitors: [],
     },
@@ -144,10 +161,20 @@ export function MeetingForm({
     setErrorMessage(null);
     setIsLoading(true);
 
-    const lessonTitle = values.customLessonTitle?.trim()
-      ? values.customLessonTitle.trim()
-      : lessonTemplates.find((lesson) => lesson.id === values.lessonTemplateId)?.title ??
-        'Reunião sem título';
+    // Determinar o título da lição baseado no tipo selecionado
+    let lessonTitle: string;
+    if (values.lessonType === 'custom') {
+      lessonTitle = values.customLessonTitle?.trim() || '';
+    } else {
+      lessonTitle = lessonTemplates.find((lesson) => lesson.id === values.lessonTemplateId)?.title || '';
+    }
+
+    // Validação adicional (não deveria acontecer devido ao Zod)
+    if (!lessonTitle) {
+      setErrorMessage('Por favor, selecione uma lição ou informe um título personalizado');
+      setIsLoading(false);
+      return;
+    }
 
     const datetime = new Date(`${values.meetingDate}T${values.meetingTime}:00`);
 
@@ -155,7 +182,7 @@ export function MeetingForm({
       .from('meetings')
       .insert({
         gc_id: values.gcId,
-        lesson_template_id: values.lessonTemplateId || null,
+        lesson_template_id: values.lessonType === 'catalog' ? values.lessonTemplateId || null : null,
         lesson_title: lessonTitle,
         comments: values.comments?.trim() || null,
         datetime: datetime.toISOString(),
@@ -199,7 +226,7 @@ export function MeetingForm({
     }
 
     setIsLoading(false);
-    router.replace('/dashboard');
+    router.push(`/gc/${values.gcId}`);
     router.refresh();
   });
 
@@ -293,21 +320,97 @@ export function MeetingForm({
             <FileText className="h-5 w-5" />
             Lição
           </CardTitle>
-          <CardDescription>Configure o tema ou lição da reunião</CardDescription>
+          <CardDescription>Escolha uma lição do catálogo ou crie um título personalizado</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2">
+          {/* Seletor de tipo de lição */}
+          <div className="space-y-3">
+            <Label>Tipo de lição</Label>
+            <div className="grid gap-3 md:grid-cols-2">
+              {/* Opção: Lição do Catálogo */}
+              <button
+                type="button"
+                onClick={() => {
+                  form.setValue('lessonType', 'catalog');
+                  form.setValue('customLessonTitle', '');
+                }}
+                className={`flex flex-col items-start gap-2 rounded-lg border-2 p-4 text-left transition-all hover:bg-accent ${
+                  form.watch('lessonType') === 'catalog'
+                    ? 'border-primary bg-primary/5'
+                    : 'border-muted'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <div
+                    className={`h-4 w-4 rounded-full border-2 ${
+                      form.watch('lessonType') === 'catalog'
+                        ? 'border-primary bg-primary'
+                        : 'border-muted-foreground'
+                    }`}
+                  >
+                    {form.watch('lessonType') === 'catalog' && (
+                      <div className="h-full w-full rounded-full bg-background p-0.5">
+                        <div className="h-full w-full rounded-full bg-primary" />
+                      </div>
+                    )}
+                  </div>
+                  <span className="font-semibold">Lição do Catálogo</span>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Escolha uma lição pré-cadastrada do sistema
+                </p>
+              </button>
+
+              {/* Opção: Título Personalizado */}
+              <button
+                type="button"
+                onClick={() => {
+                  form.setValue('lessonType', 'custom');
+                  form.setValue('lessonTemplateId', '');
+                }}
+                className={`flex flex-col items-start gap-2 rounded-lg border-2 p-4 text-left transition-all hover:bg-accent ${
+                  form.watch('lessonType') === 'custom'
+                    ? 'border-primary bg-primary/5'
+                    : 'border-muted'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <div
+                    className={`h-4 w-4 rounded-full border-2 ${
+                      form.watch('lessonType') === 'custom'
+                        ? 'border-primary bg-primary'
+                        : 'border-muted-foreground'
+                    }`}
+                  >
+                    {form.watch('lessonType') === 'custom' && (
+                      <div className="h-full w-full rounded-full bg-background p-0.5">
+                        <div className="h-full w-full rounded-full bg-primary" />
+                      </div>
+                    )}
+                  </div>
+                  <span className="font-semibold">Título Personalizado</span>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Crie um título específico para esta reunião
+                </p>
+              </button>
+            </div>
+          </div>
+
+          {/* Campo condicional: Lição do Catálogo */}
+          {form.watch('lessonType') === 'catalog' && (
             <div className="space-y-2">
-              <Label htmlFor="lessonTemplateId">Lição do catálogo</Label>
+              <Label htmlFor="lessonTemplateId">
+                Selecione a lição <span className="text-destructive">*</span>
+              </Label>
               <Select
-                defaultValue="none"
-                onValueChange={(value) => form.setValue('lessonTemplateId', value === 'none' ? '' : value)}
+                value={form.watch('lessonTemplateId') || ''}
+                onValueChange={(value) => form.setValue('lessonTemplateId', value)}
               >
                 <SelectTrigger id="lessonTemplateId">
-                  <SelectValue placeholder="Selecionar lição" />
+                  <SelectValue placeholder="Escolha uma lição..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">Nenhuma lição</SelectItem>
                   {lessonTemplates.map((lesson) => (
                     <SelectItem key={lesson.id} value={lesson.id}>
                       {lesson.title}
@@ -315,24 +418,39 @@ export function MeetingForm({
                   ))}
                 </SelectContent>
               </Select>
+              {form.formState.errors.lessonTemplateId && (
+                <p className="text-sm text-destructive">
+                  {form.formState.errors.lessonTemplateId.message}
+                </p>
+              )}
             </div>
+          )}
 
+          {/* Campo condicional: Título Personalizado */}
+          {form.watch('lessonType') === 'custom' && (
             <div className="space-y-2">
-              <Label htmlFor="customLessonTitle">Título customizado</Label>
+              <Label htmlFor="customLessonTitle">
+                Título da reunião <span className="text-destructive">*</span>
+              </Label>
               <Input
                 id="customLessonTitle"
                 type="text"
-                placeholder="Semana especial..."
+                placeholder="Ex: Culto especial de Natal, Estudo sobre oração..."
                 {...form.register('customLessonTitle')}
               />
               <p className="text-xs text-muted-foreground">
-                Se preenchido, substitui o título da lição padrão.
+                Digite um título descritivo para esta reunião
               </p>
+              {form.formState.errors.customLessonTitle && (
+                <p className="text-sm text-destructive">
+                  {form.formState.errors.customLessonTitle.message}
+                </p>
+              )}
             </div>
-          </div>
+          )}
 
           <div className="space-y-2">
-            <Label htmlFor="comments">Comentários</Label>
+            <Label htmlFor="comments">Comentários (opcional)</Label>
             <Textarea
               id="comments"
               rows={3}
@@ -389,8 +507,8 @@ export function MeetingForm({
                         className="flex-1 cursor-pointer text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                       >
                         {participant.name}
-                        <span className="ml-2 text-xs uppercase tracking-wide text-muted-foreground">
-                          {participant.role}
+                        <span className="ml-2 text-xs tracking-wide text-muted-foreground">
+                          {translateRole(participant.role)}
                         </span>
                       </label>
                     </div>

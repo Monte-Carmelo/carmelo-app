@@ -69,8 +69,10 @@ test.describe('Reuniões e Visitantes', () => {
     }
 
     await page.getByRole('button', { name: /registrar reunião/i }).click();
-    await page.waitForURL('**/dashboard');
-    await expect(page.getByRole('heading', { name: /dashboard/i })).toBeVisible();
+
+    // Agora redireciona para a página do GC, não mais para o dashboard
+    await page.waitForURL('**/gc/**');
+    await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
   });
 
   test('converter visitante manualmente', async ({ page }) => {
