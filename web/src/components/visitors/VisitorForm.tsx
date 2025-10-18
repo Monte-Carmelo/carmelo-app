@@ -14,7 +14,6 @@ const schema = z
     name: z.string({ message: 'Informe o nome' }).min(3, 'Nome muito curto'),
     email: z.string().email('E-mail inválido').optional().or(z.literal('')),
     phone: z.string().optional().or(z.literal('')),
-    initialVisits: z.number().min(0).max(50),
   })
   .refine((value) => value.email?.trim() || value.phone?.trim(), {
     message: 'Informe e-mail ou telefone',
@@ -42,9 +41,6 @@ export function VisitorForm({ groups }: VisitorFormProps) {
 
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: {
-      initialVisits: 0,
-    },
   });
 
   const onSubmit = handleSubmit(async (values) => {
@@ -70,15 +66,11 @@ export function VisitorForm({ groups }: VisitorFormProps) {
       return;
     }
 
-    const now = new Date().toISOString();
-
     const { error: visitorError } = await supabase.from('visitors').insert({
       gc_id: values.gcId,
       person_id: personData.id,
       status: 'active',
-      visit_count: values.initialVisits,
-      first_visit_date: now,
-      last_visit_date: values.initialVisits > 0 ? now : null,
+      // visit_count, first_visit_date e last_visit_date usam valores padrão do banco
     });
 
     if (visitorError) {
@@ -150,17 +142,6 @@ export function VisitorForm({ groups }: VisitorFormProps) {
             {errors.phone ? <span className="text-xs text-red-600">{errors.phone.message}</span> : null}
           </label>
         </div>
-
-        <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">
-          Visitas já realizadas
-          <input
-            type="number"
-            min={0}
-            max={50}
-            className="w-32 rounded-lg border border-slate-300 px-3 py-2 text-slate-900 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
-            {...register('initialVisits', { valueAsNumber: true })}
-          />
-        </label>
       </div>
 
       {errorMessage ? (
