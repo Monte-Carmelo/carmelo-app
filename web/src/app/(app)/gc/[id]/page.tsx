@@ -93,6 +93,32 @@ async function GCDetailsContent({ gcId }: { gcId: string }) {
   const isSupervisor = supervisors?.some((s) => s.person_id === currentPersonId);
   const canEdit = isLeader || isSupervisor;
 
+  // Buscar todos os membros do GC
+  const { data: allMembers } = await supabase
+    .from('growth_group_participants')
+    .select('id, role, person_id, joined_at, people!inner(name, email, phone)')
+    .eq('gc_id', gcId)
+    .eq('status', 'active')
+    .order('people(name)', { ascending: true });
+
+  // Ordenar alfabeticamente no lado do cliente (fallback para garantir ordem correta)
+  const members = (allMembers ?? []).sort((a, b) =>
+    (a.people.name || '').localeCompare(b.people.name || '', 'pt-BR')
+  );
+
+  // Buscar todos os visitantes do GC
+  const { data: allVisitors } = await supabase
+    .from('visitors')
+    .select('id, person_id, visit_count, first_visit_date, status, people!inner(name, email, phone)')
+    .eq('gc_id', gcId)
+    .eq('status', 'active')
+    .order('people(name)', { ascending: true });
+
+  // Ordenar alfabeticamente no lado do cliente (fallback para garantir ordem correta)
+  const visitors = (allVisitors ?? []).sort((a, b) =>
+    (a.people.name || '').localeCompare(b.people.name || '', 'pt-BR')
+  );
+
   // Formatar dia da semana (0=Domingo, 6=Sábado)
   const weekdayMap: Record<number, string> = {
     0: 'Domingo',
@@ -109,6 +135,14 @@ async function GCDetailsContent({ gcId }: { gcId: string }) {
     in_person: 'Presencial',
     online: 'Online',
     hybrid: 'Híbrido',
+  };
+
+  // Formatar papéis
+  const roleMap: Record<string, string> = {
+    leader: 'Líder',
+    co_leader: 'Co-líder',
+    supervisor: 'Supervisor',
+    member: 'Membro',
   };
 
   return (
@@ -230,6 +264,122 @@ async function GCDetailsContent({ gcId }: { gcId: string }) {
           </CardContent>
         </Card>
       </div>
+
+      {/* Membros do GC */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <Users className="h-5 w-5" />
+              Membros do GC
+            </CardTitle>
+            {canEdit && (
+              <Button variant="outline" size="sm" asChild>
+                <Link href={`/participants/new?gcId=${gcId}`}>
+                  <UserPlus className="mr-2 h-4 w-4" />
+                  Adicionar membro
+                </Link>
+              </Button>
+            )}
+          </div>
+          <CardDescription>
+            {members.length} {members.length === 1 ? 'membro ativo' : 'membros ativos'}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {members.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-8">
+              <Users className="mb-4 h-12 w-12 text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">Nenhum membro cadastrado ainda.</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {members.map((member) => (
+                <div
+                  key={member.id}
+                  className="flex items-center justify-between rounded-lg border p-4 transition-colors hover:bg-accent"
+                >
+                  <div className="flex-1">
+                    <p className="font-medium">{member.people.name}</p>
+                    <div className="mt-1 flex flex-wrap gap-2 text-xs text-muted-foreground">
+                      {member.people.email && <span>{member.people.email}</span>}
+                      {member.people.phone && <span>{member.people.phone}</span>}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline">{roleMap[member.role] ?? member.role}</Badge>
+                    {canEdit && (
+                      <Button variant="ghost" size="sm" asChild>
+                        <Link href={`/participants/${member.id}/edit`}>
+                          <Edit className="h-4 w-4" />
+                        </Link>
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Visitantes do GC */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <UserPlus className="h-5 w-5" />
+              Visitantes
+            </CardTitle>
+            {canEdit && (
+              <Button variant="outline" size="sm" asChild>
+                <Link href={`/visitors/new?gcId=${gcId}`}>
+                  <UserPlus className="mr-2 h-4 w-4" />
+                  Adicionar visitante
+                </Link>
+              </Button>
+            )}
+          </div>
+          <CardDescription>
+            {visitors.length} {visitors.length === 1 ? 'visitante ativo' : 'visitantes ativos'}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {visitors.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-8">
+              <UserPlus className="mb-4 h-12 w-12 text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">Nenhum visitante cadastrado ainda.</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {visitors.map((visitor) => (
+                <div
+                  key={visitor.id}
+                  className="flex items-center justify-between rounded-lg border p-4 transition-colors hover:bg-accent"
+                >
+                  <div className="flex-1">
+                    <p className="font-medium">{visitor.people.name}</p>
+                    <div className="mt-1 flex flex-wrap gap-2 text-xs text-muted-foreground">
+                      {visitor.people.email && <span>{visitor.people.email}</span>}
+                      {visitor.people.phone && <span>{visitor.people.phone}</span>}
+                      <span className="text-primary">
+                        {visitor.visit_count} {visitor.visit_count === 1 ? 'visita' : 'visitas'}
+                      </span>
+                    </div>
+                  </div>
+                  {canEdit && (
+                    <Button variant="ghost" size="sm" asChild>
+                      <Link href={`/visitors/${visitor.id}/edit`}>
+                        <Edit className="h-4 w-4" />
+                      </Link>
+                    </Button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Últimas reuniões */}
       <Card>

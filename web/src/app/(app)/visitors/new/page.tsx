@@ -4,7 +4,11 @@ import { createSupabaseServerClient } from '@/lib/supabase/server-client';
 import { VisitorForm } from '@/components/visitors/VisitorForm';
 import { Loading } from '@/components/ui/spinner';
 
-async function VisitorFormLoader() {
+type SearchParams = {
+  gcId?: string;
+};
+
+async function VisitorFormLoader({ searchParams }: { searchParams: SearchParams }) {
   const supabase = await createSupabaseServerClient();
   const {
     data: { session },
@@ -23,13 +27,18 @@ async function VisitorFormLoader() {
     throw error;
   }
 
-  return <VisitorForm groups={groups ?? []} />;
+  return <VisitorForm groups={groups ?? []} preselectedGcId={searchParams.gcId} />;
 }
 
-export default function NewVisitorPage() {
+export default async function NewVisitorPage({
+  searchParams,
+}: {
+  searchParams: Promise<SearchParams>;
+}) {
+  const resolvedParams = await searchParams;
   return (
     <Suspense fallback={<Loading />}>
-      <VisitorFormLoader />
+      <VisitorFormLoader searchParams={resolvedParams} />
     </Suspense>
   );
 }

@@ -28,9 +28,10 @@ type GrowthGroup = Database['public']['Tables']['growth_groups']['Row'];
 
 interface ParticipantFormProps {
   groups: Pick<GrowthGroup, 'id' | 'name'>[];
+  preselectedGcId?: string;
 }
 
-export function ParticipantForm({ groups }: ParticipantFormProps) {
+export function ParticipantForm({ groups, preselectedGcId }: ParticipantFormProps) {
   const router = useRouter();
   const supabase = getSupabaseBrowserClient();
   const { session } = useSession();
@@ -45,6 +46,7 @@ export function ParticipantForm({ groups }: ParticipantFormProps) {
     resolver: zodResolver(schema),
     defaultValues: {
       role: 'member',
+      gcId: preselectedGcId,
     },
   });
 
@@ -120,7 +122,12 @@ export function ParticipantForm({ groups }: ParticipantFormProps) {
       return;
     }
 
-    router.replace('/visitors');
+    // Se veio da página do GC, redirecionar de volta
+    if (preselectedGcId) {
+      router.push(`/gc/${preselectedGcId}`);
+    } else {
+      router.push('/participants');
+    }
     router.refresh();
   });
 
@@ -134,22 +141,28 @@ export function ParticipantForm({ groups }: ParticipantFormProps) {
       </header>
 
       <div className="grid gap-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">
-          Grupo de Crescimento
-          <select
-            className="rounded-lg border border-slate-300 px-3 py-2 text-slate-900 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
-            {...register('gcId')}
-            defaultValue=""
-          >
-            <option value="">Selecione...</option>
-            {groups.map((group) => (
-              <option key={group.id} value={group.id}>
-                {group.name}
-              </option>
-            ))}
-          </select>
-          {errors.gcId ? <span className="text-xs text-red-600">{errors.gcId.message}</span> : null}
-        </label>
+        {preselectedGcId ? (
+          // Campo oculto com o GC pré-selecionado
+          <input type="hidden" {...register('gcId')} value={preselectedGcId} />
+        ) : (
+          // Campo de seleção quando não há pré-seleção
+          <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">
+            Grupo de Crescimento
+            <select
+              className="rounded-lg border border-slate-300 px-3 py-2 text-slate-900 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
+              {...register('gcId')}
+              defaultValue=""
+            >
+              <option value="">Selecione...</option>
+              {groups.map((group) => (
+                <option key={group.id} value={group.id}>
+                  {group.name}
+                </option>
+              ))}
+            </select>
+            {errors.gcId ? <span className="text-xs text-red-600">{errors.gcId.message}</span> : null}
+          </label>
+        )}
 
         <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">
           Nome completo
