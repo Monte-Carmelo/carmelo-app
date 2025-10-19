@@ -1,0 +1,86 @@
+'use client';
+
+import {
+  BarChart as RechartsBarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from 'recharts';
+
+interface DataPoint {
+  [key: string]: string | number;
+}
+
+interface BarChartProps {
+  data: DataPoint[];
+  bars: Array<{
+    dataKey: string;
+    fill: string;
+    name: string;
+  }>;
+  xAxisDataKey: string;
+  height?: number;
+  width?: string | number;
+  title?: string;
+  layout?: 'vertical' | 'horizontal';
+}
+
+export function BarChart({
+  data,
+  bars,
+  xAxisDataKey,
+  height = 300,
+  width = '100%',
+  title,
+  layout = 'vertical',
+}: BarChartProps) {
+  return (
+    <div style={{ width }}>
+      {title && (
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">{title}</h3>
+      )}
+      <ResponsiveContainer width="100%" height={height}>
+        <RechartsBarChart
+          data={data}
+          layout={layout}
+          margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+        >
+          <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+          <XAxis
+            type={layout === 'vertical' ? 'number' : 'category'}
+            dataKey={layout === 'vertical' ? undefined : xAxisDataKey}
+            stroke="#6b7280"
+            style={{ fontSize: '12px' }}
+          />
+          <YAxis
+            type={layout === 'vertical' ? 'category' : 'number'}
+            dataKey={layout === 'vertical' ? xAxisDataKey : undefined}
+            stroke="#6b7280"
+            style={{ fontSize: '12px' }}
+          />
+          <Tooltip
+            contentStyle={{
+              backgroundColor: 'white',
+              border: '1px solid #e5e7eb',
+              borderRadius: '6px'
+            }}
+          />
+          <Legend />
+          {bars.map((bar, index) => (
+            <Bar
+              key={bar.dataKey}
+              dataKey={bar.dataKey}
+              fill={bar.fill}
+              name={bar.name}
+              radius={[4, 4, 0, 0]}
+            />
+          ))}
+        </RechartsBarChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
