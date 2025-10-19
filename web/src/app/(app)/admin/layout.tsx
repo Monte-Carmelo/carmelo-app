@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { redirect } from 'next/navigation';
 import { createSupabaseServerClient } from '@/lib/supabase/server-client';
 import { AdminShell } from '@/components/admin/AdminShell';
+import { Toaster } from 'sonner';
 
 interface AdminLayoutProps {
   children: ReactNode;
@@ -30,6 +31,7 @@ export default async function AdminLayout({ children }: AdminLayoutProps) {
   return (
     <AdminShell>
       {children}
+      <Toaster />
     </AdminShell>
   );
 }

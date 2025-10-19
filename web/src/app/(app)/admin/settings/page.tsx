@@ -45,7 +45,7 @@ export default function SettingsPage() {
 
         setStatus({
           last_updated: recentUpdate?.updated_at || null,
-          updated_by: recentUpdate?.users?.people?.name || null,
+          updated_by: (recentUpdate as { users?: { people?: { name?: string } } })?.users?.people?.name || null,
           total_configs: totalConfigs || 0,
         });
       } catch (error) {

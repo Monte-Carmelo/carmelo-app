@@ -1,21 +1,9 @@
--- Complete Seed Data for carmelo-app (Two-step process)
+-- Minimal Seed Data for carmelo-app
 -- Feature: 001-crie-um-app
--- Description: Test users, GCs, members, and lessons for development and testing
---
--- EXECUÇÃO:
--- 1. supabase db reset
--- 2. cd web && npx tsx scripts/seed-auth-users.ts
+-- Description: Essential test data that works without auth.users dependencies
 
--- Create people (base entity for personal data)
+-- Step 1: Create people (base entity for personal data)
 INSERT INTO people (id, name, email, phone, birth_date) VALUES
-  -- Users
-  ('11111111-0000-0000-0000-000000000001', 'João Líder', 'lider1@test.com', '11999999101', NULL),
-  ('11111111-0000-0000-0000-000000000002', 'Ana Co-Líder', 'lider2@test.com', '11999999102', NULL),
-  ('11111111-0000-0000-0000-000000000003', 'Maria Supervisora', 'supervisor1@test.com', '11999999103', NULL),
-  ('11111111-0000-0000-0000-000000000004', 'Carlos Supervisor', 'supervisor2@test.com', '11999999104', NULL),
-  ('11111111-0000-0000-0000-000000000005', 'Pedro Coordenador', 'coordenador1@test.com', '11999999105', NULL),
-  ('11111111-0000-0000-0000-000000000006', 'Admin Sistema', 'admin@test.com', '11999999106', NULL),
-
   -- Members
   ('11111111-0000-0000-0000-000000000011', 'Ana Silva', 'ana@test.com', '11999999111', NULL),
   ('11111111-0000-0000-0000-000000000012', 'Carlos Santos', 'carlos@test.com', '11999999112', NULL),
@@ -28,27 +16,39 @@ INSERT INTO people (id, name, email, phone, birth_date) VALUES
 
   -- Visitors
   ('11111111-0000-0000-0000-000000000021', 'João Visitante', 'joao.v@test.com', '11999999001', NULL),
-  ('11111111-0000-0000-0000-000000000022', 'Maria Visitante', 'maria.v@test.com', '11999999002', NULL);
+  ('11111111-0000-0000-0000-000000000022', 'Maria Visitante', 'maria.v@test.com', '11999999002', NULL),
 
--- Create test GCs
+  -- Leaders (for future user creation)
+  ('11111111-0000-0000-0000-000000000001', 'João Líder', 'lider1@test.com', '11999999101', NULL),
+  ('11111111-0000-0000-0000-000000000002', 'Ana Co-Líder', 'lider2@test.com', '11999999102', NULL),
+  ('11111111-0000-0000-0000-000000000003', 'Maria Supervisora', 'supervisor1@test.com', '11999999103', NULL);
+
+-- Step 2: Create test GCs
 INSERT INTO growth_groups (id, name, mode, address, weekday, time, status) VALUES
   ('40000000-0000-0000-0000-000000000001', 'GC Esperança', 'in_person', 'Rua Teste 123', 3, '19:30', 'active'),
   ('40000000-0000-0000-0000-000000000002', 'GC Fé', 'online', NULL, NULL, NULL, 'active'),
   ('40000000-0000-0000-0000-000000000003', 'GC Amor', 'in_person', 'Av. Principal 456', 5, '20:00', 'active');
 
--- Create visitors
+-- Step 3: Create visitors (without auth.users constraint)
 INSERT INTO visitors (id, person_id, gc_id, status, created_at) VALUES
   ('80000000-0000-0000-0000-000000000001', '11111111-0000-0000-0000-000000000021', '40000000-0000-0000-0000-000000000001', 'active', NOW() - INTERVAL '30 days'),
   ('80000000-0000-0000-0000-000000000002', '11111111-0000-0000-0000-000000000022', '40000000-0000-0000-0000-000000000002', 'active', NOW() - INTERVAL '20 days');
 
+-- Step 4: Create some test configurations
+INSERT INTO config (key, value) VALUES
+  ('organization_name', '"Igreja Monte Carmelo"'),
+  ('gc_min_members', '3'),
+  ('gc_max_members', '15');
+
 -- Summary:
--- Este seed cria os dados básicos que funcionam sem dependências de auth.users:
+-- Este seed cria dados básicos que funcionam sem dependências de autenticação:
 -- - Pessoas (membros, visitantes, líderes)
 -- - Grupos de Crescimento (GCs)
 -- - Visitantes
+-- - Configurações do sistema
 --
--- Após executar este seed, execute o script de auth users para criar:
--- - Usuários em auth.users
--- - Usuários na tabela users
--- - growth_group_participants (relacionamentos)
--- - lessons, meetings e outros dados que dependem de users
+-- Para testar funcionalidade completa:
+-- 1. Crie usuários via Supabase Dashboard ou signup
+-- 2. Use os IDs das pessoas existentes para criar os usuários
+-- 3. Crie growth_group_participants associando pessoas aos GCs
+-- 4. Crie lesson_series, lessons e meetings conforme necessário

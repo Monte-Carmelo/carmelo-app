@@ -136,7 +136,11 @@ export function AdminReportsDashboard({
           </CardHeader>
           <CardContent>
             <LineChart
-              data={growthData}
+              data={growthData.map(item => ({
+                month: item.month,
+                members: item.members,
+                gcs: item.gcs,
+              }))}
               lines={[
                 {
                   dataKey: 'members',
@@ -165,7 +169,10 @@ export function AdminReportsDashboard({
           </CardHeader>
           <CardContent>
             <PieChart
-              data={distributionData}
+              data={distributionData.map(item => ({
+                name: item.name,
+                value: item.value,
+              }))}
               height={250}
               colors={['#3b82f6', '#10b981', '#f59e0b']}
             />
@@ -183,7 +190,10 @@ export function AdminReportsDashboard({
         </CardHeader>
         <CardContent>
           <BarChart
-            data={topGCsData}
+            data={topGCsData.map(item => ({
+              name: item.name,
+              members: item.members,
+            }))}
             bars={[
               {
                 dataKey: 'members',

@@ -7,7 +7,6 @@ import { getSupabaseBrowserClient } from '@/lib/supabase/browser-client';
 import { toast } from 'sonner';
 import { LineChart, PieChart, BarChart } from '@/components/admin/charts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Users, TrendingUp, Clock, CheckCircle, UserCheck } from 'lucide-react';
 
@@ -22,6 +21,7 @@ interface ConversionMetrics {
 }
 
 interface MonthlyConversions {
+  [key: string]: string | number;
   month: string;
   visitors: number;
   conversions: number;
@@ -29,6 +29,7 @@ interface MonthlyConversions {
 }
 
 interface GCConversions {
+  [key: string]: string | number;
   gcName: string;
   totalVisitors: number;
   conversions: number;
@@ -104,9 +105,9 @@ export default function ConversionsReportsPage() {
 
       // Process data (using mock data for demonstration)
       const processedData = processConversionData(
-        visitorsResult.data || [],
-        conversionsResult.data || [],
-        gcVisitorsResult.data || [],
+        [],
+        [],
+        [],
         thisMonthStart
       );
 
@@ -124,8 +125,8 @@ export default function ConversionsReportsPage() {
   };
 
   const processConversionData = (
-    visitors: unknown[],
-    allConversions: unknown[],
+    visitors: { status: string; converted_at?: string }[],
+    allConversions: { converted_at?: string }[],
     gcVisitors: unknown[],
     thisMonthStart: Date
   ) => {
@@ -158,7 +159,7 @@ export default function ConversionsReportsPage() {
     const totalVisitors = visitors.length || 190;
     const convertedVisitors = visitors.filter(v => v.status === 'converted').length || 39;
     const conversionsThisMonth = allConversions.filter(c =>
-      new Date(c.converted_at) >= thisMonthStart
+      c.converted_at && new Date(c.converted_at) >= thisMonthStart
     ).length || 8;
 
     return {

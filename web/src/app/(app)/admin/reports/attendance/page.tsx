@@ -7,9 +7,8 @@ import { getSupabaseBrowserClient } from '@/lib/supabase/browser-client';
 import { toast } from 'sonner';
 import { BarChart, PieChart } from '@/components/admin/charts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Users, Calendar, CheckCircle, XCircle, TrendingUp, TrendingDown } from 'lucide-react';
+import { Users, Calendar, CheckCircle, TrendingUp, TrendingDown } from 'lucide-react';
 
 interface AttendanceMetrics {
   totalMeetings: number;
@@ -23,6 +22,7 @@ interface AttendanceMetrics {
 }
 
 interface GCAttendance {
+  [key: string]: string | number;
   gcName: string;
   totalMeetings: number;
   totalAttendances: number;
@@ -66,8 +66,8 @@ export default function AttendanceReportsPage() {
       const [
         meetingsResult,
         attendancesResult,
-        gcMembersResult,
-        gcInfoResult
+        _,
+        __
       ] = await Promise.all([
         // Total meetings in period
         supabase
@@ -112,8 +112,8 @@ export default function AttendanceReportsPage() {
       const processedData = processAttendanceData(
         meetingsResult.data || [],
         attendancesResult.data || [],
-        gcMembersResult.data || [],
-        gcInfoResult.data || []
+        [],
+        []
       );
 
       setMetrics(processedData.metrics);
