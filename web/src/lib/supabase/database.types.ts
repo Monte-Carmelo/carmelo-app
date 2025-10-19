@@ -55,6 +55,65 @@ export type Database = {
         }
         Relationships: []
       }
+      gc_multiplication_events: {
+        Row: {
+          created_at: string
+          id: string
+          multiplied_at: string
+          multiplied_by_user_id: string
+          new_gc_ids: string[]
+          notes: string | null
+          original_gc_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          multiplied_at?: string
+          multiplied_by_user_id: string
+          new_gc_ids: string[]
+          notes?: string | null
+          original_gc_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          multiplied_at?: string
+          multiplied_by_user_id?: string
+          new_gc_ids?: string[]
+          notes?: string | null
+          original_gc_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gc_multiplication_events_multiplied_by_user_id_fkey"
+            columns: ["multiplied_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "user_gc_roles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "gc_multiplication_events_multiplied_by_user_id_fkey"
+            columns: ["multiplied_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gc_multiplication_events_original_gc_id_fkey"
+            columns: ["original_gc_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_metrics"
+            referencedColumns: ["gc_id"]
+          },
+          {
+            foreignKeyName: "gc_multiplication_events_original_gc_id_fkey"
+            columns: ["original_gc_id"]
+            isOneToOne: false
+            referencedRelation: "growth_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       growth_group_participants: {
         Row: {
           added_by_user_id: string | null
@@ -189,6 +248,7 @@ export type Database = {
         Row: {
           created_at: string
           created_by_user_id: string
+          deleted_at: string | null
           description: string | null
           id: string
           name: string
@@ -197,6 +257,7 @@ export type Database = {
         Insert: {
           created_at?: string
           created_by_user_id: string
+          deleted_at?: string | null
           description?: string | null
           id?: string
           name: string
@@ -205,6 +266,7 @@ export type Database = {
         Update: {
           created_at?: string
           created_by_user_id?: string
+          deleted_at?: string | null
           description?: string | null
           id?: string
           name?: string
@@ -231,6 +293,7 @@ export type Database = {
         Row: {
           created_at: string
           created_by_user_id: string
+          deleted_at: string | null
           description: string | null
           id: string
           link: string | null
@@ -242,6 +305,7 @@ export type Database = {
         Insert: {
           created_at?: string
           created_by_user_id: string
+          deleted_at?: string | null
           description?: string | null
           id?: string
           link?: string | null
@@ -253,6 +317,7 @@ export type Database = {
         Update: {
           created_at?: string
           created_by_user_id?: string
+          deleted_at?: string | null
           description?: string | null
           id?: string
           link?: string | null
