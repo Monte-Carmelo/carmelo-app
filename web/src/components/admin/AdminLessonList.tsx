@@ -43,9 +43,10 @@ interface Lesson {
 
 interface AdminLessonListProps {
   lessons: Lesson[];
-  onReorder?: (lessonOrder: Array<{ lessonId: string; newOrder: number }>) => Promise<void>;
+  onReorder?: (newOrder: string[]) => Promise<void>;
   onDelete?: (lessonId: string) => Promise<void>;
   seriesId?: string | null;
+  reordering?: boolean;
 }
 
 interface SortableItemProps {
@@ -148,13 +149,10 @@ export function AdminLessonList({ lessons, onReorder, onDelete, seriesId }: Admi
 
     // Call onReorder with new order
     if (onReorder) {
-      const lessonOrder = newItems.map((item, index) => ({
-        lessonId: item.id,
-        newOrder: index + 1,
-      }));
+      const newOrder = newItems.map((item) => item.id);
 
       try {
-        await onReorder(lessonOrder);
+        await onReorder(newOrder);
       } catch (error) {
         console.error('Error reordering lessons:', error);
         // Revert on error
