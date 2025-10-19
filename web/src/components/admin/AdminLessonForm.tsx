@@ -27,7 +27,7 @@ const lessonSchema = z.object({
   title: z.string().min(3, 'Título deve ter pelo menos 3 caracteres').max(255),
   description: z.string().optional(),
   link: z.string().optional(),
-  series_id: z.string().uuid().optional().or(z.literal('')),
+  series_id: z.string().optional(),
   order_in_series: z.number().int().min(1).optional().nullable(),
 });
 
@@ -91,16 +91,29 @@ export function AdminLessonForm({
   const handleFormSubmit = async (data: LessonFormData) => {
     setIsSubmitting(true);
     try {
+      // Validate UUID format for series_id if provided
+      let seriesId = data.series_id || null;
+      if (seriesId && seriesId !== '') {
+        // Basic UUID validation
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+        if (!uuidRegex.test(seriesId)) {
+          throw new Error('ID da série inválido');
+        }
+      } else {
+        seriesId = null;
+      }
+
       // Convert empty string to null for optional fields
       const processedData = {
         ...data,
-        series_id: data.series_id || null,
+        series_id: seriesId,
         link: data.link || null,
         description: data.description || null,
       };
       await onSubmit(processedData as LessonFormData);
     } catch (error) {
       console.error('Error submitting form:', error);
+      // You might want to show a toast notification here
     } finally {
       setIsSubmitting(false);
     }
