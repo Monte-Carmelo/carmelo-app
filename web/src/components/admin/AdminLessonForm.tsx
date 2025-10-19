@@ -26,7 +26,7 @@ import {
 const lessonSchema = z.object({
   title: z.string().min(3, 'Título deve ter pelo menos 3 caracteres').max(255),
   description: z.string().optional(),
-  link: z.string().url('Link inválido').optional().or(z.literal('')),
+  link: z.string().optional(),
   series_id: z.string().uuid().optional().or(z.literal('')),
   order_in_series: z.number().int().min(1).optional().nullable(),
 });
@@ -81,6 +81,12 @@ export function AdminLessonForm({
   });
 
   const selectedSeriesId = watch('series_id');
+
+  // Handle the "no series" option with a special placeholder value
+  const handleSeriesChange = (value: string) => {
+    const finalValue = value === 'none' ? '' : value;
+    setValue('series_id', finalValue);
+  };
 
   const handleFormSubmit = async (data: LessonFormData) => {
     setIsSubmitting(true);
@@ -145,7 +151,6 @@ export function AdminLessonForm({
             <Input
               id="link"
               {...register('link')}
-              type="url"
               placeholder="https://..."
               className={errors.link ? 'border-red-500' : ''}
             />
@@ -159,14 +164,14 @@ export function AdminLessonForm({
           <div>
             <Label htmlFor="series_id">Série (opcional)</Label>
             <Select
-              value={selectedSeriesId || ''}
-              onValueChange={(value) => setValue('series_id', value)}
+              value={selectedSeriesId || 'none'}
+              onValueChange={handleSeriesChange}
             >
               <SelectTrigger className={errors.series_id ? 'border-red-500' : ''}>
                 <SelectValue placeholder="Selecione uma série ou deixe como lição avulsa" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Sem série (lição avulsa)</SelectItem>
+                <SelectItem value="none">Sem série (lição avulsa)</SelectItem>
                 {series.map((s) => (
                   <SelectItem key={s.id} value={s.id}>
                     {s.name}
@@ -180,7 +185,7 @@ export function AdminLessonForm({
           </div>
 
           {/* Ordem na Série (condicional) */}
-          {selectedSeriesId && (
+          {selectedSeriesId && selectedSeriesId !== 'none' && (
             <div>
               <Label htmlFor="order_in_series">Ordem na Série</Label>
               <Input
