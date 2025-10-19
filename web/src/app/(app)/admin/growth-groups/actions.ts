@@ -258,8 +258,6 @@ export async function multiplyGrowthGroupAction(
   }
 ) {
   try {
-    const supabase = await createSupabaseServerClient();
-
     // TODO: Implement full multiplication logic in T020
     // For now, just return placeholder
 
