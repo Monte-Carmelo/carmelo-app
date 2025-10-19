@@ -28,7 +28,11 @@ const lessonSchema = z.object({
   description: z.string().optional(),
   link: z.string().optional(),
   series_id: z.string().optional(),
-  order_in_series: z.number().int().min(1).optional().nullable(),
+  order_in_series: z.union([
+    z.number().int().min(1),
+    z.null(),
+    z.string(),
+  ]).optional(),
 });
 
 export type LessonFormData = z.infer<typeof lessonSchema>;
@@ -109,6 +113,8 @@ export function AdminLessonForm({
         series_id: seriesId,
         link: data.link || null,
         description: data.description || null,
+        order_in_series: data.order_in_series === '' || data.order_in_series === undefined ? null :
+                          (typeof data.order_in_series === 'string' ? Number(data.order_in_series) : data.order_in_series),
       };
       await onSubmit(processedData as LessonFormData);
     } catch (error) {
