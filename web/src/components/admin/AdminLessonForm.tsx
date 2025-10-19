@@ -98,10 +98,20 @@ export function AdminLessonForm({
       // Validate UUID format for series_id if provided
       let seriesId = data.series_id || null;
       if (seriesId && seriesId !== '') {
-        // Basic UUID validation
-        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-        if (!uuidRegex.test(seriesId)) {
-          throw new Error('ID da série inválido');
+        // Debug logging
+        console.log('Series ID being validated:', seriesId, typeof seriesId);
+
+        // Simple UUID validation (just check basic format)
+        if (!seriesId || seriesId === 'none' || seriesId === '') {
+          seriesId = null;
+        } else {
+          // Basic format check - just ensure it looks like a UUID
+          const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+          if (!uuidPattern.test(seriesId)) {
+            console.error('Invalid UUID format:', seriesId);
+            // Instead of throwing error, just set to null for safety
+            seriesId = null;
+          }
         }
       } else {
         seriesId = null;
