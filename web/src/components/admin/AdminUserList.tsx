@@ -1,10 +1,12 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import clsx from 'clsx';
+import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 import { deleteUser } from '@/app/(app)/admin/actions';
+import { Loading } from '@/components/ui/spinner';
 
 interface AdminUserSummary {
   id: string;
@@ -21,16 +23,95 @@ interface AdminUserSummary {
 }
 
 interface AdminUserListProps {
-  currentUserId: string;
-  users: AdminUserSummary[];
+  currentUserId?: string;
+  users?: AdminUserSummary[];
 }
 
-export function AdminUserList({ currentUserId, users }: AdminUserListProps) {
+export function AdminUserList({ currentUserId: propCurrentUserId, users: propUsers }: AdminUserListProps) {
   const router = useRouter();
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [loading, setLoading] = useState(true);
+  const [currentUserId, setCurrentUserId] = useState<string>('');
+  const [users, setUsers] = useState<AdminUserSummary[]>([]);
+
+  useEffect(() => {
+    async function loadUsers() {
+      if (propCurrentUserId && propUsers) {
+        // Use props if provided (for backwards compatibility)
+        setCurrentUserId(propCurrentUserId);
+        setUsers(propUsers);
+        setLoading(false);
+        return;
+      }
+
+      // Otherwise, fetch data
+      try {
+        const supabase = createSupabaseBrowserClient();
+
+        // Get current user
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.user?.id) {
+          router.push('/login');
+          return;
+        }
+        setCurrentUserId(session.user.id);
+
+        // Fetch users with their roles and stats
+        const { data: usersData, error } = await supabase
+          .from('users')
+          .select(`
+            id,
+            is_admin,
+            people!inner(name, email, phone),
+            growth_group_participants!left(
+              id,
+              role,
+              gc_id
+            )
+          `)
+          .is('users.deleted_at', null)
+          .is('growth_group_participants.deleted_at', null);
+
+        if (error) {
+          console.error('Error fetching users:', error);
+          setErrorMessage('Erro ao carregar usuários.');
+          return;
+        }
+
+        // Process users data
+        const processedUsers: AdminUserSummary[] = (usersData || []).map((user: any) => {
+          const participant = user.growth_group_participants?.[0] || null;
+          const role = participant?.role || '';
+
+          return {
+            id: user.id,
+            name: user.people?.name || 'Nome não definido',
+            email: user.people?.email || null,
+            phone: user.people?.phone || null,
+            isAdmin: user.is_admin || false,
+            isLeader: role === 'leader' || role === 'co_leader',
+            isSupervisor: role === 'supervisor',
+            isCoordinator: false, // TODO: Implement hierarchy logic
+            gcsLed: 0, // TODO: Count GCs where user is leader
+            gcsSupervised: 0, // TODO: Count GCs where user is supervisor
+            directSubordinates: 0, // TODO: Count direct subordinates
+          };
+        });
+
+        setUsers(processedUsers);
+      } catch (error) {
+        console.error('Error loading users:', error);
+        setErrorMessage('Erro ao carregar usuários.');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadUsers();
+  }, [propCurrentUserId, propUsers, router]);
 
   const handleDelete = (userId: string, userName: string) => {
     if (processingId || isPending) {
@@ -59,6 +140,10 @@ export function AdminUserList({ currentUserId, users }: AdminUserListProps) {
         });
     });
   };
+
+  if (loading) {
+    return <Loading message="Carregando usuários..." />;
+  }
 
   return (
     <section className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-10">
