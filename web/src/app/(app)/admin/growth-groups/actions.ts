@@ -257,16 +257,229 @@ export async function multiplyGrowthGroupAction(
     notes?: string;
   }
 ) {
+  const supabase = await createSupabaseServerClient();
+  const now = new Date().toISOString();
+  const createdGcIds: string[] = [];
+
   try {
-    // TODO: Implement full multiplication logic in T020
-    // For now, just return placeholder
+    // Get current user
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    if (!session) {
+      return { error: 'Usuário não autenticado.' };
+    }
 
-    console.log('Multiplying GC:', originalGcId, multiplicationState);
+    // Step 0: Get person_ids for all user_ids involved
+    const allUserIds = multiplicationState.newGCs.flatMap((gc) => [
+      gc.leaderId,
+      ...gc.supervisorIds,
+    ]);
+    const { data: usersData, error: usersError } = await supabase
+      .from('users')
+      .select('id, person_id')
+      .in('id', allUserIds);
 
-    // Placeholder implementation
-    return { success: true, message: 'Funcionalidade em desenvolvimento (T020)' };
+    if (usersError || !usersData) {
+      return { error: 'Erro ao buscar dados dos usuários.' };
+    }
+
+    const userIdToPersonId = new Map(usersData.map((u) => [u.id, u.person_id]));
+
+    // Step 1: Update original GC status to 'multiplying'
+    const { error: updateError } = await supabase
+      .from('growth_groups')
+      .update({ status: 'multiplying', updated_at: now })
+      .eq('id', originalGcId);
+
+    if (updateError) {
+      console.error('Step 1 failed:', updateError);
+      return { error: 'Erro ao iniciar multiplicação.' };
+    }
+
+    // Step 2: Create new GCs
+    for (let i = 0; i < multiplicationState.newGCs.length; i++) {
+      const newGcData = multiplicationState.newGCs[i];
+
+      const { data: newGc, error: createError } = await supabase
+        .from('growth_groups')
+        .insert({
+          name: newGcData.name,
+          mode: newGcData.mode,
+          address: newGcData.address || null,
+          weekday: null,
+          time: null,
+          status: 'active',
+        })
+        .select('id')
+        .single();
+
+      if (createError || !newGc) {
+        console.error('Step 2 failed:', createError);
+        // Rollback: Delete created GCs
+        if (createdGcIds.length > 0) {
+          await supabase.from('growth_groups').delete().in('id', createdGcIds);
+        }
+        // Restore original GC status
+        await supabase
+          .from('growth_groups')
+          .update({ status: 'active' })
+          .eq('id', originalGcId);
+        return { error: 'Erro ao criar novos GCs.' };
+      }
+
+      createdGcIds.push(newGc.id);
+
+      // Step 2b: Add leader and supervisors to new GC
+      const participants = [];
+
+      // Leader
+      const leaderPersonId = userIdToPersonId.get(newGcData.leaderId);
+      if (leaderPersonId) {
+        participants.push({
+          gc_id: newGc.id,
+          person_id: leaderPersonId,
+          role: 'leader',
+          status: 'active',
+          joined_at: now,
+          added_by_user_id: session.user.id,
+        });
+      }
+
+      // Supervisors
+      for (const supervisorId of newGcData.supervisorIds) {
+        const supervisorPersonId = userIdToPersonId.get(supervisorId);
+        if (supervisorPersonId) {
+          participants.push({
+            gc_id: newGc.id,
+            person_id: supervisorPersonId,
+            role: 'supervisor',
+            status: 'active',
+            joined_at: now,
+            added_by_user_id: session.user.id,
+          });
+        }
+      }
+
+      const { error: participantsError } = await supabase
+        .from('growth_group_participants')
+        .insert(participants);
+
+      if (participantsError) {
+        console.error('Step 2b failed:', participantsError);
+        // Rollback
+        await supabase.from('growth_groups').delete().in('id', createdGcIds);
+        await supabase
+          .from('growth_groups')
+          .update({ status: 'active' })
+          .eq('id', originalGcId);
+        return { error: 'Erro ao adicionar líderes aos novos GCs.' };
+      }
+    }
+
+    // Step 3: Transfer members according to allocations
+    const transferUpdates: Array<{ personId: string; newGcId: string }> = [];
+    const remainingMembers: string[] = [];
+
+    Object.entries(multiplicationState.memberAllocations).forEach(([personId, destination]) => {
+      if (destination === 'original') {
+        remainingMembers.push(personId);
+      } else {
+        const gcIndex = parseInt(destination.split('_')[1]);
+        transferUpdates.push({
+          personId,
+          newGcId: createdGcIds[gcIndex],
+        });
+      }
+    });
+
+    // Mark transferred members as 'transferred' and create new participants
+    for (const transfer of transferUpdates) {
+      // Update old participation
+      const { error: updateTransferError } = await supabase
+        .from('growth_group_participants')
+        .update({ status: 'transferred', left_at: now, updated_at: now })
+        .eq('gc_id', originalGcId)
+        .eq('person_id', transfer.personId);
+
+      if (updateTransferError) {
+        console.error('Step 3a failed:', updateTransferError);
+        // Rollback
+        await supabase.from('growth_groups').delete().in('id', createdGcIds);
+        await supabase
+          .from('growth_groups')
+          .update({ status: 'active' })
+          .eq('id', originalGcId);
+        return { error: 'Erro ao transferir membros.' };
+      }
+
+      // Create new participation
+      const { error: insertTransferError } = await supabase
+        .from('growth_group_participants')
+        .insert({
+          gc_id: transfer.newGcId,
+          person_id: transfer.personId,
+          role: 'member',
+          status: 'active',
+          joined_at: now,
+          added_by_user_id: session.user.id,
+        });
+
+      if (insertTransferError) {
+        console.error('Step 3b failed:', insertTransferError);
+        // Rollback
+        await supabase.from('growth_groups').delete().in('id', createdGcIds);
+        await supabase
+          .from('growth_groups')
+          .update({ status: 'active' })
+          .eq('id', originalGcId);
+        return { error: 'Erro ao alocar membros nos novos GCs.' };
+      }
+    }
+
+    // Step 4: Insert multiplication event
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error: eventError } = await (supabase as any)
+      .from('gc_multiplication_events')
+      .insert({
+        original_gc_id: originalGcId,
+        new_gc_ids: createdGcIds,
+        multiplied_by_user_id: session.user.id,
+        multiplied_at: now,
+        notes: multiplicationState.notes || null,
+      });
+
+    if (eventError) {
+      console.error('Step 4 failed:', eventError);
+      // Rollback
+      await supabase.from('growth_groups').delete().in('id', createdGcIds);
+      await supabase.from('growth_groups').update({ status: 'active' }).eq('id', originalGcId);
+      return { error: 'Erro ao registrar evento de multiplicação.' };
+    }
+
+    // Step 5: Finalize original GC status
+    const finalStatus = multiplicationState.keepOriginalActive ? 'active' : 'multiplied';
+    const { error: finalizeError } = await supabase
+      .from('growth_groups')
+      .update({ status: finalStatus, updated_at: now })
+      .eq('id', originalGcId);
+
+    if (finalizeError) {
+      console.error('Step 5 failed:', finalizeError);
+      return { error: 'Erro ao finalizar status do GC original.' };
+    }
+
+    revalidatePath('/admin/growth-groups');
+    return { success: true, newGcIds: createdGcIds };
   } catch (error) {
     console.error('Unexpected error in multiplyGrowthGroupAction:', error);
+
+    // Attempt cleanup
+    if (createdGcIds.length > 0) {
+      await supabase.from('growth_groups').delete().in('id', createdGcIds);
+    }
+    await supabase.from('growth_groups').update({ status: 'active' }).eq('id', originalGcId);
+
     return { error: 'Erro inesperado ao multiplicar GC.' };
   }
 }
