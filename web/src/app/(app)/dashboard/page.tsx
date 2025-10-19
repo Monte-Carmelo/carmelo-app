@@ -1,12 +1,12 @@
-import { Users, Calendar, BookOpen, UserCheck } from 'lucide-react';
+import { Users, BookOpen, UserCheck, UserPlus } from 'lucide-react';
 import { DashboardGrid } from '@/components/dashboard/DashboardGrid';
 
 export default function DashboardPage() {
   const navigationItems = [
     { title: 'GC', icon: Users, href: '/gc', description: 'Grupos de Crescimento' },
-    { title: 'Reuniões', icon: Calendar, href: '/meetings', description: 'Reuniões e atividades' },
+    { title: 'Lições', icon: BookOpen, href: '/lessons', description: 'Catálogo de lições e séries' },
     { title: 'Participantes', icon: UserCheck, href: '/participants', description: 'Membros dos grupos' },
-    { title: 'Visitantes', icon: BookOpen, href: '/visitors', description: 'Visitantes e interessados' },
+    { title: 'Visitantes', icon: UserPlus, href: '/visitors', description: 'Visitantes e interessados' },
   ];
 
   return (
