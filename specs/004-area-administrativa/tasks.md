@@ -1658,13 +1658,19 @@ Similar pattern: components can be parallel, pages sequential.
   - [x] T012: Criar página de criação de GC ✅
   - [x] T013: Criar página de edição de GC ✅
   - [x] T014: Testar CRUD de GCs (manual) ✅
-- [ ] **FASE 3**: T015-T020 (Multiplicação) - 0/6 complete
+- [ ] **FASE 3**: T015-T020 (Multiplicação) - 1/6 complete
+  - [x] T015: Criar GCMultiplicationWizard component ✅
+  - [ ] T016: Implementar Step 1 do Wizard
+  - [ ] T017: Implementar Step 2 do Wizard
+  - [ ] T018: Implementar Step 3 do Wizard
+  - [ ] T019: Implementar Step 4 do Wizard
+  - [ ] T020: Implementar Server Action completa
 - [ ] **FASE 4**: T021-T027 (Lições) - 0/7 complete
 - [ ] **FASE 5**: T028-T032 (Relatórios) - 0/5 complete
 - [ ] **FASE 6**: T033-T034 (Configurações) - 0/2 complete
 - [ ] **FASE 7**: T035-T041 (Polimento) - 0/7 complete
 
-**Total**: 14/41 tasks complete (34%) - MVP COMPLETE
+**Total**: 15/41 tasks complete (37%)
 
 ---
 

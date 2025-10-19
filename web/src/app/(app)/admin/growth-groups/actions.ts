@@ -241,3 +241,34 @@ export async function updateGrowthGroupAction(gcId: string, data: GrowthGroupFor
     return { error: 'Erro inesperado ao atualizar GC.' };
   }
 }
+
+export async function multiplyGrowthGroupAction(
+  originalGcId: string,
+  multiplicationState: {
+    newGCs: Array<{
+      name: string;
+      mode: 'in_person' | 'online' | 'hybrid';
+      address?: string;
+      leaderId: string;
+      supervisorIds: string[];
+    }>;
+    memberAllocations: Record<string, 'original' | 'new_0' | 'new_1' | 'new_2'>;
+    keepOriginalActive: boolean;
+    notes?: string;
+  }
+) {
+  try {
+    const supabase = await createSupabaseServerClient();
+
+    // TODO: Implement full multiplication logic in T020
+    // For now, just return placeholder
+
+    console.log('Multiplying GC:', originalGcId, multiplicationState);
+
+    // Placeholder implementation
+    return { success: true, message: 'Funcionalidade em desenvolvimento (T020)' };
+  } catch (error) {
+    console.error('Unexpected error in multiplyGrowthGroupAction:', error);
+    return { error: 'Erro inesperado ao multiplicar GC.' };
+  }
+}
