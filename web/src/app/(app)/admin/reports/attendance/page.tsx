@@ -78,13 +78,17 @@ export default function AttendanceReportsPage() {
 
         // Attendance records
         supabase
-          .from('meeting_attendance')
+          .from('meeting_member_attendance')
           .select(`
-            attended,
-            meetings!inner(id, gc_id, datetime)
+            id,
+            meetings!inner(id, gc_id, datetime),
+            growth_group_participants!inner(
+              gc_id,
+              status
+            )
           `)
           .gte('meetings.datetime', startDate.toISOString())
-          .is('deleted_at', null),
+          .eq('growth_group_participants.status', 'active'),
 
         // GC members for calculating possible attendances
         supabase
