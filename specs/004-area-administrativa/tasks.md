@@ -1665,12 +1665,19 @@ Similar pattern: components can be parallel, pages sequential.
   - [x] T018: Implementar Steps 3 e 4 do Wizard ✅
   - [x] T019: Criar página de multiplicação ✅
   - [x] T020: Implementar Server Action completa ✅
-- [ ] **FASE 4**: T021-T027 (Lições) - 0/7 complete
+- [ ] **FASE 4**: T021-T027 (Lições) - 3/7 complete
+  - [x] T021: Criar AdminSeriesList component ✅
+  - [x] T022: Criar AdminLessonList com drag-and-drop ✅
+  - [x] T023: Criar página de listagem de lições ✅
+  - [ ] T024: Criar formulários de série e lição
+  - [ ] T025: Criar páginas de criação/edição de série
+  - [ ] T026: Criar páginas de criação/edição de lição
+  - [ ] T027: Testar gestão de lições (manual)
 - [ ] **FASE 5**: T028-T032 (Relatórios) - 0/5 complete
 - [ ] **FASE 6**: T033-T034 (Configurações) - 0/2 complete
 - [ ] **FASE 7**: T035-T041 (Polimento) - 0/7 complete
 
-**Total**: 20/41 tasks complete (49%)
+**Total**: 23/41 tasks complete (56%)
 
 ---
 
