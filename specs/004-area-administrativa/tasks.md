@@ -1301,7 +1301,7 @@ Executar Cenário 6 de `quickstart.md` para validar relatórios.
 
 ## FASE 6: Configurações do Sistema (BAIXA PRIORIDADE)
 
-### T033: Criar AdminSettingsForm Component [P]
+### T033: Criar AdminSettingsForm Component ✅
 **Priority**: LOW
 **Estimated**: 1h
 **Dependencies**: T027
@@ -1338,7 +1338,7 @@ await supabase.from('config').upsert({
 
 ---
 
-### T034: Criar Página de Configurações
+### T034: Criar Página de Configurações ✅
 **Priority**: LOW
 **Estimated**: 45min
 **Dependencies**: T033
@@ -1673,11 +1673,11 @@ Similar pattern: components can be parallel, pages sequential.
   - [ ] T025: Criar páginas de criação/edição de série
   - [ ] T026: Criar páginas de criação/edição de lição
   - [ ] T027: Testar gestão de lições (manual)
-- [ ] **FASE 5**: T028-T032 (Relatórios) - 0/5 complete
-- [ ] **FASE 6**: T033-T034 (Configurações) - 0/2 complete
+- [x] **FASE 5**: T028-T032 (Relatórios) - 5/5 complete ✅
+- [x] **FASE 6**: T033-T034 (Configurações) - 2/2 complete ✅
 - [ ] **FASE 7**: T035-T041 (Polimento) - 0/7 complete
 
-**Total**: 23/41 tasks complete (56%)
+**Total**: 30/41 tasks complete (73%)
 
 ---
 
