@@ -15,6 +15,11 @@ export const getSupabaseBrowserClient = () => {
     browserClient = createBrowserClient<Database>(
       env.supabaseUrl,
       env.supabaseAnonKey,
+      {
+        auth: {
+          persistSession: true,
+        },
+      },
     );
   }
 

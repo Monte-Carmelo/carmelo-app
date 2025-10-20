@@ -94,7 +94,7 @@ export function AdminSeriesList({ series, onDelete }: AdminSeriesListProps) {
           </TableHeader>
           <TableBody>
             {series.map((serie) => (
-              <TableRow key={serie.id}>
+              <TableRow key={serie.id} data-testid="series-card">
                 <TableCell className="font-medium">{serie.name}</TableCell>
                 <TableCell className="max-w-md">
                   {serie.description ? (

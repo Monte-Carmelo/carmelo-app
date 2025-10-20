@@ -10,18 +10,19 @@ interface AdminLayoutProps {
 
 export default async function AdminLayout({ children }: AdminLayoutProps) {
   const supabase = await createSupabaseServerClient();
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
 
-  if (!session) {
+  // Use getUser() instead of getSession() for secure authentication
+  const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
+
+  if (authError || !authUser) {
     redirect('/login');
   }
 
+  // Query the users table to check admin status
   const { data: user } = await supabase
     .from('users')
     .select('is_admin')
-    .eq('id', session.user.id)
+    .eq('id', authUser.id)
     .maybeSingle() as { data: { is_admin: boolean } | null };
 
   if (!user?.is_admin) {

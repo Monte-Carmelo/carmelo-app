@@ -4,7 +4,7 @@ import { useState, useTransition, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import clsx from 'clsx';
-import { createSupabaseBrowserClient } from '@/lib/supabase/client';
+import { getSupabaseBrowserClient } from '@/lib/supabase/browser-client';
 import { deleteUser } from '@/app/(app)/admin/actions';
 import { Loading } from '@/components/ui/spinner';
 
@@ -49,7 +49,7 @@ export function AdminUserList({ currentUserId: propCurrentUserId, users: propUse
 
       // Otherwise, fetch data
       try {
-        const supabase = createSupabaseBrowserClient();
+        const supabase = getSupabaseBrowserClient();
 
         // Get current user
         const { data: { session } } = await supabase.auth.getSession();
@@ -60,20 +60,15 @@ export function AdminUserList({ currentUserId: propCurrentUserId, users: propUse
         setCurrentUserId(session.user.id);
 
         // Fetch users with their roles and stats
+        console.log('Starting to fetch users...');
         const { data: usersData, error } = await supabase
           .from('users')
           .select(`
             id,
             is_admin,
-            people!inner(name, email, phone),
-            growth_group_participants!left(
-              id,
-              role,
-              gc_id
-            )
+            people!inner(name, email, phone)
           `)
-          .is('users.deleted_at', null)
-          .is('growth_group_participants.deleted_at', null);
+          .is('deleted_at', null);
 
         if (error) {
           console.error('Error fetching users:', error);
@@ -81,25 +76,27 @@ export function AdminUserList({ currentUserId: propCurrentUserId, users: propUse
           return;
         }
 
-        // Process users data
-        const processedUsers: AdminUserSummary[] = (usersData || []).map((user: any) => {
-          const participant = user.growth_group_participants?.[0] || null;
-          const role = participant?.role || '';
+        console.log('Users data fetched:', usersData?.length || 0, 'users');
 
+        // Process users data
+        const processedUsers: AdminUserSummary[] = (usersData || []).map((user) => {
+          console.log('Processing user:', user.id, user.people?.name);
           return {
             id: user.id,
             name: user.people?.name || 'Nome não definido',
             email: user.people?.email || null,
             phone: user.people?.phone || null,
             isAdmin: user.is_admin || false,
-            isLeader: role === 'leader' || role === 'co_leader',
-            isSupervisor: role === 'supervisor',
+            isLeader: false, // TODO: Fetch from growth_group_participants
+            isSupervisor: false, // TODO: Fetch from growth_group_participants
             isCoordinator: false, // TODO: Implement hierarchy logic
             gcsLed: 0, // TODO: Count GCs where user is leader
             gcsSupervised: 0, // TODO: Count GCs where user is supervisor
             directSubordinates: 0, // TODO: Count direct subordinates
           };
         });
+
+        console.log('Processed users:', processedUsers.length);
 
         setUsers(processedUsers);
       } catch (error) {
@@ -180,7 +177,7 @@ export function AdminUserList({ currentUserId: propCurrentUserId, users: propUse
             if (user.isCoordinator) roleLabels.push('Coordenador');
 
             return (
-              <article key={user.id} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+              <article key={user.id} data-testid="user-card" className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
                 <header className="flex flex-col gap-1 md:flex-row md:items-center md:justify-between">
                   <div>
                     <h2 className="text-lg font-semibold text-slate-900">{user.name}</h2>

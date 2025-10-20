@@ -64,7 +64,7 @@ export default function NewLessonPage() {
         description: data.description,
         link: data.link,
         series_id: data.series_id,
-        order_in_series: orderInSeries,
+        order_in_series: orderInSeries ? Number(orderInSeries) : null,
         created_by_user_id: user.id,
       });
 

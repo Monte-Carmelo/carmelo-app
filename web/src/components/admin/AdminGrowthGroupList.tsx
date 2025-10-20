@@ -160,7 +160,7 @@ export function AdminGrowthGroupList({ gcs }: AdminGrowthGroupListProps) {
               </TableRow>
             ) : (
               filteredAndSortedGcs.map((gc) => (
-                <TableRow key={gc.id}>
+                <TableRow key={gc.id} data-testid="gc-card">
                   <TableCell className="font-medium">{gc.name}</TableCell>
                   <TableCell>
                     {gc.leaders.length > 0 ? gc.leaders.join(', ') : '-'}
