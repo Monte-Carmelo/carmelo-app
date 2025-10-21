@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Shield, Users, Building, BookOpen, BarChart, Settings, X } from 'lucide-react';
+import { Shield, Users, Building, BookOpen, BarChart, Settings, X, Calendar } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 
@@ -28,6 +28,12 @@ const navItems = [
     href: '/admin/growth-groups',
     icon: Building,
     description: 'Gerenciar GCs',
+  },
+  {
+    label: 'Eventos',
+    href: '/admin/events',
+    icon: Calendar,
+    description: 'Gerenciar eventos da igreja',
   },
   {
     label: 'Lições',

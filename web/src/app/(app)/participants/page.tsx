@@ -2,6 +2,7 @@ import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 import type { Database } from '@/lib/supabase/types';
 import { createSupabaseServerClient } from '@/lib/supabase/server-client';
+import { getAuthenticatedUser } from '@/lib/supabase/server-auth';
 import { ParticipantList } from '@/components/participants/ParticipantList';
 import { Loading } from '@/components/ui/spinner';
 
@@ -12,14 +13,13 @@ type SearchParams = {
 };
 
 async function ParticipantsContent({ searchParams }: { searchParams: SearchParams }) {
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
+  const user = await getAuthenticatedUser();
 
-  if (!session) {
+  if (!user) {
     redirect('/login');
   }
+
+  const supabase = await createSupabaseServerClient();
 
   const params = supabase
     .from('growth_group_participants')

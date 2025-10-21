@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { Plus, Users } from 'lucide-react';
 import { createSupabaseServerClient } from '@/lib/supabase/server-client';
+import { getAuthenticatedUser } from '@/lib/supabase/server-auth';
 import { AdminUserList } from '@/components/admin/AdminUserList';
 import { AdminBreadcrumbs } from '@/components/admin/AdminBreadcrumbs';
 import { Loading } from '@/components/ui/spinner';
@@ -10,14 +11,13 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 async function AdminUsersContent() {
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
+  const user = await getAuthenticatedUser();
 
-  if (!session) {
+  if (!user) {
     redirect('/login');
   }
+
+  const supabase = await createSupabaseServerClient();
 
   return (
     <div className="space-y-6">

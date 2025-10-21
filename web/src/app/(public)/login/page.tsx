@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import { LoginForm } from '@/components/auth/LoginForm';
-import { createSupabaseServerClient } from '@/lib/supabase/server-client';
+import { getAuthenticatedUser } from '@/lib/supabase/server-auth';
 import { Logo } from '@/components/layout/Logo';
 
 export const metadata = {
@@ -8,12 +8,9 @@ export const metadata = {
 };
 
 export default async function LoginPage() {
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
+  const user = await getAuthenticatedUser();
 
-  if (session) {
+  if (user) {
     redirect('/dashboard');
   }
 

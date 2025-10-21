@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { Calendar, MapPin, Users } from 'lucide-react';
 import { createSupabaseServerClient } from '@/lib/supabase/server-client';
+import { getAuthenticatedUser } from '@/lib/supabase/server-auth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -38,21 +39,19 @@ const ROLE_NAMES: Record<string, string> = {
 };
 
 async function GCListContent() {
-  const supabase = await createSupabaseServerClient();
+  const user = await getAuthenticatedUser();
 
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-
-  if (!session) {
+  if (!user) {
     redirect('/login');
   }
+
+  const supabase = await createSupabaseServerClient();
 
   // Buscar person_id do usuário
   const { data: currentUser } = await supabase
     .from('users')
     .select('person_id')
-    .eq('id', session.user.id)
+    .eq('id', user.id)
     .single();
 
   const currentPersonId = currentUser?.person_id;

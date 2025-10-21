@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
 import { z } from 'zod';
 import { createSupabaseServerClient, getSupabaseServiceClient } from '@/lib/supabase';
+import { getAuthenticatedUser } from '@/lib/supabase/server-auth';
 
 const createUserSchema = z.object({
   name: z.string().min(3, 'Informe um nome com pelo menos 3 caracteres.'),
@@ -29,15 +30,12 @@ export async function createUser(input: CreateUserInput) {
 
   const normalizedPhone = parsed.phone?.trim() ? parsed.phone.trim() : null;
 
-  const supabase = await createSupabaseServerClient(cookies());
-  const {
-    data: { session },
-    error: sessionError,
-  } = await supabase.auth.getSession();
-
-  if (sessionError || !session) {
-    return { success: false, error: 'Sessão inválida.' } as const;
+  const user = await getAuthenticatedUser();
+  if (!user) {
+    return { success: false, error: 'Não autenticado.' } as const;
   }
+
+  const supabase = await createSupabaseServerClient(cookies());
 
   const { data: existingPerson, error: personLookupError } = await supabase
     .from('people')
@@ -186,22 +184,19 @@ export async function updateUserProfile(input: UpdateUserInput) {
 
   const normalizedPhone = parsed.phone?.trim() ? parsed.phone.trim() : null;
 
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { session },
-    error: sessionError,
-  } = await supabase.auth.getSession();
-
-  if (sessionError || !session) {
-    return { success: false, error: 'Sessão inválida.' } as const;
+  const user = await getAuthenticatedUser();
+  if (!user) {
+    return { success: false, error: 'Não autenticado.' } as const;
   }
 
-  if (!parsed.isAdmin && session.user.id === parsed.userId) {
+  if (!parsed.isAdmin && user.id === parsed.userId) {
     return {
       success: false,
       error: 'Não é possível remover seu próprio acesso administrativo.',
     } as const;
   }
+
+  const supabase = await createSupabaseServerClient();
 
   const { data: userRecord, error: userFetchError } = await supabase
     .from('users')
@@ -267,15 +262,12 @@ interface AddAssignmentInput {
 export async function addUserAssignment(input: AddAssignmentInput) {
   const parsed = addAssignmentSchema.parse(input);
 
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { session },
-    error: sessionError,
-  } = await supabase.auth.getSession();
-
-  if (sessionError || !session) {
-    return { success: false, error: 'Sessão inválida.' } as const;
+  const user = await getAuthenticatedUser();
+  if (!user) {
+    return { success: false, error: 'Não autenticado.' } as const;
   }
+
+  const supabase = await createSupabaseServerClient();
 
   const { data: userRecord, error: userFetchError } = await supabase
     .from('users')
@@ -304,7 +296,7 @@ export async function addUserAssignment(input: AddAssignmentInput) {
         joined_at: now,
         left_at: null,
         deleted_at: null,
-        added_by_user_id: session.user.id,
+        added_by_user_id: user.id,
       },
       { onConflict: 'gc_id,person_id,role', ignoreDuplicates: false },
     );
@@ -336,15 +328,12 @@ interface RemoveAssignmentInput {
 export async function removeUserAssignment(input: RemoveAssignmentInput) {
   const parsed = removeAssignmentSchema.parse(input);
 
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { session },
-    error: sessionError,
-  } = await supabase.auth.getSession();
-
-  if (sessionError || !session) {
-    return { success: false, error: 'Sessão inválida.' } as const;
+  const user = await getAuthenticatedUser();
+  if (!user) {
+    return { success: false, error: 'Não autenticado.' } as const;
   }
+
+  const supabase = await createSupabaseServerClient();
 
   const { data: userRecord, error: userFetchError } = await supabase
     .from('users')
@@ -394,19 +383,16 @@ const deleteUserSchema = z.object({
 export async function deleteUser(userId: string) {
   const { userId: targetUserId } = deleteUserSchema.parse({ userId });
 
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { session },
-    error: sessionError,
-  } = await supabase.auth.getSession();
-
-  if (sessionError || !session) {
-    return { success: false, error: 'Sessão inválida.' } as const;
+  const user = await getAuthenticatedUser();
+  if (!user) {
+    return { success: false, error: 'Não autenticado.' } as const;
   }
 
-  if (session.user.id === targetUserId) {
+  if (user.id === targetUserId) {
     return { success: false, error: 'Você não pode excluir seu próprio usuário.' } as const;
   }
+
+  const supabase = await createSupabaseServerClient();
 
   const { data: userRecord, error: fetchError } = await supabase
     .from('users')

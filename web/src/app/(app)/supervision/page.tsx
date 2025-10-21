@@ -1,6 +1,7 @@
 import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 import { createSupabaseServerClient } from '@/lib/supabase/server-client';
+import { getAuthenticatedUser } from '@/lib/supabase/server-auth';
 import { Loading } from '@/components/ui/spinner';
 
 interface SearchParams {
@@ -8,19 +9,17 @@ interface SearchParams {
 }
 
 async function SupervisionContent({ searchParams }: { searchParams: SearchParams }) {
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
+  const user = await getAuthenticatedUser();
 
-  if (!session) {
+  if (!user) {
     redirect('/login');
   }
 
+  const supabase = await createSupabaseServerClient();
   const { data: roles } = await supabase
     .from('user_gc_roles')
     .select('is_supervisor, is_coordinator, is_admin')
-    .eq('user_id', session.user.id)
+    .eq('user_id', user.id)
     .maybeSingle();
 
   if (!roles?.is_supervisor && !roles?.is_coordinator && !roles?.is_admin) {

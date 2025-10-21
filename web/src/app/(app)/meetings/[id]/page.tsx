@@ -2,20 +2,20 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
 import { createSupabaseServerClient } from '@/lib/supabase/server-client';
+import { getAuthenticatedUser } from '@/lib/supabase/server-auth';
 
 interface MeetingDetailProps {
   params: Promise<{ id: string }>;
 }
 
 async function MeetingDetailContent({ id }: { id: string }) {
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
+  const user = await getAuthenticatedUser();
 
-  if (!session) {
+  if (!user) {
     notFound();
   }
+
+  const supabase = await createSupabaseServerClient();
 
   const { data: meeting, error } = await supabase
     .from('meetings')

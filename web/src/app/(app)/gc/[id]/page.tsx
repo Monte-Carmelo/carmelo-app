@@ -3,6 +3,7 @@ import { redirect, notFound } from 'next/navigation';
 import Link from 'next/link';
 import { Calendar, MapPin, Clock, Users, UserPlus, Edit, ArrowLeft } from 'lucide-react';
 import { createSupabaseServerClient } from '@/lib/supabase/server-client';
+import { getAuthenticatedUser } from '@/lib/supabase/server-auth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -14,15 +15,13 @@ type PageProps = {
 };
 
 async function GCDetailsContent({ gcId }: { gcId: string }) {
-  const supabase = await createSupabaseServerClient();
+  const user = await getAuthenticatedUser();
 
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-
-  if (!session) {
+  if (!user) {
     redirect('/login');
   }
+
+  const supabase = await createSupabaseServerClient();
 
   // Buscar informações do GC
   const { data: gc, error: gcError } = await supabase
@@ -84,7 +83,7 @@ async function GCDetailsContent({ gcId }: { gcId: string }) {
   const { data: currentUser } = await supabase
     .from('users')
     .select('person_id')
-    .eq('id', session.user.id)
+    .eq('id', user.id)
     .single();
 
   const currentPersonId = currentUser?.person_id;

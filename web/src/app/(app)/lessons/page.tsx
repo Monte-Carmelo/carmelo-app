@@ -1,6 +1,7 @@
 import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 import { createSupabaseServerClient } from '@/lib/supabase/server-client';
+import { getAuthenticatedUser } from '@/lib/supabase/server-auth';
 import { Loading } from '@/components/ui/spinner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { BookOpen, ExternalLink } from 'lucide-react';
@@ -15,14 +16,13 @@ interface SeriesWithLessons extends LessonSeries {
 }
 
 async function LessonsCatalogLoader() {
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
+  const user = await getAuthenticatedUser();
 
-  if (!session) {
+  if (!user) {
     redirect('/login');
   }
+
+  const supabase = await createSupabaseServerClient();
 
   // Buscar as 2 séries mais recentes
   const { data: series, error: seriesError } = await supabase

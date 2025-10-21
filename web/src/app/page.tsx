@@ -1,4 +1,5 @@
 import { Hero } from '../components/landing/Hero';
+import { Suspense } from 'react';
 
 const upcomingFeatures = [
   'Registro de reuniões com lição padrão ou personalizada e comentários.',
@@ -9,19 +10,21 @@ const upcomingFeatures = [
 export default function Home() {
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-4xl flex-col gap-12 px-4 py-16">
-      <Hero
-        title="Gestão dos Grupos de Crescimento com foco em líderes e supervisores."
-        description="Estamos migrando do app híbrido para uma experiência web responsiva, mobile-first, aproveitando o modelo de dados e contratos já validados no Supabase."
-        primaryAction={{
-          label: 'Configurar ambiente Supabase',
-          href: 'https://supabase.com',
-        }}
-        secondaryAction={{
-          label: 'Ver plano de entrega',
-          href: '/docs/roadmap',
-        }}
-        highlight={upcomingFeatures}
-      />
+      <Suspense fallback={<div className="flex items-center justify-center p-12">Carregando...</div>}>
+        <Hero
+          title="Sistema de Gestão de Grupos de Crescimento"
+          description="Plataforma completa para gerenciar GCs, reuniões, membros e visitantes. Acesse o sistema ou confira os próximos eventos da igreja."
+          primaryAction={{
+            label: 'Fazer Login',
+            href: '/login',
+          }}
+          secondaryAction={{
+            label: 'Ver Eventos',
+            href: '/events',
+          }}
+          highlight={upcomingFeatures}
+        />
+      </Suspense>
 
       <section className="grid gap-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <h2 className="text-xl font-semibold text-slate-900">Próximos incrementos</h2>

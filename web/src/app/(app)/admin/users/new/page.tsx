@@ -1,18 +1,18 @@
 import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 import { createSupabaseServerClient } from '@/lib/supabase/server-client';
+import { getAuthenticatedUser } from '@/lib/supabase/server-auth';
 import { AdminUserCreateForm } from '@/components/admin/AdminUserCreateForm';
 import { Loading } from '@/components/ui/spinner';
 
 async function AdminNewUserContent() {
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
+  const user = await getAuthenticatedUser();
 
-  if (!session) {
+  if (!user) {
     redirect('/login');
   }
+
+  const supabase = await createSupabaseServerClient();
 
   return <AdminUserCreateForm />;
 }

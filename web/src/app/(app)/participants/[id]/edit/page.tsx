@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { createSupabaseServerClient } from '@/lib/supabase/server-client';
+import { getAuthenticatedUser } from '@/lib/supabase/server-auth';
 import { ParticipantEditForm } from '@/components/participants/ParticipantEditForm';
 
 interface ParticipantEditPageProps {
@@ -9,14 +10,13 @@ interface ParticipantEditPageProps {
 
 export default async function ParticipantEditPage({ params }: ParticipantEditPageProps) {
   const resolvedParams = await params;
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
+  const user = await getAuthenticatedUser();
 
-  if (!session) {
+  if (!user) {
     redirect('/login');
   }
+
+  const supabase = await createSupabaseServerClient();
 
   const participantResult = await supabase
     .from('growth_group_participants')

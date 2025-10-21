@@ -1,6 +1,7 @@
 import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 import { createSupabaseServerClient } from '@/lib/supabase/server-client';
+import { getAuthenticatedUser } from '@/lib/supabase/server-auth';
 import { VisitorForm } from '@/components/visitors/VisitorForm';
 import { Loading } from '@/components/ui/spinner';
 
@@ -9,14 +10,13 @@ type SearchParams = {
 };
 
 async function VisitorFormLoader({ searchParams }: { searchParams: SearchParams }) {
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
+  const user = await getAuthenticatedUser();
 
-  if (!session) {
+  if (!user) {
     redirect('/login');
   }
+
+  const supabase = await createSupabaseServerClient();
 
   const { data: groups, error } = await supabase
     .from('growth_groups')

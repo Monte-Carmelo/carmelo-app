@@ -2,6 +2,7 @@ import { Suspense } from 'react';
 import { notFound, redirect } from 'next/navigation';
 import type { Database } from '@/lib/supabase';
 import { createSupabaseServerClient } from '@/lib/supabase/server-client';
+import { getAuthenticatedUser } from '@/lib/supabase/server-auth';
 import { AdminUserProfileForm } from '@/components/admin/AdminUserProfileForm';
 import { AdminUserAssignments } from '@/components/admin/AdminUserAssignments';
 import { Loading } from '@/components/ui/spinner';
@@ -39,14 +40,13 @@ type RoleRow = Database['public']['Views']['user_gc_roles']['Row'];
 type GrowthGroupRow = Database['public']['Tables']['growth_groups']['Row'];
 
 async function AdminUserDetailContent({ userId, searchParams }: { userId: string; searchParams: Promise<Record<string, string | string[] | undefined>> }) {
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
+  const user = await getAuthenticatedUser();
 
-  if (!session) {
+  if (!user) {
     redirect('/login');
   }
+
+  const supabase = await createSupabaseServerClient();
 
   const [userResult, groupsResult, rolesResult] = await Promise.all([
     supabase

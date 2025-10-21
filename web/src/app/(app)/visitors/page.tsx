@@ -3,6 +3,7 @@ import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 import { UserPlus, Users } from 'lucide-react';
 import { createSupabaseServerClient } from '@/lib/supabase/server-client';
+import { getAuthenticatedUser } from '@/lib/supabase/server-auth';
 import type { Database } from '@/lib/supabase/types';
 import { VisitorsList, type VisitorView } from '@/components/visitors/VisitorsList';
 import { Card, CardContent } from '@/components/ui/card';
@@ -16,14 +17,13 @@ type SearchParams = {
 };
 
 async function VisitorsContent({ searchParams }: { searchParams: SearchParams }) {
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
+  const user = await getAuthenticatedUser();
 
-  if (!session) {
+  if (!user) {
     redirect('/login');
   }
+
+  const supabase = await createSupabaseServerClient();
 
   const visitorsQuery = supabase
     .from('visitors')
