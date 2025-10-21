@@ -2,10 +2,17 @@
 
 import { revalidatePath } from 'next/cache';
 import { createSupabaseServerClient } from '@/lib/supabase/server-client';
+import { getAuthenticatedUser } from '@/lib/supabase/server-auth';
 import { GrowthGroupFormData } from '@/components/admin/AdminGrowthGroupForm';
 
 export async function createGrowthGroupAction(data: GrowthGroupFormData) {
   try {
+    // Check authentication
+    const user = await getAuthenticatedUser();
+    if (!user) {
+      return { error: 'Não autenticado.' };
+    }
+
     const supabase = await createSupabaseServerClient();
 
     // 0. Fetch person_ids for all user_ids
@@ -129,6 +136,12 @@ export async function createGrowthGroupAction(data: GrowthGroupFormData) {
 
 export async function updateGrowthGroupAction(gcId: string, data: GrowthGroupFormData) {
   try {
+    // Check authentication
+    const user = await getAuthenticatedUser();
+    if (!user) {
+      return { error: 'Não autenticado.' };
+    }
+
     const supabase = await createSupabaseServerClient();
 
     // 0. Fetch person_ids for all user_ids
@@ -263,10 +276,8 @@ export async function multiplyGrowthGroupAction(
 
   try {
     // Get current user
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    if (!session) {
+    const user = await getAuthenticatedUser();
+    if (!user) {
       return { error: 'Usuário não autenticado.' };
     }
 
@@ -342,7 +353,7 @@ export async function multiplyGrowthGroupAction(
           role: 'leader',
           status: 'active',
           joined_at: now,
-          added_by_user_id: session.user.id,
+          added_by_user_id: user.id,
         });
       }
 
@@ -356,7 +367,7 @@ export async function multiplyGrowthGroupAction(
             role: 'supervisor',
             status: 'active',
             joined_at: now,
-            added_by_user_id: session.user.id,
+            added_by_user_id: user.id,
           });
         }
       }
@@ -422,7 +433,7 @@ export async function multiplyGrowthGroupAction(
           role: 'member',
           status: 'active',
           joined_at: now,
-          added_by_user_id: session.user.id,
+          added_by_user_id: user.id,
         });
 
       if (insertTransferError) {
@@ -444,7 +455,7 @@ export async function multiplyGrowthGroupAction(
       .insert({
         original_gc_id: originalGcId,
         new_gc_ids: createdGcIds,
-        multiplied_by_user_id: session.user.id,
+        multiplied_by_user_id: user.id,
         multiplied_at: now,
         notes: multiplicationState.notes || null,
       });

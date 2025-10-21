@@ -202,14 +202,14 @@ export function AdminGrowthGroupForm({ gc, onSubmit, users }: GrowthGroupFormPro
           <div className="space-y-2">
             <Label htmlFor="coLeaderId">Co-líder (Opcional)</Label>
             <Select
-              value={watch('coLeaderId') || ''}
-              onValueChange={(value) => setValue('coLeaderId', value || '')}
+              value={watch('coLeaderId') || undefined}
+              onValueChange={(value) => setValue('coLeaderId', value === 'none' ? '' : value)}
             >
               <SelectTrigger id="coLeaderId">
-                <SelectValue placeholder="Selecione o co-líder" />
+                <SelectValue placeholder="Nenhum" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Nenhum</SelectItem>
+                <SelectItem value="none">Nenhum</SelectItem>
                 {users.map((user) => (
                   <SelectItem key={user.id} value={user.id}>
                     {user.name}

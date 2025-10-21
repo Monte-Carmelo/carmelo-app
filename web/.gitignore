@@ -47,6 +47,7 @@ storybook-static
 /test-results/
 /playwright-report/
 playwright/.cache/
+/tests/screenshots/
 
 # debug files
 debug-*.png
@@ -55,3 +56,6 @@ test-*.js
 ADMIN-*.md
 *-failed-dashboard.png
 login-test-result.png
+non-admin-access.png
+*.png
+!public/**/*.png
