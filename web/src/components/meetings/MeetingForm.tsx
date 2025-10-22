@@ -130,7 +130,7 @@ export function MeetingForm({
         .select('id, role, people:person_id ( id, name )')
         .eq('gc_id', gcId)
         .eq('status', 'active')
-        .in('role', ['member', 'leader', 'co_leader'])
+        .in('role', ['member', 'leader'])
         .order('role', { ascending: true }),
       supabase
         .from('visitors')

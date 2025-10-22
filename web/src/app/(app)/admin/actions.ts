@@ -245,7 +245,7 @@ export async function updateUserProfile(input: UpdateUserInput) {
   return { success: true } as const;
 }
 
-const assignmentRoleSchema = z.enum(['member', 'leader', 'co_leader', 'supervisor']);
+const assignmentRoleSchema = z.enum(['member', 'leader', 'supervisor']);
 
 const addAssignmentSchema = z.object({
   userId: z.string().uuid(),

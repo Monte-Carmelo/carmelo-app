@@ -33,7 +33,6 @@ const MODE_NAMES: Record<string, string> = {
 
 const ROLE_NAMES: Record<string, string> = {
   leader: 'Líder',
-  co_leader: 'Co-líder',
   supervisor: 'Supervisor',
   member: 'Membro',
 };

@@ -45,7 +45,7 @@ async function AdminGCMultiplyContent({ params }: PageProps) {
     .map((p) => ({
       id: p.person_id,
       name: p.people!.name,
-      role: p.role as 'leader' | 'co_leader' | 'supervisor' | 'member',
+      role: p.role as 'leader' | 'supervisor' | 'member',
     }));
 
   const originalGC = {

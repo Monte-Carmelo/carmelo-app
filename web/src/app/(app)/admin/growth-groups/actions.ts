@@ -16,12 +16,7 @@ export async function createGrowthGroupAction(data: GrowthGroupFormData) {
     const supabase = await createSupabaseServerClient();
 
     // 0. Fetch person_ids for all user_ids
-    const allUserIds = [
-      data.leaderId,
-      ...(data.coLeaderId && data.coLeaderId !== '' ? [data.coLeaderId] : []),
-      ...data.supervisorIds,
-      ...(data.memberIds || []),
-    ];
+    const allUserIds = [...data.leaderIds, ...data.supervisorIds, ...(data.memberIds || [])];
 
     const { data: usersData, error: usersError } = await supabase
       .from('users')
@@ -57,32 +52,20 @@ export async function createGrowthGroupAction(data: GrowthGroupFormData) {
     // 2. Insert participants with roles
     const participants = [];
 
-    // Leader
-    const leaderPersonId = userIdToPersonId.get(data.leaderId);
-    if (!leaderPersonId) {
-      await supabase.from('growth_groups').delete().eq('id', gc.id);
-      return { error: 'Líder inválido.' };
-    }
-    participants.push({
-      gc_id: gc.id,
-      person_id: leaderPersonId,
-      role: 'leader',
-      status: 'active',
-      joined_at: new Date().toISOString(),
-    });
-
-    // Co-leader (if provided)
-    if (data.coLeaderId && data.coLeaderId !== '') {
-      const coLeaderPersonId = userIdToPersonId.get(data.coLeaderId);
-      if (coLeaderPersonId) {
-        participants.push({
-          gc_id: gc.id,
-          person_id: coLeaderPersonId,
-          role: 'co_leader',
-          status: 'active',
-          joined_at: new Date().toISOString(),
-        });
+    // Leaders (all leaders have equal authority)
+    for (const leaderId of data.leaderIds) {
+      const leaderPersonId = userIdToPersonId.get(leaderId);
+      if (!leaderPersonId) {
+        await supabase.from('growth_groups').delete().eq('id', gc.id);
+        return { error: 'Líder inválido.' };
       }
+      participants.push({
+        gc_id: gc.id,
+        person_id: leaderPersonId,
+        role: 'leader',
+        status: 'active',
+        joined_at: new Date().toISOString(),
+      });
     }
 
     // Supervisors
@@ -145,11 +128,7 @@ export async function updateGrowthGroupAction(gcId: string, data: GrowthGroupFor
     const supabase = await createSupabaseServerClient();
 
     // 0. Fetch person_ids for all user_ids
-    const allUserIds = [
-      data.leaderId,
-      ...(data.coLeaderId && data.coLeaderId !== '' ? [data.coLeaderId] : []),
-      ...data.supervisorIds,
-    ];
+    const allUserIds = [...data.leaderIds, ...data.supervisorIds];
 
     const { data: usersData, error: usersError } = await supabase
       .from('users')
@@ -181,12 +160,12 @@ export async function updateGrowthGroupAction(gcId: string, data: GrowthGroupFor
       return { error: 'Erro ao atualizar GC. Verifique os dados e tente novamente.' };
     }
 
-    // 2. Remove old leadership participants (leader, co_leader, supervisor)
+    // 2. Remove old leadership participants (leader, supervisor)
     const { error: deleteError } = await supabase
       .from('growth_group_participants')
       .delete()
       .eq('gc_id', gcId)
-      .in('role', ['leader', 'co_leader', 'supervisor']);
+      .in('role', ['leader', 'supervisor']);
 
     if (deleteError) {
       console.error('Error deleting old participants:', deleteError);
@@ -196,31 +175,19 @@ export async function updateGrowthGroupAction(gcId: string, data: GrowthGroupFor
     // 3. Insert new leadership participants
     const participants = [];
 
-    // Leader
-    const leaderPersonId = userIdToPersonId.get(data.leaderId);
-    if (!leaderPersonId) {
-      return { error: 'Líder inválido.' };
-    }
-    participants.push({
-      gc_id: gcId,
-      person_id: leaderPersonId,
-      role: 'leader',
-      status: 'active',
-      joined_at: new Date().toISOString(),
-    });
-
-    // Co-leader (if provided)
-    if (data.coLeaderId && data.coLeaderId !== '') {
-      const coLeaderPersonId = userIdToPersonId.get(data.coLeaderId);
-      if (coLeaderPersonId) {
-        participants.push({
-          gc_id: gcId,
-          person_id: coLeaderPersonId,
-          role: 'co_leader',
-          status: 'active',
-          joined_at: new Date().toISOString(),
-        });
+    // Leaders (all leaders have equal authority)
+    for (const leaderId of data.leaderIds) {
+      const leaderPersonId = userIdToPersonId.get(leaderId);
+      if (!leaderPersonId) {
+        return { error: 'Líder inválido.' };
       }
+      participants.push({
+        gc_id: gcId,
+        person_id: leaderPersonId,
+        role: 'leader',
+        status: 'active',
+        joined_at: new Date().toISOString(),
+      });
     }
 
     // Supervisors

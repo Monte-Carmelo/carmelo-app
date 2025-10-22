@@ -15,7 +15,7 @@ const schema = z
     name: z.string({ message: 'Informe o nome' }).min(3, 'Nome muito curto'),
     email: z.string().email('E-mail inválido').optional().or(z.literal('')),
     phone: z.string().optional().or(z.literal('')),
-    role: z.enum(['member', 'leader', 'co_leader', 'supervisor']),
+    role: z.enum(['member', 'leader', 'supervisor']),
   })
   .refine((value) => value.email?.trim() || value.phone?.trim(), {
     message: 'Informe e-mail ou telefone',
@@ -207,7 +207,6 @@ export function ParticipantForm({ groups, preselectedGcId }: ParticipantFormProp
           >
             <option value="member">Membro</option>
             <option value="leader">Líder</option>
-            <option value="co_leader">Co-líder</option>
             <option value="supervisor">Supervisor</option>
           </select>
         </label>

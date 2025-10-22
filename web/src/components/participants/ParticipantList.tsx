@@ -135,7 +135,6 @@ export function ParticipantList({ participants, groups }: ParticipantListProps) 
                 <SelectContent>
                   <SelectItem value="all">Todos</SelectItem>
                   <SelectItem value="leader">Líder</SelectItem>
-                  <SelectItem value="co_leader">Co-líder</SelectItem>
                   <SelectItem value="member">Membro</SelectItem>
                   <SelectItem value="supervisor">Supervisor</SelectItem>
                 </SelectContent>

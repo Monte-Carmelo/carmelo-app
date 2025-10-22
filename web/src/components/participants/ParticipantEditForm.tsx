@@ -14,7 +14,7 @@ const schema = z
     name: z.string({ message: 'Informe o nome' }).min(3, 'Nome muito curto'),
     email: z.string().email('E-mail inválido').optional().or(z.literal('')),
     phone: z.string().optional().or(z.literal('')),
-    role: z.enum(['member', 'leader', 'co_leader', 'supervisor']),
+    role: z.enum(['member', 'leader', 'supervisor']),
     status: z.enum(['active', 'inactive', 'transferred']),
   })
   .refine((value) => value.email?.trim() || value.phone?.trim(), {
@@ -59,7 +59,7 @@ export function ParticipantEditForm({ participant, groups }: ParticipantEditForm
       name: participant.name,
       email: participant.email ?? '',
       phone: participant.phone ?? '',
-      role: participant.role as 'member' | 'leader' | 'co_leader' | 'supervisor',
+      role: participant.role as 'member' | 'leader' | 'supervisor',
       status: participant.status as 'active' | 'inactive' | 'transferred',
     },
   });
@@ -169,7 +169,6 @@ export function ParticipantEditForm({ participant, groups }: ParticipantEditForm
             >
               <option value="member">Membro</option>
               <option value="leader">Líder</option>
-              <option value="co_leader">Co-líder</option>
               <option value="supervisor">Supervisor</option>
             </select>
           </label>

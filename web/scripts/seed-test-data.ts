@@ -115,7 +115,7 @@ async function seedTestData() {
 
   // 5. Create GC participants
   const { data: participants, error: participantsError } = await supabase.from('growth_group_participants').insert([
-    { gc_id: gcs[0].id, person_id: testUsers[0].person_id, role: 'co_leader', status: 'active' },
+    { gc_id: gcs[0].id, person_id: testUsers[0].person_id, role: 'leader', status: 'active' },
     { gc_id: gcs[2].id, person_id: testUsers[0].person_id, role: 'leader', status: 'active' },
     { gc_id: gcs[0].id, person_id: testUsers[1].person_id, role: 'supervisor', status: 'active' },
     { gc_id: gcs[0].id, person_id: testUsers[2].person_id, role: 'supervisor', status: 'active' },

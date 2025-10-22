@@ -10,7 +10,7 @@ import { addUserAssignment, removeUserAssignment } from '@/app/(app)/admin/actio
 
 const addAssignmentSchema = z.object({
   gcId: z.string({ message: 'Selecione um GC.' }).uuid('GC inválido.'),
-  role: z.enum(['leader', 'co_leader', 'supervisor', 'member'], {
+  role: z.enum(['leader', 'supervisor', 'member'], {
     message: 'Selecione um papel.',
   }),
 });
@@ -21,7 +21,7 @@ interface AssignmentView {
   assignmentId: string;
   gcId: string;
   gcName: string;
-  role: 'leader' | 'co_leader' | 'supervisor' | 'member';
+  role: 'leader' | 'supervisor' | 'member';
 }
 
 interface GrowthGroupOption {
@@ -173,7 +173,6 @@ export function AdminUserAssignments({ userId, assignments, availableGroups }: A
           >
             <option value="">Selecione...</option>
             <option value="leader">Líder</option>
-            <option value="co_leader">Co-líder</option>
             <option value="supervisor">Supervisor</option>
             <option value="member">Membro</option>
           </select>

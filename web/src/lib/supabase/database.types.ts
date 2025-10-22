@@ -839,70 +839,19 @@ export type Database = {
         Args: { role_list: string[] }
         Returns: string[]
       }
-      auth_has_direct_reports: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
-      auth_is_admin: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
-      auth_managed_person_ids: {
-        Args: Record<PropertyKey, never>
-        Returns: string[]
-      }
+      auth_has_direct_reports: { Args: never; Returns: boolean }
+      auth_is_admin: { Args: never; Returns: boolean }
+      auth_managed_person_ids: { Args: never; Returns: string[] }
       auth_people_ids_for_gc_roles: {
         Args: { role_list: string[] }
         Returns: string[]
       }
-      auth_people_ids_for_supervised_gcs: {
-        Args: Record<PropertyKey, never>
-        Returns: string[]
-      }
-      auth_person_id: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      auth_supervised_gc_ids: {
-        Args: Record<PropertyKey, never>
-        Returns: string[]
-      }
-      auth_supervisor_user_ids: {
-        Args: Record<PropertyKey, never>
-        Returns: string[]
-      }
-      gtrgm_compress: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      gtrgm_decompress: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      gtrgm_in: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      gtrgm_options: {
-        Args: { "": unknown }
-        Returns: undefined
-      }
-      gtrgm_out: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      set_limit: {
-        Args: { "": number }
-        Returns: number
-      }
-      show_limit: {
-        Args: Record<PropertyKey, never>
-        Returns: number
-      }
-      show_trgm: {
-        Args: { "": string }
-        Returns: string[]
-      }
+      auth_people_ids_for_supervised_gcs: { Args: never; Returns: string[] }
+      auth_person_id: { Args: never; Returns: string }
+      auth_supervised_gc_ids: { Args: never; Returns: string[] }
+      auth_supervisor_user_ids: { Args: never; Returns: string[] }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
     }
     Enums: {
       [_ in never]: never

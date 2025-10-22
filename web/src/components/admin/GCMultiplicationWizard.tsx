@@ -24,7 +24,7 @@ export interface OriginalGC {
   members: Array<{
     id: string;
     name: string;
-    role: 'leader' | 'co_leader' | 'supervisor' | 'member';
+    role: 'leader' | 'supervisor' | 'member';
   }>;
 }
 

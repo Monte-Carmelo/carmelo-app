@@ -114,7 +114,7 @@ export function EditMeetingForm({ meeting, lessonTemplates }: EditMeetingFormPro
         .select('id, role, people:person_id ( id, name )')
         .eq('gc_id', meeting.gc_id)
         .eq('status', 'active')
-        .in('role', ['member', 'leader', 'co_leader'])
+        .in('role', ['member', 'leader'])
         .order('role', { ascending: true }),
       supabase
         .from('visitors')

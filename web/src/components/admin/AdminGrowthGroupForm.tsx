@@ -14,6 +14,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { MultiSelect } from '@/components/ui/multi-select';
 
 // Zod Schema
 const createGCSchema = z
@@ -23,8 +24,7 @@ const createGCSchema = z
     address: z.string().optional(),
     weekday: z.number().int().min(0).max(6).nullable(),
     time: z.string().nullable(),
-    leaderId: z.string().min(1, 'Selecione um líder').uuid('ID inválido'),
-    coLeaderId: z.string().uuid('ID inválido').optional().or(z.literal('')),
+    leaderIds: z.array(z.string().uuid()).min(1, 'Selecione pelo menos 1 líder'),
     supervisorIds: z.array(z.string().uuid()).min(1, 'Selecione pelo menos 1 supervisor'),
     memberIds: z.array(z.string().uuid()).optional(),
   })
@@ -72,15 +72,18 @@ export function AdminGrowthGroupForm({ gc, onSubmit, users }: GrowthGroupFormPro
       address: gc?.address || '',
       weekday: gc?.weekday ?? null,
       time: gc?.time || '',
-      leaderId: gc?.leaderId || '',
-      coLeaderId: gc?.coLeaderId || '',
+      leaderIds: gc?.leaderIds || [],
       supervisorIds: gc?.supervisorIds || [],
       memberIds: gc?.memberIds || [],
     },
   });
 
   const mode = watch('mode');
+  const leaderIds = watch('leaderIds');
+  const supervisorIds = watch('supervisorIds');
   const showAddress = mode === 'in_person' || mode === 'hybrid';
+
+  const userOptions = users.map((user) => ({ label: user.name, value: user.id }));
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
@@ -175,78 +178,41 @@ export function AdminGrowthGroupForm({ gc, onSubmit, users }: GrowthGroupFormPro
           <CardDescription>Defina os líderes e supervisores do GC</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Líder Principal */}
+          {/* Líderes (Multi-select) */}
           <div className="space-y-2">
-            <Label htmlFor="leaderId">
-              Líder Principal <span className="text-red-500">*</span>
+            <Label htmlFor="leaderIds">
+              Líderes <span className="text-red-500">*</span>
             </Label>
-            <Select
-              value={watch('leaderId')}
-              onValueChange={(value) => setValue('leaderId', value)}
-            >
-              <SelectTrigger id="leaderId">
-                <SelectValue placeholder="Selecione o líder" />
-              </SelectTrigger>
-              <SelectContent>
-                {users.map((user) => (
-                  <SelectItem key={user.id} value={user.id}>
-                    {user.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {errors.leaderId && <p className="text-sm text-red-500">{errors.leaderId.message}</p>}
-          </div>
-
-          {/* Co-líder */}
-          <div className="space-y-2">
-            <Label htmlFor="coLeaderId">Co-líder (Opcional)</Label>
-            <Select
-              value={watch('coLeaderId') || undefined}
-              onValueChange={(value) => setValue('coLeaderId', value === 'none' ? '' : value)}
-            >
-              <SelectTrigger id="coLeaderId">
-                <SelectValue placeholder="Nenhum" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">Nenhum</SelectItem>
-                {users.map((user) => (
-                  <SelectItem key={user.id} value={user.id}>
-                    {user.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {errors.coLeaderId && (
-              <p className="text-sm text-red-500">{errors.coLeaderId.message}</p>
+            <MultiSelect
+              options={userOptions}
+              selected={leaderIds || []}
+              onChange={(selected) => setValue('leaderIds', selected)}
+              placeholder="Selecione os líderes"
+            />
+            {errors.leaderIds && (
+              <p className="text-sm text-red-500">{errors.leaderIds.message}</p>
             )}
+            <p className="text-xs text-slate-500">
+              Selecione um ou mais líderes para o GC. Todos têm autoridade igual.
+            </p>
           </div>
 
-          {/* Supervisores - Simplified for now, will need multi-select */}
+          {/* Supervisores (Multi-select) */}
           <div className="space-y-2">
-            <Label htmlFor="supervisorId">
-              Supervisor <span className="text-red-500">*</span>
+            <Label htmlFor="supervisorIds">
+              Supervisores <span className="text-red-500">*</span>
             </Label>
-            <Select
-              value={watch('supervisorIds')?.[0] || ''}
-              onValueChange={(value) => setValue('supervisorIds', value ? [value] : [])}
-            >
-              <SelectTrigger id="supervisorId">
-                <SelectValue placeholder="Selecione o supervisor" />
-              </SelectTrigger>
-              <SelectContent>
-                {users.map((user) => (
-                  <SelectItem key={user.id} value={user.id}>
-                    {user.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <MultiSelect
+              options={userOptions}
+              selected={supervisorIds || []}
+              onChange={(selected) => setValue('supervisorIds', selected)}
+              placeholder="Selecione os supervisores"
+            />
             {errors.supervisorIds && (
               <p className="text-sm text-red-500">{errors.supervisorIds.message}</p>
             )}
             <p className="text-xs text-slate-500">
-              Nota: Multi-seleção de supervisores será implementada em próxima iteração
+              Selecione um ou mais supervisores responsáveis pelo GC.
             </p>
           </div>
         </CardContent>

@@ -2,11 +2,10 @@
  * Tradução de papéis (roles) do sistema para português brasileiro
  */
 
-type Role = 'leader' | 'co_leader' | 'member' | 'supervisor' | 'coordinator' | string;
+type Role = 'leader' | 'member' | 'supervisor' | 'coordinator' | string;
 
 const roleTranslations: Record<string, string> = {
   leader: 'Líder',
-  co_leader: 'Co-líder',
   member: 'Membro',
   supervisor: 'Supervisor',
   coordinator: 'Coordenador',

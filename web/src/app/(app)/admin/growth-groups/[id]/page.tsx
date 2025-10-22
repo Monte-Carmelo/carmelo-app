@@ -67,14 +67,12 @@ async function AdminGrowthGroupEditContent({ params }: PageProps) {
     (usersData || []).map((u) => [u.person_id, u.id])
   );
 
-  // Extract leader, co-leader, and supervisor IDs from participants
+  // Extract leader and supervisor IDs from participants
   const participants = gc.growth_group_participants || [];
-  const leaderId = personIdToUserId.get(
-    participants.find((p) => p.role === 'leader')?.person_id || ''
-  ) || '';
-  const coLeaderId = personIdToUserId.get(
-    participants.find((p) => p.role === 'co_leader')?.person_id || ''
-  ) || '';
+  const leaderIds = participants
+    .filter((p) => p.role === 'leader')
+    .map((p) => personIdToUserId.get(p.person_id))
+    .filter((id): id is string => !!id);
   const supervisorIds = participants
     .filter((p) => p.role === 'supervisor')
     .map((p) => personIdToUserId.get(p.person_id))
@@ -87,8 +85,7 @@ async function AdminGrowthGroupEditContent({ params }: PageProps) {
     address: gc.address || '',
     weekday: gc.weekday,
     time: gc.time || '',
-    leaderId,
-    coLeaderId,
+    leaderIds,
     supervisorIds,
   };
 

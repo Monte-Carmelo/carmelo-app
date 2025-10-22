@@ -49,7 +49,7 @@ async function GCEditContent({ gcId }: { gcId: string }) {
     .select('role')
     .eq('gc_id', gcId)
     .eq('person_id', currentPersonId)
-    .in('role', ['leader', 'co_leader', 'supervisor'])
+    .in('role', ['leader', 'leader', 'supervisor'])
     .eq('status', 'active')
     .single();
 

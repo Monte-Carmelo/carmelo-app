@@ -40,9 +40,9 @@ type RoleRow = Database['public']['Views']['user_gc_roles']['Row'];
 type GrowthGroupRow = Database['public']['Tables']['growth_groups']['Row'];
 
 async function AdminUserDetailContent({ userId, searchParams }: { userId: string; searchParams: Promise<Record<string, string | string[] | undefined>> }) {
-  const user = await getAuthenticatedUser();
+  const authUser = await getAuthenticatedUser();
 
-  if (!user) {
+  if (!authUser) {
     redirect('/login');
   }
 
@@ -102,7 +102,7 @@ async function AdminUserDetailContent({ userId, searchParams }: { userId: string
       assignmentId: assignment.id,
       gcId: assignment.gc_id,
       gcName: assignment.growth_groups?.name ?? 'GC desconhecido',
-      role: assignment.role as 'leader' | 'co_leader' | 'supervisor' | 'member',
+      role: assignment.role as 'leader' | 'supervisor' | 'member',
     }));
 
   const availableGroups = (groupsResult.data as GrowthGroupRow[]).map((group) => ({

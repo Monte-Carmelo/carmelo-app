@@ -39,7 +39,7 @@ async function GCDetailsContent({ gcId }: { gcId: string }) {
     .from('growth_group_participants')
     .select('id, role, person_id, people!inner(name)')
     .eq('gc_id', gcId)
-    .in('role', ['leader', 'co_leader'])
+    .eq('role', 'leader')
     .eq('status', 'active');
 
   const { data: supervisors } = await supabase
@@ -139,7 +139,6 @@ async function GCDetailsContent({ gcId }: { gcId: string }) {
   // Formatar papéis
   const roleMap: Record<string, string> = {
     leader: 'Líder',
-    co_leader: 'Co-líder',
     supervisor: 'Supervisor',
     member: 'Membro',
   };
@@ -237,7 +236,7 @@ async function GCDetailsContent({ gcId }: { gcId: string }) {
                       {leader.people.name}
                     </p>
                     <Badge variant="outline">
-                      {leader.role === 'leader' ? 'Principal' : 'Co-líder'}
+                      Líder
                     </Badge>
                   </div>
                 ))
