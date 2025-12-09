@@ -31,7 +31,7 @@ function getNextWeekday(weekday: number): string {
   return nextDate.toISOString().split('T')[0];
 }
 
-async function MeetingFormLoader({ searchParams }: { searchParams: SearchParams }) {
+export async function MeetingFormLoader({ searchParams }: { searchParams: SearchParams }) {
   const user = await getAuthenticatedUser();
 
   if (!user) {
@@ -80,7 +80,7 @@ async function MeetingFormLoader({ searchParams }: { searchParams: SearchParams 
 
   return (
     <MeetingForm
-      userId={session.user.id}
+      userId={user.id}
       groups={groups ?? []}
       lessonTemplates={lessons ?? []}
       defaultGcId={selectedGc?.id}

@@ -37,7 +37,7 @@ const ROLE_NAMES: Record<string, string> = {
   member: 'Membro',
 };
 
-async function GCListContent() {
+export async function GCListContent() {
   const user = await getAuthenticatedUser();
 
   if (!user) {

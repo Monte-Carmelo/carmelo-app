@@ -7,7 +7,7 @@ describe('Home', () => {
     expect(
       screen.getByRole('heading', {
         level: 1,
-        name: /gestão dos grupos de crescimento/i,
+        name: /sistema de gestão de grupos de crescimento/i,
       }),
     ).toBeInTheDocument();
   });
