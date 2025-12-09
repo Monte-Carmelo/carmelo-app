@@ -19,33 +19,12 @@ export default function Home() {
             href: '/login',
           }}
           secondaryAction={{
-            label: 'Ver Eventos',
-            href: '/events',
+            label: 'Ver Eventos (login)',
+            href: '/login?redirect=/events',
           }}
           highlight={upcomingFeatures}
         />
       </Suspense>
-
-      <section className="grid gap-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="text-xl font-semibold text-slate-900">Próximos incrementos</h2>
-        <ul className="space-y-2 text-slate-700">
-          {upcomingFeatures.map((feature) => (
-            <li key={feature} className="flex items-start gap-2">
-              <span className="mt-[6px] h-2 w-2 rounded-full bg-primary" aria-hidden />
-              <span>{feature}</span>
-            </li>
-          ))}
-        </ul>
-      </section>
-
-      <section className="grid gap-3 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6 text-sm text-slate-600">
-        <h3 className="text-base font-semibold text-slate-800">Checklist de configuração</h3>
-        <ol className="list-decimal space-y-1 pl-5">
-          <li>Copie `.env.example` para `.env.local` com as chaves do Supabase.</li>
-          <li>Execute `npm run dev` para iniciar o servidor local.</li>
-          <li>Rode `npm run test` para validar o setup inicial.</li>
-        </ol>
-      </section>
     </main>
   );
 }
