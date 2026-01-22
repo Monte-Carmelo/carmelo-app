@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { render, screen } from '@testing-library/react';
 import { vi } from 'vitest';
 import NewParticipantPage, { ParticipantFormLoader } from '@/app/(app)/participants/new/page';
@@ -44,7 +45,8 @@ describe('NewParticipantPage', () => {
 
   it('mostra suspense na página', async () => {
     const page = await NewParticipantPage({ searchParams: Promise.resolve({}) });
-    render(page);
+    expect(page.type).toBe(Suspense);
+    render(page.props.fallback);
     expect(screen.getByLabelText(/Carregando/)).toBeInTheDocument();
   });
 });

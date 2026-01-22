@@ -104,6 +104,7 @@ export function AdminEventForm({ event, mode }: AdminEventFormProps) {
         toast.error(result.error);
       }
     } catch (error) {
+      console.error('Erro ao fazer upload da imagem:', error);
       toast.error('Erro ao fazer upload da imagem');
     } finally {
       setIsUploading(false);

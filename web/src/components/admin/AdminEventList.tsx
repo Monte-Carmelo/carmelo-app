@@ -108,6 +108,7 @@ export function AdminEventList({ events }: AdminEventListProps) {
         toast.error(result.error);
       }
     } catch (error) {
+      console.error('Erro ao excluir evento:', error);
       toast.error('Erro ao excluir evento');
     } finally {
       setDeletingId(null);

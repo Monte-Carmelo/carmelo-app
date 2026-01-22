@@ -7,14 +7,16 @@ import { test, expect } from '@playwright/test';
  */
 
 test.describe('T027: Lesson Management', () => {
+  const adminEmail = process.env.E2E_SUPABASE_EMAIL || 'admin@test.com';
+  const adminPassword = process.env.E2E_SUPABASE_PASSWORD || 'senha123';
+
   test.beforeEach(async ({ page }) => {
     // Navigate to login page
     await page.goto('/login');
 
-    // Login as admin (assuming admin credentials from environment or default)
-    // TODO: Replace with actual admin credentials
-    await page.fill('input[type="email"]', 'admin@exemplo.com');
-    await page.fill('input[type="password"]', 'admin123');
+    // Login as admin (environment overrides default)
+    await page.fill('input[type="email"]', adminEmail);
+    await page.fill('input[type="password"]', adminPassword);
     await page.click('button[type="submit"]');
 
     // Wait for redirect to dashboard

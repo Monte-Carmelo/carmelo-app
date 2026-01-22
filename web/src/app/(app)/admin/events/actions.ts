@@ -6,7 +6,6 @@ import { createSupabaseServerClient } from '@/lib/supabase/server-client';
 import { getAuthenticatedUser } from '@/lib/supabase/server-auth';
 import { revalidatePath } from 'next/cache';
 import { EventFormSchema } from '@/lib/validations/event';
-import type { Database } from '@/lib/supabase/database.types';
 
 export type CreateEventInput = {
   title: string;

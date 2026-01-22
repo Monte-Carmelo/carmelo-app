@@ -59,7 +59,7 @@ export function LineChart({
             }}
           />
           <Legend />
-          {lines.map((line, index) => (
+          {lines.map((line) => (
             <Line
               key={line.dataKey}
               type="monotone"

@@ -67,6 +67,15 @@ async function seedAuthUsers() {
 
   for (const user of testUsers) {
     try {
+      const { data: existingUser, error: existingError } = await supabase.auth.admin.getUserById(user.user_id);
+      if (existingError) {
+        console.error(`❌ ${user.email} - Erro ao buscar usuário existente: ${existingError.message}`);
+      }
+      if (existingUser?.user) {
+        console.log(`⏭️  ${user.email} - Já existe`);
+        continue;
+      }
+
       // Tentar criar usuário via Admin API
       const { data, error } = await supabase.auth.admin.createUser({
         id: user.user_id,
@@ -79,10 +88,10 @@ async function seedAuthUsers() {
       });
 
       if (error) {
-        if (error.message.includes('already registered')) {
+        if (error.code === 'email_exists' || error.message.includes('already registered')) {
           console.log(`⏭️  ${user.email} - Já existe`);
         } else {
-          console.error(`❌ ${user.email} - Erro: ${error.message}`, error);
+          console.error(`❌ ${user.email} - Erro: ${error.message}`);
         }
       } else {
         console.log(`✅ ${user.email} - Criado (auth.id: ${data.user?.id})`);
@@ -128,52 +137,74 @@ async function createUsersAndRelationships() {
   // Criar growth_group_participants (relacionamentos)
   const participants = [
     // Leaders
-    { id: '50000000-0000-0000-0000-000000000101', gc_id: '40000000-0000-0000-0000-000000000001', person_id: '11111111-0000-0000-0000-000000000001', role: 'leader', user_id: '10000000-0000-0000-0000-000000000001' },
-    { id: '50000000-0000-0000-0000-000000000102', gc_id: '40000000-0000-0000-0000-000000000001', person_id: '11111111-0000-0000-0000-000000000002', role: 'leader', user_id: '10000000-0000-0000-0000-000000000002' },
-    { id: '50000000-0000-0000-0000-000000000103', gc_id: '40000000-0000-0000-0000-000000000002', person_id: '11111111-0000-0000-0000-000000000001', role: 'leader', user_id: '10000000-0000-0000-0000-000000000001' },
-    { id: '50000000-0000-0000-0000-000000000104', gc_id: '40000000-0000-0000-0000-000000000003', person_id: '11111111-0000-0000-0000-000000000002', role: 'leader', user_id: '10000000-0000-0000-0000-000000000002' },
+    { id: '50000000-0000-0000-0000-000000000101', gc_id: '40000000-0000-0000-0000-000000000001', person_id: '11111111-0000-0000-0000-000000000001', role: 'leader', user_id: '10000000-0000-0000-0000-000000000001', status: 'active' },
+    { id: '50000000-0000-0000-0000-000000000102', gc_id: '40000000-0000-0000-0000-000000000001', person_id: '11111111-0000-0000-0000-000000000002', role: 'leader', user_id: '10000000-0000-0000-0000-000000000002', status: 'active' },
+    { id: '50000000-0000-0000-0000-000000000103', gc_id: '40000000-0000-0000-0000-000000000002', person_id: '11111111-0000-0000-0000-000000000001', role: 'leader', user_id: '10000000-0000-0000-0000-000000000001', status: 'active' },
+    { id: '50000000-0000-0000-0000-000000000104', gc_id: '40000000-0000-0000-0000-000000000003', person_id: '11111111-0000-0000-0000-000000000002', role: 'leader', user_id: '10000000-0000-0000-0000-000000000002', status: 'active' },
 
     // Supervisors
-    { id: '50000000-0000-0000-0000-000000000201', gc_id: '40000000-0000-0000-0000-000000000001', person_id: '11111111-0000-0000-0000-000000000003', role: 'supervisor', user_id: '20000000-0000-0000-0000-000000000001' },
-    { id: '50000000-0000-0000-0000-000000000202', gc_id: '40000000-0000-0000-0000-000000000001', person_id: '11111111-0000-0000-0000-000000000004', role: 'supervisor', user_id: '20000000-0000-0000-0000-000000000002' },
-    { id: '50000000-0000-0000-0000-000000000203', gc_id: '40000000-0000-0000-0000-000000000002', person_id: '11111111-0000-0000-0000-000000000003', role: 'supervisor', user_id: '20000000-0000-0000-0000-000000000001' },
-    { id: '50000000-0000-0000-0000-000000000204', gc_id: '40000000-0000-0000-0000-000000000003', person_id: '11111111-0000-0000-0000-000000000004', role: 'supervisor', user_id: '20000000-0000-0000-0000-000000000002' },
-    { id: '50000000-0000-0000-0000-000000000205', gc_id: '40000000-0000-0000-0000-000000000001', person_id: '11111111-0000-0000-0000-000000000005', role: 'supervisor', user_id: '30000000-0000-0000-0000-000000000001' },
-    { id: '50000000-0000-0000-0000-000000000206', gc_id: '40000000-0000-0000-0000-000000000002', person_id: '11111111-0000-0000-0000-000000000005', role: 'supervisor', user_id: '30000000-0000-0000-0000-000000000001' },
+    { id: '50000000-0000-0000-0000-000000000201', gc_id: '40000000-0000-0000-0000-000000000001', person_id: '11111111-0000-0000-0000-000000000003', role: 'supervisor', user_id: '20000000-0000-0000-0000-000000000001', status: 'active' },
+    { id: '50000000-0000-0000-0000-000000000202', gc_id: '40000000-0000-0000-0000-000000000001', person_id: '11111111-0000-0000-0000-000000000004', role: 'supervisor', user_id: '20000000-0000-0000-0000-000000000002', status: 'active' },
+    { id: '50000000-0000-0000-0000-000000000203', gc_id: '40000000-0000-0000-0000-000000000002', person_id: '11111111-0000-0000-0000-000000000003', role: 'supervisor', user_id: '20000000-0000-0000-0000-000000000001', status: 'active' },
+    { id: '50000000-0000-0000-0000-000000000204', gc_id: '40000000-0000-0000-0000-000000000003', person_id: '11111111-0000-0000-0000-000000000004', role: 'supervisor', user_id: '20000000-0000-0000-0000-000000000002', status: 'active' },
+    { id: '50000000-0000-0000-0000-000000000205', gc_id: '40000000-0000-0000-0000-000000000001', person_id: '11111111-0000-0000-0000-000000000005', role: 'supervisor', user_id: '30000000-0000-0000-0000-000000000001', status: 'active' },
+    { id: '50000000-0000-0000-0000-000000000206', gc_id: '40000000-0000-0000-0000-000000000002', person_id: '11111111-0000-0000-0000-000000000005', role: 'supervisor', user_id: '30000000-0000-0000-0000-000000000001', status: 'active' },
 
     // Members
-    { id: '50000000-0000-0000-0000-000000000301', gc_id: '40000000-0000-0000-0000-000000000001', person_id: '11111111-0000-0000-0000-000000000011', role: 'member', user_id: '10000000-0000-0000-0000-000000000001' },
-    { id: '50000000-0000-0000-0000-000000000302', gc_id: '40000000-0000-0000-0000-000000000001', person_id: '11111111-0000-0000-0000-000000000012', role: 'member', user_id: '10000000-0000-0000-0000-000000000001' },
-    { id: '50000000-0000-0000-0000-000000000303', gc_id: '40000000-0000-0000-0000-000000000001', person_id: '11111111-0000-0000-0000-000000000013', role: 'member', user_id: '10000000-0000-0000-0000-000000000001' },
-    { id: '50000000-0000-0000-0000-000000000304', gc_id: '40000000-0000-0000-0000-000000000001', person_id: '11111111-0000-0000-0000-000000000014', role: 'member', user_id: '10000000-0000-0000-0000-000000000001' },
-    { id: '50000000-0000-0000-0000-000000000305', gc_id: '40000000-0000-0000-0000-000000000001', person_id: '11111111-0000-0000-0000-000000000015', role: 'member', user_id: '10000000-0000-0000-0000-000000000001' },
-    { id: '50000000-0000-0000-0000-000000000306', gc_id: '40000000-0000-0000-0000-000000000001', person_id: '11111111-0000-0000-0000-000000000016', role: 'member', user_id: '10000000-0000-0000-0000-000000000001' },
+    { id: '50000000-0000-0000-0000-000000000301', gc_id: '40000000-0000-0000-0000-000000000001', person_id: '11111111-0000-0000-0000-000000000011', role: 'member', user_id: '10000000-0000-0000-0000-000000000001', status: 'active' },
+    { id: '50000000-0000-0000-0000-000000000302', gc_id: '40000000-0000-0000-0000-000000000001', person_id: '11111111-0000-0000-0000-000000000012', role: 'member', user_id: '10000000-0000-0000-0000-000000000001', status: 'active' },
+    { id: '50000000-0000-0000-0000-000000000303', gc_id: '40000000-0000-0000-0000-000000000001', person_id: '11111111-0000-0000-0000-000000000013', role: 'member', user_id: '10000000-0000-0000-0000-000000000001', status: 'active' },
+    { id: '50000000-0000-0000-0000-000000000304', gc_id: '40000000-0000-0000-0000-000000000001', person_id: '11111111-0000-0000-0000-000000000014', role: 'member', user_id: '10000000-0000-0000-0000-000000000001', status: 'active' },
+    { id: '50000000-0000-0000-0000-000000000305', gc_id: '40000000-0000-0000-0000-000000000001', person_id: '11111111-0000-0000-0000-000000000015', role: 'member', user_id: '10000000-0000-0000-0000-000000000001', status: 'active' },
+    { id: '50000000-0000-0000-0000-000000000306', gc_id: '40000000-0000-0000-0000-000000000001', person_id: '11111111-0000-0000-0000-000000000016', role: 'member', user_id: '10000000-0000-0000-0000-000000000001', status: 'active' },
 
-    { id: '50000000-0000-0000-0000-000000000401', gc_id: '40000000-0000-0000-0000-000000000002', person_id: '11111111-0000-0000-0000-000000000017', role: 'member', user_id: '10000000-0000-0000-0000-000000000001' },
-    { id: '50000000-0000-0000-0000-000000000402', gc_id: '40000000-0000-0000-0000-000000000002', person_id: '11111111-0000-0000-0000-000000000018', role: 'member', user_id: '10000000-0000-0000-0000-000000000001' },
+    { id: '50000000-0000-0000-0000-000000000401', gc_id: '40000000-0000-0000-0000-000000000002', person_id: '11111111-0000-0000-0000-000000000017', role: 'member', user_id: '10000000-0000-0000-0000-000000000001', status: 'active' },
+    { id: '50000000-0000-0000-0000-000000000402', gc_id: '40000000-0000-0000-0000-000000000002', person_id: '11111111-0000-0000-0000-000000000018', role: 'member', user_id: '10000000-0000-0000-0000-000000000001', status: 'active' },
 
-    { id: '50000000-0000-0000-0000-000000000501', gc_id: '40000000-0000-0000-0000-000000000003', person_id: '11111111-0000-0000-0000-000000000012', role: 'member', user_id: '20000000-0000-0000-0000-000000000001' },
-    { id: '50000000-0000-0000-0000-000000000502', gc_id: '40000000-0000-0000-0000-000000000003', person_id: '11111111-0000-0000-0000-000000000013', role: 'member', user_id: '20000000-0000-0000-0000-000000000001' },
+    { id: '50000000-0000-0000-0000-000000000501', gc_id: '40000000-0000-0000-0000-000000000003', person_id: '11111111-0000-0000-0000-000000000012', role: 'member', user_id: '20000000-0000-0000-0000-000000000001', status: 'transferred' },
+    { id: '50000000-0000-0000-0000-000000000502', gc_id: '40000000-0000-0000-0000-000000000003', person_id: '11111111-0000-0000-0000-000000000013', role: 'member', user_id: '20000000-0000-0000-0000-000000000001', status: 'transferred' },
   ];
 
   for (const participant of participants) {
     try {
+      let status = participant.status || 'active';
+      let leftAt: string | null = null;
+
+      if (participant.role === 'member' && status === 'active') {
+        const { data: existingMembership, error: existingMembershipError } = await supabase
+          .from('growth_group_participants')
+          .select('id, gc_id')
+          .eq('person_id', participant.person_id)
+          .eq('role', 'member')
+          .eq('status', 'active')
+          .is('deleted_at', null)
+          .limit(1)
+          .maybeSingle();
+
+        if (existingMembershipError) {
+          console.error('❌ Erro ao validar membership ativa:', existingMembershipError);
+        } else if (existingMembership && existingMembership.gc_id !== participant.gc_id) {
+          status = 'transferred';
+          leftAt = new Date().toISOString();
+        }
+      }
+
       const { error } = await supabase
         .from('growth_group_participants')
         .upsert({
-          id: participant.id,
           gc_id: participant.gc_id,
           person_id: participant.person_id,
           role: participant.role,
-          status: 'active',
+          status,
           joined_at: new Date().toISOString(),
+          left_at: leftAt,
           added_by_user_id: '90000000-0000-0000-0000-000000000001',
-        }, { onConflict: 'id' });
+        }, { onConflict: 'gc_id,person_id,role' });
 
       if (error) {
         console.error(`❌ Erro ao criar participant:`, error);
       } else {
-        console.log(`✅ Participant criado: ${participant.role} - ${participant.person_id}`);
+        console.log(`✅ Participant criado: ${participant.role} - ${participant.person_id} (${status})`);
       }
     } catch (err) {
       console.error(`❌ Exceção ao criar participant:`, err);

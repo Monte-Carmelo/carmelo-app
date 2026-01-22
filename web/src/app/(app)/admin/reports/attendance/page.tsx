@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/browser-client';
@@ -54,7 +54,7 @@ export default function AttendanceReportsPage() {
   const [gcAttendanceData, setGCAttendanceData] = useState<GCAttendance[]>([]);
   const [memberAttendanceData, setMemberAttendanceData] = useState<MemberAttendance[]>([]);
 
-  const fetchAttendanceData = async (selectedPeriod = period) => {
+  const fetchAttendanceData = useCallback(async (selectedPeriod = period) => {
     setLoading(true);
     const supabase = getSupabaseBrowserClient();
 
@@ -66,8 +66,8 @@ export default function AttendanceReportsPage() {
       const [
         meetingsResult,
         attendancesResult,
-        _,
-        __
+        gcMembersResult,
+        gcInfoResult
       ] = await Promise.all([
         // Total meetings in period
         supabase
@@ -112,8 +112,8 @@ export default function AttendanceReportsPage() {
       const processedData = processAttendanceData(
         meetingsResult.data || [],
         attendancesResult.data || [],
-        [],
-        []
+        gcMembersResult.data || [],
+        gcInfoResult.data || []
       );
 
       setMetrics(processedData.metrics);
@@ -126,7 +126,7 @@ export default function AttendanceReportsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [period]);
 
   const processAttendanceData = (
     meetings: unknown[],
@@ -153,7 +153,13 @@ export default function AttendanceReportsPage() {
 
     const totalMeetings = meetings.length || 56; // Mock
     const totalAttendances = attendances.length || 301; // Mock
-    const totalPossibleAttendances = 45 * 12; // Mock calculation
+    const totalMembers = gcMembers.length || 45;
+    const totalPossibleAttendances = totalMembers * (totalMeetings || 12);
+    const gcNames = gcInfo
+      .map((gc) => (gc && typeof gc === 'object' && 'name' in gc ? (gc as { name?: string }).name : undefined))
+      .filter((name): name is string => Boolean(name));
+    const fallbackMostAttended = gcNames[0] || 'GC Jovens - Vila Madalena';
+    const fallbackLeastAttended = gcNames[gcNames.length - 1] || 'GC Casais - Pinheiros';
 
     return {
       metrics: {
@@ -161,8 +167,8 @@ export default function AttendanceReportsPage() {
         totalAttendances,
         totalPossibleAttendances,
         overallAttendanceRate: Math.round((totalAttendances / totalPossibleAttendances) * 100 * 10) / 10,
-        mostAttendedGC: 'GC Jovens - Vila Madalena',
-        leastAttendedGC: 'GC Casais - Pinheiros',
+        mostAttendedGC: fallbackMostAttended,
+        leastAttendedGC: fallbackLeastAttended,
         topAttendee: 'João Silva',
         lowAttendee: 'Carlos Mendes',
       },
@@ -173,7 +179,7 @@ export default function AttendanceReportsPage() {
 
   useEffect(() => {
     fetchAttendanceData();
-  }, []);
+  }, [fetchAttendanceData]);
 
   const handlePeriodChange = async (newPeriod: string) => {
     setPeriod(newPeriod);

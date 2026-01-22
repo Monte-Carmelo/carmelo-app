@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/browser-client';
 import { toast } from 'sonner';
 import { AdminReportsDashboard } from '@/components/admin/AdminReportsDashboard';
@@ -46,7 +46,7 @@ export default function ReportsPage() {
   const [topGCsData, setTopGCsData] = useState<TopGCData[]>([]);
   const [period, setPeriod] = useState('90');
 
-  const fetchReportsData = async (selectedPeriod = period) => {
+  const fetchReportsData = useCallback(async (selectedPeriod = period) => {
     setLoading(true);
     const supabase = getSupabaseBrowserClient();
 
@@ -201,11 +201,11 @@ export default function ReportsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [period]);
 
   useEffect(() => {
     fetchReportsData();
-  }, []);
+  }, [fetchReportsData]);
 
   const handlePeriodChange = async (newPeriod: string) => {
     setPeriod(newPeriod);

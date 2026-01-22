@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/browser-client';
@@ -59,7 +59,7 @@ export default function ConversionsReportsPage() {
   const [gcConversionData, setGCConversionData] = useState<GCConversions[]>([]);
   const [recentConversions, setRecentConversions] = useState<RecentConversion[]>([]);
 
-  const fetchConversionData = async (selectedPeriod = period) => {
+  const fetchConversionData = useCallback(async (selectedPeriod = period) => {
     setLoading(true);
     const supabase = getSupabaseBrowserClient();
 
@@ -105,9 +105,9 @@ export default function ConversionsReportsPage() {
 
       // Process data (using mock data for demonstration)
       const processedData = processConversionData(
-        [],
-        [],
-        [],
+        visitorsResult.data || [],
+        conversionsResult.data || [],
+        gcVisitorsResult.data || [],
         thisMonthStart
       );
 
@@ -122,7 +122,7 @@ export default function ConversionsReportsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [period]);
 
   const processConversionData = (
     visitors: { status: string; converted_at?: string }[],
@@ -156,11 +156,14 @@ export default function ConversionsReportsPage() {
       { visitorName: 'Julia Mendes', gcName: 'GC Jovens - Vila Madalena', conversionDate: '02/11/2024', timeAsVisitor: 15 },
     ];
 
-    const totalVisitors = visitors.length || 190;
+    const totalVisitors = visitors.length || gcVisitors.length || 190;
     const convertedVisitors = visitors.filter(v => v.status === 'converted').length || 39;
     const conversionsThisMonth = allConversions.filter(c =>
       c.converted_at && new Date(c.converted_at) >= thisMonthStart
     ).length || 8;
+    const fallbackGCName = gcVisitors
+      .map((gc) => (gc && typeof gc === 'object' && 'growth_groups' in gc ? (gc as { growth_groups?: { name?: string } }).growth_groups?.name : undefined))
+      .find((name): name is string => Boolean(name)) || 'GC Casais - Pinheiros';
 
     return {
       metrics: {
@@ -169,7 +172,7 @@ export default function ConversionsReportsPage() {
         conversionRate: Math.round((convertedVisitors / totalVisitors) * 100 * 10) / 10,
         avgConversionTime: 42, // Mock: average days as visitor before conversion
         conversionsThisMonth,
-        topConvertingGC: 'GC Casais - Pinheiros',
+        topConvertingGC: fallbackGCName,
         totalConversionsAllTime: allConversions.length || 156,
       },
       monthlyData: mockMonthlyData,
@@ -180,7 +183,7 @@ export default function ConversionsReportsPage() {
 
   useEffect(() => {
     fetchConversionData();
-  }, []);
+  }, [fetchConversionData]);
 
   const handlePeriodChange = async (newPeriod: string) => {
     setPeriod(newPeriod);

@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { render, screen } from '@testing-library/react';
 import { vi } from 'vitest';
 import NewVisitorPage, { VisitorFormLoader } from '@/app/(app)/visitors/new/page';
@@ -45,7 +46,8 @@ describe('NewVisitorPage', () => {
 
   it('renderiza página com suspense wrapper', async () => {
     const page = await NewVisitorPage({ searchParams: Promise.resolve({}) });
-    render(page);
+    expect(page.type).toBe(Suspense);
+    render(page.props.fallback);
     expect(screen.getByLabelText(/Carregando/)).toBeInTheDocument();
   });
 });

@@ -70,7 +70,7 @@ export function BarChart({
             }}
           />
           <Legend />
-          {bars.map((bar, index) => (
+          {bars.map((bar) => (
             <Bar
               key={bar.dataKey}
               dataKey={bar.dataKey}

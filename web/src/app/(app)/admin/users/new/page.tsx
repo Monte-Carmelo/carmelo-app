@@ -1,6 +1,5 @@
 import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
-import { createSupabaseServerClient } from '@/lib/supabase/server-client';
 import { getAuthenticatedUser } from '@/lib/supabase/server-auth';
 import { AdminUserCreateForm } from '@/components/admin/AdminUserCreateForm';
 import { Loading } from '@/components/ui/spinner';
@@ -11,8 +10,6 @@ async function AdminNewUserContent() {
   if (!user) {
     redirect('/login');
   }
-
-  const supabase = await createSupabaseServerClient();
 
   return <AdminUserCreateForm />;
 }

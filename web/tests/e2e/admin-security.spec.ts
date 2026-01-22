@@ -7,14 +7,18 @@ import { test, expect } from '@playwright/test';
  */
 
 test.describe('T040: Admin Security', () => {
+  const nonAdminEmail = process.env.E2E_SUPABASE_NON_ADMIN_EMAIL || 'lider1@test.com';
+  const nonAdminPassword = process.env.E2E_SUPABASE_NON_ADMIN_PASSWORD || 'senha123';
+  const adminEmail = process.env.E2E_SUPABASE_EMAIL || 'admin@test.com';
+  const adminPassword = process.env.E2E_SUPABASE_PASSWORD || 'senha123';
+
   test('should block non-admin users from accessing /admin', async ({ page }) => {
     // Navigate to login page
     await page.goto('/login');
 
     // Login as regular user (non-admin)
-    // TODO: Replace with actual non-admin credentials
-    await page.fill('input[type="email"]', 'user@exemplo.com');
-    await page.fill('input[type="password"]', 'user123');
+    await page.fill('input[type="email"]', nonAdminEmail);
+    await page.fill('input[type="password"]', nonAdminPassword);
 
     // Submit login form
     await page.click('button[type="submit"]');
@@ -43,8 +47,8 @@ test.describe('T040: Admin Security', () => {
   test('should block non-admin from /admin/growth-groups', async ({ page }) => {
     // Login as non-admin
     await page.goto('/login');
-    await page.fill('input[type="email"]', 'user@exemplo.com');
-    await page.fill('input[type="password"]', 'user123');
+    await page.fill('input[type="email"]', nonAdminEmail);
+    await page.fill('input[type="password"]', nonAdminPassword);
     await page.click('button[type="submit"]');
     await page.waitForURL('/dashboard', { timeout: 10000 });
 
@@ -60,8 +64,8 @@ test.describe('T040: Admin Security', () => {
   test('should block non-admin from /admin/lessons', async ({ page }) => {
     // Login as non-admin
     await page.goto('/login');
-    await page.fill('input[type="email"]', 'user@exemplo.com');
-    await page.fill('input[type="password"]', 'user123');
+    await page.fill('input[type="email"]', nonAdminEmail);
+    await page.fill('input[type="password"]', nonAdminPassword);
     await page.click('button[type="submit"]');
     await page.waitForURL('/dashboard', { timeout: 10000 });
 
@@ -77,8 +81,8 @@ test.describe('T040: Admin Security', () => {
   test('should block non-admin from /admin/reports', async ({ page }) => {
     // Login as non-admin
     await page.goto('/login');
-    await page.fill('input[type="email"]', 'user@exemplo.com');
-    await page.fill('input[type="password"]', 'user123');
+    await page.fill('input[type="email"]', nonAdminEmail);
+    await page.fill('input[type="password"]', nonAdminPassword);
     await page.click('button[type="submit"]');
     await page.waitForURL('/dashboard', { timeout: 10000 });
 
@@ -94,8 +98,8 @@ test.describe('T040: Admin Security', () => {
   test('should not show admin links in navigation for non-admin', async ({ page }) => {
     // Login as non-admin
     await page.goto('/login');
-    await page.fill('input[type="email"]', 'user@exemplo.com');
-    await page.fill('input[type="password"]', 'user123');
+    await page.fill('input[type="email"]', nonAdminEmail);
+    await page.fill('input[type="password"]', nonAdminPassword);
     await page.click('button[type="submit"]');
     await page.waitForURL('/dashboard', { timeout: 10000 });
 
@@ -114,8 +118,8 @@ test.describe('T040: Admin Security', () => {
   test('should allow admin users to access /admin', async ({ page }) => {
     // Login as admin
     await page.goto('/login');
-    await page.fill('input[type="email"]', 'admin@exemplo.com');
-    await page.fill('input[type="password"]', 'admin123');
+    await page.fill('input[type="email"]', adminEmail);
+    await page.fill('input[type="password"]', adminPassword);
     await page.click('button[type="submit"]');
     await page.waitForURL('/dashboard', { timeout: 10000 });
 

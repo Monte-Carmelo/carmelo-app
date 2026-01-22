@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/browser-client';
@@ -46,14 +46,13 @@ export default function GrowthReportsPage() {
     growthRate: 0,
   });
 
-  const fetchGrowthData = async (selectedPeriod = period) => {
+  const fetchGrowthData = useCallback(async (selectedPeriod = period) => {
     setLoading(true);
     const supabase = getSupabaseBrowserClient();
 
     try {
       // Calculate date ranges
       const now = new Date();
-      const startDate = new Date(now.getTime() - parseInt(selectedPeriod) * 24 * 60 * 60 * 1000);
       const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
       // Fetch growth data
@@ -128,7 +127,7 @@ export default function GrowthReportsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [period]);
 
   const generateMonthlyGrowthData = (months: number): MonthlyGrowth[] => {
     const data: MonthlyGrowth[] = [];
@@ -170,7 +169,7 @@ export default function GrowthReportsPage() {
 
   useEffect(() => {
     fetchGrowthData();
-  }, []);
+  }, [fetchGrowthData]);
 
   const handlePeriodChange = async (newPeriod: string) => {
     setPeriod(newPeriod);

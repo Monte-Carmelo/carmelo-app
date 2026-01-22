@@ -2,7 +2,6 @@ import { Suspense } from 'react';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { Plus, Users } from 'lucide-react';
-import { createSupabaseServerClient } from '@/lib/supabase/server-client';
 import { getAuthenticatedUser } from '@/lib/supabase/server-auth';
 import { AdminUserList } from '@/components/admin/AdminUserList';
 import { AdminBreadcrumbs } from '@/components/admin/AdminBreadcrumbs';
@@ -16,8 +15,6 @@ async function AdminUsersContent() {
   if (!user) {
     redirect('/login');
   }
-
-  const supabase = await createSupabaseServerClient();
 
   return (
     <div className="space-y-6">
