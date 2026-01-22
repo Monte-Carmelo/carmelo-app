@@ -9,8 +9,8 @@ import { test, expect } from '@playwright/test';
 test.describe('T040: Admin Security', () => {
   const nonAdminEmail = process.env.E2E_SUPABASE_NON_ADMIN_EMAIL || 'lider1@test.com';
   const nonAdminPassword = process.env.E2E_SUPABASE_NON_ADMIN_PASSWORD || 'senha123';
-  const adminEmail = process.env.E2E_SUPABASE_EMAIL || 'admin@test.com';
-  const adminPassword = process.env.E2E_SUPABASE_PASSWORD || 'senha123';
+  const adminEmail = process.env.E2E_SUPABASE_ADMIN_EMAIL || 'admin@test.com';
+  const adminPassword = process.env.E2E_SUPABASE_ADMIN_PASSWORD || 'senha123';
 
   test('should block non-admin users from accessing /admin', async ({ page }) => {
     // Navigate to login page
@@ -134,8 +134,7 @@ test.describe('T040: Admin Security', () => {
     expect(currentUrl).toContain('/admin');
 
     // Verify admin content is visible
-    const adminHeading = page.locator('h1');
-    await expect(adminHeading).toBeVisible();
+    await expect(page.getByRole('heading', { name: /dashboard admin/i })).toBeVisible();
 
     // Should see admin navigation/sidebar
     const adminLinks = page.locator('a[href*="/admin/"]');

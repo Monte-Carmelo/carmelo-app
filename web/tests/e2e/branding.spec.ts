@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 
-const loginEmail = process.env.E2E_SUPABASE_EMAIL || 'test@example.com';
-const loginPassword = process.env.E2E_SUPABASE_PASSWORD || 'password';
+const loginEmail = process.env.E2E_SUPABASE_EMAIL || 'lider1@test.com';
+const loginPassword = process.env.E2E_SUPABASE_PASSWORD || 'senha123';
 
 test.describe('Visual Identity & Navigation', () => {
   test('AS-001: Login page displays logo and teal colors', async ({ page }) => {
@@ -30,15 +30,16 @@ test.describe('Visual Identity & Navigation', () => {
     // Wait for redirect to dashboard
     await page.waitForURL('**/dashboard', { timeout: 10000 });
 
-    // Verificar header com texto Igreja Monte Carmelo
-    await expect(page.locator('text=Igreja Monte Carmelo')).toBeVisible();
-    await expect(page.locator('text=Grupos de Crescimento')).toBeVisible();
+    // Verificar logo na navegação
+    await expect(page.locator('header img[alt*="Igreja Monte Carmelo"]')).toBeVisible();
+    await expect(page.locator('main').getByRole('link', { name: /GC Grupos de Crescimento/i })).toBeVisible();
 
     // Verificar 4 navigation cards
-    await expect(page.locator('text=GC')).toBeVisible();
-    await expect(page.locator('text=Eventos')).toBeVisible();
-    await expect(page.locator('text=Lições')).toBeVisible();
-    await expect(page.locator('text=Membros')).toBeVisible();
+    const dashboardLinks = page.locator('main');
+    await expect(dashboardLinks.getByRole('link', { name: /GC Grupos de Crescimento/i })).toBeVisible();
+    await expect(dashboardLinks.getByRole('link', { name: /Lições Catálogo/i })).toBeVisible();
+    await expect(dashboardLinks.getByRole('link', { name: /Participantes Membros/i })).toBeVisible();
+    await expect(dashboardLinks.getByRole('link', { name: /Visitantes Visitantes/i })).toBeVisible();
   });
 
   test('AS-003: Responsive behavior on mobile', async ({ page }) => {
@@ -53,15 +54,16 @@ test.describe('Visual Identity & Navigation', () => {
     await page.waitForURL('**/dashboard', { timeout: 10000 });
 
     // Verify cards are visible
-    await expect(page.locator('text=GC')).toBeVisible();
-    await expect(page.locator('text=Eventos')).toBeVisible();
+    const dashboardLinks = page.locator('main');
+    await expect(dashboardLinks.getByRole('link', { name: /GC Grupos de Crescimento/i })).toBeVisible();
+    await expect(dashboardLinks.getByRole('link', { name: /Visitantes Visitantes/i })).toBeVisible();
 
     // Test minimum width (320px)
     await page.setViewportSize({ width: 320, height: 568 });
 
     // Verify no horizontal overflow
-    const body = await page.locator('body').boundingBox();
-    expect(body?.width).toBeLessThanOrEqual(320);
+    const scrollWidth = await page.evaluate(() => document.documentElement.scrollWidth);
+    expect(scrollWidth).toBeLessThanOrEqual(320);
   });
 
   test('AS-004: Navigation consistency across pages', async ({ page }) => {
@@ -73,23 +75,28 @@ test.describe('Visual Identity & Navigation', () => {
     await page.waitForURL('**/dashboard', { timeout: 10000 });
 
     // Verify header on dashboard
-    await expect(page.locator('header >> text=Igreja Monte Carmelo')).toBeVisible();
+    await expect(page.locator('header img[alt*="Igreja Monte Carmelo"]')).toBeVisible();
 
     // Navigate to different pages and check header consistency
     await page.goto('/gc');
-    await expect(page.locator('header >> text=Igreja Monte Carmelo')).toBeVisible();
+    await expect(page.locator('header img[alt*="Igreja Monte Carmelo"]')).toBeVisible();
 
-    await page.goto('/meetings');
-    await expect(page.locator('header >> text=Igreja Monte Carmelo')).toBeVisible();
+    await page.goto('/participants');
+    await expect(page.locator('header img[alt*="Igreja Monte Carmelo"]')).toBeVisible();
   });
 
   test('EDGE: Logo fallback when image fails', async ({ page }) => {
     // Block logo image
-    await page.route('**/igreja-monte-carmelo.png', route => route.abort());
+    await page.route('**/*', (route) => {
+      const url = route.request().url();
+      if (url.includes('igreja-monte-carmelo.png')) {
+        return route.fulfill({ status: 404, body: '' });
+      }
+      return route.continue();
+    });
 
     await page.goto('/login');
 
-    // Verificar texto fallback appears
     await expect(page.locator('text=Igreja Monte Carmelo')).toBeVisible();
   });
 });

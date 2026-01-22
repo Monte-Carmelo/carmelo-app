@@ -28,7 +28,7 @@ test.describe('T039: Admin Responsiveness', () => {
     await page.waitForLoadState('networkidle');
 
     // Verify page loads
-    await expect(page.locator('h1')).toBeVisible();
+    await expect(page.getByRole('heading', { name: /dashboard admin/i })).toBeVisible();
 
     // Check if sidebar is collapsible or hidden
     const sidebar = page.locator('aside, nav[role="navigation"]');
@@ -48,7 +48,7 @@ test.describe('T039: Admin Responsiveness', () => {
     }
 
     // Verify content is readable
-    const heading = page.locator('h1');
+    const heading = page.getByRole('heading', { name: /dashboard admin/i });
     const headingSize = await heading.boundingBox();
 
     if (headingSize) {
@@ -128,7 +128,7 @@ test.describe('T039: Admin Responsiveness', () => {
     await page.waitForTimeout(2000);
 
     // Verify charts container
-    const chartsContainer = page.locator('svg, canvas, [role="img"]');
+    const chartsContainer = page.locator('.recharts-surface, canvas, [role="img"]');
     const hasCharts = await chartsContainer.count() > 0;
 
     if (hasCharts) {
@@ -163,7 +163,12 @@ test.describe('T039: Admin Responsiveness', () => {
       test.skip();
     }
 
-    await multiplyBtn.click();
+    const multiplyHref = await multiplyBtn.getAttribute('href');
+    if (multiplyHref) {
+      await page.goto(multiplyHref);
+    } else {
+      await multiplyBtn.click();
+    }
     await page.waitForTimeout(1000);
 
     // Verify wizard loads on mobile

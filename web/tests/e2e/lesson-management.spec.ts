@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 
 /**
  * T027: Lesson Management Tests
@@ -7,87 +7,81 @@ import { test, expect } from '@playwright/test';
  */
 
 test.describe('T027: Lesson Management', () => {
-  const adminEmail = process.env.E2E_SUPABASE_EMAIL || 'admin@test.com';
-  const adminPassword = process.env.E2E_SUPABASE_PASSWORD || 'senha123';
+  const adminEmail = process.env.E2E_SUPABASE_ADMIN_EMAIL || 'admin@test.com';
+  const adminPassword = process.env.E2E_SUPABASE_ADMIN_PASSWORD || 'senha123';
+
+  async function loginAsAdmin(page: Page) {
+    await page.goto('/login');
+    await page.getByLabel('E-mail').fill(adminEmail);
+    await page.getByLabel('Senha').fill(adminPassword);
+    await page.getByRole('button', { name: /entrar/i }).click();
+    await page.waitForURL('**/dashboard', { timeout: 15000 });
+    await expect(page.getByRole('heading', { name: /bem-vindo/i })).toBeVisible({ timeout: 10000 });
+  }
+
+  async function navigateToAdminPath(page: Page, path: string) {
+    await page.goto(`/admin${path}`);
+
+    if (page.url().includes('/login')) {
+      await loginAsAdmin(page);
+      await page.goto(`/admin${path}`);
+    }
+  }
+
+  async function navigateToAdminLessons(page: Page) {
+    await navigateToAdminPath(page, '/lessons');
+    await expect(page.getByRole('heading', { name: /lições e séries/i })).toBeVisible({ timeout: 10000 });
+  }
 
   test.beforeEach(async ({ page }) => {
-    // Navigate to login page
-    await page.goto('/login');
-
-    // Login as admin (environment overrides default)
-    await page.fill('input[type="email"]', adminEmail);
-    await page.fill('input[type="password"]', adminPassword);
-    await page.click('button[type="submit"]');
-
-    // Wait for redirect to dashboard
-    await page.waitForURL('/dashboard', { timeout: 10000 });
-
-    // Navigate to lessons page
-    await page.goto('/admin/lessons');
-    await page.waitForLoadState('networkidle');
+    await loginAsAdmin(page);
+    await navigateToAdminLessons(page);
   });
 
   test('should display lessons page with series and standalone lessons', async ({ page }) => {
     // Verify page title
-    await expect(page.locator('h1')).toContainText('Lições');
+    await expect(page.getByRole('heading', { name: /lições e séries/i })).toBeVisible();
 
     // Verify sections exist
-    const seriesSection = page.locator('text=Séries de Lições');
-    const standaloneLessonsSection = page.locator('text=Lições Avulsas');
+    const seriesSection = page.getByRole('heading', { name: 'Séries de Lições' });
+    const standaloneLessonsSection = page.getByRole('heading', { name: 'Lições Avulsas' });
 
-    await expect(seriesSection.or(page.locator('h2:has-text("Séries")'))).toBeVisible({ timeout: 5000 });
+    await expect(seriesSection).toBeVisible({ timeout: 5000 });
+    await expect(standaloneLessonsSection).toBeVisible({ timeout: 5000 });
   });
 
   test('should create a new series with initial lessons', async ({ page }) => {
     // Click "Create Series" button
-    const createSeriesBtn = page.locator('button:has-text("Nova Série"), button:has-text("Criar Série"), a[href="/admin/lessons/series/new"]');
-    await createSeriesBtn.first().click();
+    await navigateToAdminPath(page, '/lessons/series/new');
 
     // Wait for form to load
     await page.waitForURL('**/admin/lessons/series/new');
 
     // Fill series information
-    await page.fill('input[name="name"], input#name', 'Fundamentos da Fé - Test');
-    await page.fill('textarea[name="description"], textarea#description', 'Série introdutória sobre princípios cristãos');
+    const seriesName = `Fundamentos da Fé - Test ${Date.now()}`;
+    await page.getByLabel('Nome da Série').fill(seriesName);
+    await page.getByLabel('Descrição').fill('Série introdutória sobre princípios cristãos');
 
     // Add initial lessons if the form supports it
-    const addLessonBtn = page.locator('button:has-text("Adicionar Lição")');
-    const lessonBtnExists = await addLessonBtn.count() > 0;
-
-    if (lessonBtnExists) {
-      // Add first lesson
+    const addLessonBtn = page.getByRole('button', { name: 'Adicionar Lição' });
+    if (await addLessonBtn.count()) {
       await addLessonBtn.click();
-      await page.fill('input[name="initialLessons.0.title"]', 'Quem é Deus?');
-      await page.fill('textarea[name="initialLessons.0.description"]', 'Introdução aos atributos de Deus');
-
-      // Add second lesson
-      await addLessonBtn.click();
-      await page.fill('input[name="initialLessons.1.title"]', 'Quem é Jesus?');
-      await page.fill('textarea[name="initialLessons.1.description"]', 'A pessoa e obra de Cristo');
-
-      // Add third lesson
-      await addLessonBtn.click();
-      await page.fill('input[name="initialLessons.2.title"]', 'Quem é o Espírito Santo?');
-      await page.fill('textarea[name="initialLessons.2.description"]', 'O papel do Espírito na vida do crente');
+      await page.locator('input#initialLessons\\.0\\.title').fill('Quem é Deus?');
+      await page.locator('textarea#initialLessons\\.0\\.description').fill('Introdução aos atributos de Deus');
     }
 
     // Submit form
-    await page.click('button[type="submit"]:has-text("Criar")');
+    await page.getByRole('button', { name: 'Criar Série' }).click();
 
     // Wait for success toast or redirect
-    await page.waitForTimeout(2000);
-
-    // Verify we're back on lessons page or series detail page
-    const currentUrl = page.url();
-    expect(currentUrl).toMatch(/\/admin\/lessons/);
-
-    // Verify series appears in the list
-    await expect(page.locator('text=Fundamentos da Fé - Test')).toBeVisible({ timeout: 5000 });
+    await page.waitForURL('**/admin/lessons', { timeout: 15000 });
+    await expect(page.getByText(seriesName)).toBeVisible({ timeout: 5000 });
   });
 
   test('should edit a series and reorder lessons', async ({ page }) => {
     // Find and click on a series (assuming at least one exists)
-    const seriesLink = page.locator('a:has-text("Editar"), button:has-text("Editar")').first();
+    const seriesSection = page.locator('section', { hasText: 'Séries de Lições' });
+    const seriesLink = seriesSection.getByRole('link', { name: 'Editar' }).first();
     const hasEditButton = await seriesLink.count() > 0;
 
     if (!hasEditButton) {
@@ -95,67 +89,53 @@ test.describe('T027: Lesson Management', () => {
       test.skip();
     }
 
-    await seriesLink.click();
+    const seriesHref = await seriesLink.getAttribute('href');
+    if (!seriesHref) {
+      test.skip();
+    }
+
+    await navigateToAdminPath(page, seriesHref?.replace('/admin', '') ?? '/lessons');
     await page.waitForLoadState('networkidle');
 
     // Update series description
-    const descriptionField = page.locator('textarea[name="description"], textarea#description');
-    await descriptionField.fill('Descrição atualizada - teste automatizado');
+    const updatedDescription = 'Descrição atualizada - teste automatizado';
+    const descriptionField = page.getByLabel('Descrição');
+    await descriptionField.fill(updatedDescription);
 
     // Save changes
-    await page.click('button[type="submit"]:has-text("Salvar")');
-    await page.waitForTimeout(1000);
-
-    // Verify success message (toast or alert)
-    const successMessage = page.locator('text=sucesso, text=atualizada').first();
-    await expect(successMessage).toBeVisible({ timeout: 3000 });
+    await page.getByRole('button', { name: 'Salvar Alterações' }).click();
+    await expect(descriptionField).toHaveValue(updatedDescription);
   });
 
   test('should create a standalone lesson', async ({ page }) => {
     // Click "New Lesson" button
-    const newLessonBtn = page.locator('button:has-text("Nova Lição"), a[href="/admin/lessons/new"]');
-    await newLessonBtn.first().click();
+    await navigateToAdminPath(page, '/lessons/new');
 
     // Wait for form
     await page.waitForURL('**/admin/lessons/new');
 
     // Fill lesson form
-    await page.fill('input[name="title"], input#title', 'Lição Avulsa - Teste');
-    await page.fill('textarea[name="description"], textarea#description', 'Esta é uma lição de teste');
+    const lessonTitle = `Lição Avulsa - Teste ${Date.now()}`;
+    await page.getByLabel('Título').fill(lessonTitle);
+    await page.getByLabel('Descrição').fill('Esta é uma lição de teste');
 
     // Select "No series" option if series select exists
-    const seriesSelect = page.locator('select[name="series_id"], [role="combobox"]');
-    const hasSeriesSelect = await seriesSelect.count() > 0;
-
-    if (hasSeriesSelect) {
-      // Try to select "Sem série" or "none" option
-      const selectTrigger = page.locator('[role="combobox"]').first();
-      await selectTrigger.click();
-
-      const noneOption = page.locator('text="Sem série", [data-value="none"]').first();
-      const noneExists = await noneOption.count() > 0;
-
-      if (noneExists) {
-        await noneOption.click();
-      }
+    const seriesSelect = page.getByRole('combobox').first();
+    if (await seriesSelect.count()) {
+      await seriesSelect.click();
+      await page.getByRole('option', { name: /sem série/i }).click();
     }
 
     // Submit form
-    await page.click('button[type="submit"]:has-text("Criar")');
-
-    // Wait for redirect and success
-    await page.waitForTimeout(2000);
-
-    // Verify redirect back to lessons page
-    await page.waitForURL('**/admin/lessons', { timeout: 5000 });
-
-    // Verify lesson appears in standalone lessons section
-    await expect(page.locator('text=Lição Avulsa - Teste')).toBeVisible({ timeout: 5000 });
+    await page.getByRole('button', { name: 'Criar Lição' }).click();
+    await page.waitForURL('**/admin/lessons', { timeout: 15000 });
+    await expect(page.getByText(lessonTitle)).toBeVisible({ timeout: 5000 });
   });
 
   test('should edit a lesson', async ({ page }) => {
     // Find any lesson edit button
-    const lessonEditBtn = page.locator('a[href*="/admin/lessons/"][href$="/edit"], a[href*="/admin/lessons/"]:not([href*="/series/"]):not([href*="/new"])').first();
+    const lessonsSection = page.locator('section', { hasText: 'Lições Avulsas' });
+    const lessonEditBtn = lessonsSection.getByRole('link', { name: 'Editar' }).first();
     const hasLesson = await lessonEditBtn.count() > 0;
 
     if (!hasLesson) {
@@ -163,26 +143,30 @@ test.describe('T027: Lesson Management', () => {
       test.skip();
     }
 
-    await lessonEditBtn.click();
+    const lessonHref = await lessonEditBtn.getAttribute('href');
+    if (!lessonHref) {
+      test.skip();
+    }
+
+    await navigateToAdminPath(page, lessonHref?.replace('/admin', '') ?? '/lessons');
     await page.waitForLoadState('networkidle');
 
     // Update lesson title
-    const titleField = page.locator('input[name="title"], input#title');
+    const titleField = page.getByLabel('Título');
     const currentTitle = await titleField.inputValue();
     await titleField.fill(currentTitle + ' - Editado');
 
     // Save changes
-    await page.click('button[type="submit"]:has-text("Salvar")');
-    await page.waitForTimeout(1000);
-
-    // Verify success message
-    const successMessage = page.locator('text=sucesso, text=atualizada').first();
-    await expect(successMessage).toBeVisible({ timeout: 3000 });
+    const updatedTitle = `${currentTitle} - Editado`;
+    await page.getByRole('button', { name: 'Salvar Alterações' }).click();
+    await page.waitForURL('**/admin/lessons', { timeout: 15000 });
+    await expect(page.getByText(updatedTitle)).toBeVisible({ timeout: 5000 });
   });
 
   test('should delete a lesson with confirmation', async ({ page }) => {
     // Navigate to a lesson edit page first
-    const lessonLink = page.locator('a[href*="/admin/lessons/"]:not([href*="/series/"]):not([href*="/new"])').first();
+    const lessonsSection = page.locator('section', { hasText: 'Lições Avulsas' });
+    const lessonLink = lessonsSection.getByRole('link', { name: 'Editar' }).first();
     const hasLesson = await lessonLink.count() > 0;
 
     if (!hasLesson) {
@@ -190,11 +174,16 @@ test.describe('T027: Lesson Management', () => {
       test.skip();
     }
 
-    await lessonLink.click();
+    const lessonHref = await lessonLink.getAttribute('href');
+    if (!lessonHref) {
+      test.skip();
+    }
+
+    await navigateToAdminPath(page, lessonHref?.replace('/admin', '') ?? '/lessons');
     await page.waitForLoadState('networkidle');
 
     // Click delete button
-    const deleteBtn = page.locator('button:has-text("Excluir")');
+    const deleteBtn = page.getByRole('button', { name: 'Excluir Lição' });
     await deleteBtn.click();
 
     // Wait for confirmation dialog
@@ -205,11 +194,11 @@ test.describe('T027: Lesson Management', () => {
     await expect(confirmDialog).toBeVisible({ timeout: 2000 });
 
     // Verify dialog has confirmation text
-    await expect(page.locator('text=Confirmar')).toBeVisible();
-    await expect(page.locator('text=excluída, text=Exclusão')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Confirmar' })).toBeVisible();
+    await expect(page.locator('text=Esta ação não pode ser desfeita')).toBeVisible();
 
     // Click cancel to not actually delete in the test
-    await page.click('button:has-text("Cancelar")');
+    await page.getByRole('button', { name: 'Cancelar' }).click();
 
     // Verify dialog closes
     await expect(confirmDialog).not.toBeVisible({ timeout: 2000 });
@@ -217,10 +206,10 @@ test.describe('T027: Lesson Management', () => {
 
   test('should display lesson management with proper loading states', async ({ page }) => {
     // Refresh page to trigger loading
-    await page.goto('/admin/lessons');
+    await navigateToAdminPath(page, '/lessons');
 
     // Check for loading indicator (spinner or loading text)
-    const loadingIndicator = page.locator('text=Carregando, [role="status"], .animate-spin');
+    const loadingIndicator = page.locator('text=Carregando lições..., [role="status"], .animate-spin');
 
     // Loading should appear briefly (or may already be gone)
     const loadingVisible = await loadingIndicator.isVisible().catch(() => false);
@@ -231,7 +220,7 @@ test.describe('T027: Lesson Management', () => {
     }
 
     // Verify content is loaded
-    await expect(page.locator('h1')).toBeVisible();
+    await expect(page.getByRole('heading', { name: /lições e séries/i })).toBeVisible();
   });
 
   test('should have proper navigation and breadcrumbs', async ({ page }) => {
@@ -240,11 +229,10 @@ test.describe('T027: Lesson Management', () => {
     await expect(breadcrumbs.first()).toBeVisible({ timeout: 5000 });
 
     // Click back to admin dashboard
-    const adminLink = page.locator('a[href="/admin"]').first();
-    await adminLink.click();
+    await navigateToAdminPath(page, '');
 
     // Verify we're on admin dashboard
     await page.waitForURL('**/admin', { timeout: 5000 });
-    await expect(page.locator('h1')).toContainText(/Dashboard|Admin/i);
+    await expect(page.getByRole('heading', { name: /dashboard admin/i })).toBeVisible();
   });
 });

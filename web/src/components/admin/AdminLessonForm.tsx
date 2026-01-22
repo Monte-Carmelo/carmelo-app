@@ -239,11 +239,11 @@ export function AdminLessonForm({
       {/* Ações */}
       <div className="flex gap-3 justify-end">
         {onCancel && (
-          <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
+          <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting} className="h-10">
             Cancelar
           </Button>
         )}
-        <Button type="submit" disabled={isSubmitting}>
+        <Button type="submit" disabled={isSubmitting} className="h-10">
           {isSubmitting ? 'Salvando...' : isEditing ? 'Salvar Alterações' : 'Criar Lição'}
         </Button>
       </div>

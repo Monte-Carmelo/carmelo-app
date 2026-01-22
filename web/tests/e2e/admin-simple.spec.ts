@@ -1,8 +1,16 @@
 import { test, expect, type Page } from '@playwright/test';
 
-// Use admin credentials from seed data
-const adminEmail = 'admin@test.com';
-const adminPassword = 'senha123';
+const adminEmail = process.env.E2E_SUPABASE_ADMIN_EMAIL || 'admin@test.com';
+const adminPassword = process.env.E2E_SUPABASE_ADMIN_PASSWORD || 'senha123';
+
+async function loginAsAdmin(page: Page) {
+  await page.goto('/login');
+  await page.getByLabel('E-mail').fill(adminEmail);
+  await page.getByLabel('Senha').fill(adminPassword);
+  await page.getByRole('button', { name: /entrar/i }).click();
+  await page.waitForURL('**/dashboard', { timeout: 15000 });
+  await expect(page.getByRole('heading', { name: /bem-vindo/i })).toBeVisible({ timeout: 10000 });
+}
 
 test.describe('Área Administrativa - Testes Simples', () => {
   test('login funciona', async ({ page }) => {
@@ -16,12 +24,8 @@ test.describe('Área Administrativa - Testes Simples', () => {
     // Fill login form
     await page.getByLabel('E-mail').fill(adminEmail);
     await page.getByLabel('Senha').fill(adminPassword);
-
-    // Submit form
     await page.getByRole('button', { name: /entrar/i }).click();
-
-    // Wait for navigation
-    await page.waitForTimeout(5000);
+    await page.waitForURL('**/dashboard', { timeout: 15000 });
 
     // Check current URL
     const currentUrl = page.url();
@@ -59,12 +63,7 @@ test.describe('Área Administrativa - Testes Simples', () => {
   });
 
   test('acesso direto ao admin', async ({ page }) => {
-    // First login
-    await page.goto('/login');
-    await page.getByLabel('E-mail').fill(adminEmail);
-    await page.getByLabel('Senha').fill(adminPassword);
-    await page.getByRole('button', { name: /entrar/i }).click();
-    await page.waitForTimeout(5000);
+    await loginAsAdmin(page);
 
     // Then try to access admin
     await page.goto('/admin');
@@ -102,12 +101,7 @@ test.describe('Área Administrativa - Testes Simples', () => {
   });
 
   test('navegacao manual para admin após login', async ({ page }) => {
-    // First login
-    await page.goto('/login');
-    await page.getByLabel('E-mail').fill(adminEmail);
-    await page.getByLabel('Senha').fill(adminPassword);
-    await page.getByRole('button', { name: /entrar/i }).click();
-    await expect(page.getByRole('heading', { name: 'Bem-vindo' })).toBeVisible({ timeout: 10000 });
+    await loginAsAdmin(page);
 
     // Manually navigate to admin (as a user would)
     console.log('User logged in, now navigating to admin...');
@@ -124,7 +118,12 @@ test.describe('Área Administrativa - Testes Simples', () => {
       await page.goto('/admin');
     }
 
-    await page.waitForTimeout(5000);
+    if (page.url().includes('/login')) {
+      await loginAsAdmin(page);
+      await page.goto('/admin');
+    }
+
+    await expect(page.getByRole('heading', { name: /dashboard admin/i })).toBeVisible({ timeout: 10000 });
 
     // Check current URL
     const currentUrl = page.url();
@@ -134,37 +133,12 @@ test.describe('Área Administrativa - Testes Simples', () => {
     await page.screenshot({ path: 'debug-manual-admin-navigation.png' });
 
     // Look for admin elements
-    const adminElements = [
-      page.getByText('Dashboard Admin'),
-      page.getByText('Total de Usuários'),
-      page.getByText('GCs Ativos'),
-      page.getByText('Membros Ativos'),
-      page.getByText('Gerenciar Usuários'),
-      page.getByText('Gerenciar GCs'),
-      page.getByText('Gerenciar Lições')
-    ];
-
-    let foundElements = 0;
-    for (const element of adminElements) {
-      const isVisible = await element.isVisible().catch(() => false);
-      if (isVisible) {
-        foundElements++;
-        console.log(`✅ Found: ${await element.textContent()}`);
-      } else {
-        console.log(`❌ Missing: ${await element.textContent()}`);
-      }
-    }
-
-    console.log(`Total admin elements found: ${foundElements}/${adminElements.length}`);
-    expect(foundElements).toBeGreaterThan(0);
+    await expect(page.getByText('Total de Usuários')).toBeVisible();
+    await expect(page.getByText('GCs Ativos')).toBeVisible();
   });
 
   test('verificar estrutura HTML', async ({ page }) => {
-    await page.goto('/login');
-    await page.getByLabel('E-mail').fill(adminEmail);
-    await page.getByLabel('Senha').fill(adminPassword);
-    await page.getByRole('button', { name: /entrar/i }).click();
-    await page.waitForTimeout(5000);
+    await loginAsAdmin(page);
 
     // Get page content for analysis
     const content = await page.content();

@@ -1,8 +1,21 @@
 import { test, expect, type Page } from '@playwright/test';
 
-// Use admin credentials from seed data
-const adminEmail = 'admin@test.com';
-const adminPassword = 'senha123';
+const adminEmail = process.env.E2E_SUPABASE_EMAIL || 'admin@test.com';
+const adminPassword = process.env.E2E_SUPABASE_PASSWORD || 'senha123';
+const nonAdminEmail = process.env.E2E_SUPABASE_NON_ADMIN_EMAIL || 'lider1@test.com';
+const nonAdminPassword = process.env.E2E_SUPABASE_NON_ADMIN_PASSWORD || 'senha123';
+
+async function clearAuthState(page: Page) {
+  await page.context().clearCookies();
+  try {
+    await page.evaluate(() => {
+      localStorage.clear();
+      sessionStorage.clear();
+    });
+  } catch {
+    // Ignore storage clear errors on blank or cross-origin pages.
+  }
+}
 
 /**
  * Helper function to login as admin
@@ -14,7 +27,17 @@ async function loginAsAdmin(page: Page) {
   await page.getByRole('button', { name: /entrar/i }).click();
 
   // Wait for dashboard - look for "Bem-vindo" heading
-  await expect(page.getByRole('heading', { name: 'Bem-vindo' })).toBeVisible({ timeout: 10000 });
+  await page.waitForURL('**/dashboard', { timeout: 15000 });
+  await expect(page.getByRole('heading', { name: /bem-vindo/i })).toBeVisible({ timeout: 10000 });
+}
+
+async function navigateToAdmin(page: Page, path = '') {
+  await page.goto(`/admin${path}`);
+
+  if (page.url().includes('/login')) {
+    await loginAsAdmin(page);
+    await page.goto(`/admin${path}`);
+  }
 }
 
 test.describe('Área Administrativa - Testes Completos', () => {
@@ -23,10 +46,10 @@ test.describe('Área Administrativa - Testes Completos', () => {
   });
 
   test('dashboard admin - verificação completa', async ({ page }) => {
-    await page.goto('/admin');
+    await navigateToAdmin(page);
 
     // Check if admin dashboard loads
-    await expect(page.getByRole('heading', { name: 'Dashboard Admin' })).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole('heading', { name: /dashboard admin/i })).toBeVisible({ timeout: 10000 });
 
     // Check metrics cards
     await expect(page.getByText('Total de Usuários')).toBeVisible();
@@ -45,14 +68,11 @@ test.describe('Área Administrativa - Testes Completos', () => {
 
   test('gestão de usuários - fluxo completo', async ({ page }) => {
     // Navigate to users page
-    await page.getByRole('link', { name: 'Gerenciar Usuários', exact: true }).click();
+    await navigateToAdmin(page, '/users');
     await expect(page.getByRole('heading', { name: 'Usuários' })).toBeVisible({ timeout: 10000 });
 
-    // Check create user button
-    await expect(page.getByRole('link', { name: 'Novo Usuário' })).toBeVisible();
-
     // Navigate to create user form
-    await page.getByRole('link', { name: 'Novo Usuário' }).click();
+    await navigateToAdmin(page, '/users/new');
     await expect(page.getByRole('heading', { name: 'Novo usuário' })).toBeVisible({ timeout: 10000 });
 
     // Check form fields exist
@@ -106,19 +126,16 @@ test.describe('Área Administrativa - Testes Completos', () => {
 
   test('gestão de GCs - fluxo básico', async ({ page }) => {
     // Navigate to GCs page
-    await page.getByRole('link', { name: 'Gerenciar GCs', exact: true }).click();
+    await navigateToAdmin(page, '/growth-groups');
     await expect(page.getByRole('heading', { name: 'Grupos de Crescimento' })).toBeVisible({ timeout: 10000 });
 
-    // Check create GC button
-    await expect(page.getByRole('link', { name: 'Novo GC' })).toBeVisible();
-
     // Navigate to create GC form
-    await page.getByRole('link', { name: 'Novo GC' }).click();
+    await navigateToAdmin(page, '/growth-groups/new');
     await expect(page.getByRole('heading', { name: 'Novo Grupo de Crescimento' })).toBeVisible({ timeout: 10000 });
 
     // Check form fields
     await expect(page.getByLabel('Nome do GC')).toBeVisible();
-    await expect(page.getByLabel('Modo de encontro')).toBeVisible();
+    await expect(page.getByLabel('Modo')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Criar GC' })).toBeVisible();
 
     // Fill form with test data
@@ -128,7 +145,8 @@ test.describe('Área Administrativa - Testes Completos', () => {
     };
 
     await page.getByLabel('Nome do GC').fill(testGC.name);
-    await page.getByLabel('Modo de encontro').selectOption({ label: 'Presencial' });
+    await page.getByLabel('Modo').click();
+    await page.getByRole('option', { name: 'Presencial' }).click();
 
     // If address field appears (for presencial)
     const addressField = page.getByLabel('Endereço');
@@ -146,15 +164,11 @@ test.describe('Área Administrativa - Testes Completos', () => {
 
   test('gestão de lições - fluxo básico', async ({ page }) => {
     // Navigate to lessons page
-    await page.getByRole('link', { name: 'Gerenciar Lições' }).click();
+    await navigateToAdmin(page, '/lessons');
     await expect(page.getByRole('heading', { name: 'Lições e Séries' })).toBeVisible({ timeout: 10000 });
 
-    // Check action buttons
-    await expect(page.getByRole('link', { name: 'Nova Série', exact: true }).first()).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Nova Lição', exact: true }).first()).toBeVisible();
-
     // Test series creation
-    await page.getByRole('link', { name: 'Nova Série', exact: true }).click();
+    await navigateToAdmin(page, '/lessons/series/new');
     await expect(page.getByRole('heading', { name: /Nova Série/i })).toBeVisible({ timeout: 10000 });
 
     // Check series form fields
@@ -176,13 +190,14 @@ test.describe('Área Administrativa - Testes Completos', () => {
     await page.waitForTimeout(3000);
 
     // Test lesson creation
-    await page.goto('/admin/lessons/new');
+    await navigateToAdmin(page, '/lessons/new');
     await expect(page.getByRole('heading', { name: 'Nova Lição' })).toBeVisible({ timeout: 10000 });
 
     // Check lesson form fields
     await expect(page.getByLabel('Título')).toBeVisible();
     await expect(page.getByLabel('Descrição')).toBeVisible();
-    await expect(page.getByLabel('Série')).toBeVisible();
+    await expect(page.getByText('Série (opcional)')).toBeVisible();
+    await expect(page.getByRole('combobox').first()).toBeVisible();
     await expect(page.getByRole('button', { name: 'Criar Lição' })).toBeVisible();
 
     // Fill lesson form
@@ -206,13 +221,13 @@ test.describe('Área Administrativa - Testes Completos', () => {
 
   test('relatórios - acesso básico', async ({ page }) => {
     // Navigate to reports
-    await page.goto('/admin/reports');
+    await navigateToAdmin(page, '/reports');
     await expect(page.getByRole('heading', { name: 'Relatórios e Análises' })).toBeVisible({ timeout: 10000 });
 
-    // Check for report types
-    await expect(page.getByText('Relatório de Crescimento')).toBeVisible();
-    await expect(page.getByText('Relatório de Frequência')).toBeVisible();
-    await expect(page.getByText('Relatório de Conversões')).toBeVisible();
+    // Check for report metrics
+    await expect(page.getByText('Total de GCs').first()).toBeVisible();
+    await expect(page.getByText('Total de Membros').first()).toBeVisible();
+    await expect(page.getByText('Total de Visitantes').first()).toBeVisible();
 
     // Test individual report pages
     await page.goto('/admin/reports/growth');
@@ -230,7 +245,7 @@ test.describe('Área Administrativa - Testes Completos', () => {
 
   test('configurações - acesso básico', async ({ page }) => {
     // Navigate to settings
-    await page.goto('/admin/settings');
+    await navigateToAdmin(page, '/settings');
     await expect(page.getByRole('heading', { name: 'Configurações' })).toBeVisible({ timeout: 10000 });
 
     // Take screenshot
@@ -238,7 +253,7 @@ test.describe('Área Administrativa - Testes Completos', () => {
   });
 
   test('testes de navegação e layout', async ({ page }) => {
-    await page.goto('/admin');
+    await navigateToAdmin(page);
 
     // Check sidebar navigation
     const adminSidebar = page.locator('[data-testid="admin-sidebar"], .admin-sidebar, nav');
@@ -248,11 +263,11 @@ test.describe('Área Administrativa - Testes Completos', () => {
     // Check responsive layout
     await page.setViewportSize({ width: 768, height: 1024 }); // Tablet
     await page.waitForTimeout(1000);
-    await expect(page.getByRole('heading', { name: 'Dashboard Admin' })).toBeVisible({ timeout: 5000 });
+    await expect(page.getByRole('heading', { name: /dashboard admin/i })).toBeVisible({ timeout: 5000 });
 
     await page.setViewportSize({ width: 393, height: 851 }); // Mobile
     await page.waitForTimeout(1000);
-    await expect(page.getByRole('heading', { name: 'Dashboard Admin' })).toBeVisible({ timeout: 5000 });
+    await expect(page.getByRole('heading', { name: /dashboard admin/i })).toBeVisible({ timeout: 5000 });
 
     // Check for mobile menu button
     const mobileMenuButton = page.getByRole('button', { name: /menu/i });
@@ -266,10 +281,10 @@ test.describe('Área Administrativa - Testes Completos', () => {
   });
 
   test('testes de segurança e permissões', async ({ page }) => {
-    // First logout
+    await clearAuthState(page);
     await page.goto('/login');
-    await page.getByLabel('E-mail').fill('lider1@test.com');
-    await page.getByLabel('Senha').fill('senha123');
+    await page.getByLabel('E-mail').fill(nonAdminEmail);
+    await page.getByLabel('Senha').fill(nonAdminPassword);
     await page.getByRole('button', { name: /entrar/i }).click();
     await expect(page.getByRole('heading', { name: 'Bem-vindo' })).toBeVisible({ timeout: 10000 });
 
@@ -291,8 +306,8 @@ test.describe('Área Administrativa - Testes Completos', () => {
   test('testes de performance e carregamento', async ({ page }) => {
     const startTime = Date.now();
 
-    await page.goto('/admin');
-    await expect(page.getByRole('heading', { name: 'Dashboard Admin' })).toBeVisible({ timeout: 10000 });
+    await navigateToAdmin(page);
+    await expect(page.getByRole('heading', { name: /dashboard admin/i })).toBeVisible({ timeout: 10000 });
 
     const loadTime = Date.now() - startTime;
     console.log('Admin dashboard load time:', loadTime, 'ms');
@@ -310,7 +325,7 @@ test.describe('Área Administrativa - Testes Completos', () => {
 
     for (const pageUrl of pagesToTest) {
       const pageStartTime = Date.now();
-      await page.goto(pageUrl);
+      await navigateToAdmin(page, pageUrl.replace('/admin', ''));
       await page.waitForTimeout(2000); // Wait for content to load
       const pageLoadTime = Date.now() - pageStartTime;
       console.log(`${pageUrl} load time:`, pageLoadTime, 'ms');

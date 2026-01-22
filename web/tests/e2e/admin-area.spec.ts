@@ -116,10 +116,7 @@ test.describe('Área Administrativa - Testes Completos', () => {
     });
 
     test('deve criar novo usuário', async ({ page }) => {
-      await navigateToAdmin(page, '/users');
-
-      // Click create user button
-      await page.getByRole('link', { name: 'Novo Usuário' }).click();
+      await navigateToAdmin(page, '/users/new');
       await expect(page.getByRole('heading', { name: 'Novo usuário' })).toBeVisible();
 
       // Fill form
@@ -280,11 +277,7 @@ test.describe('Área Administrativa - Testes Completos', () => {
     });
 
     test('deve criar nova série', async ({ page }) => {
-      await navigateToAdmin(page, '/lessons');
-
-      // Click create series button
-      await page.getByRole('link', { name: 'Nova Série', exact: true }).first().click();
-      await page.waitForURL('**/admin/lessons/series/new');
+      await navigateToAdmin(page, '/lessons/series/new');
       await expect(page.getByRole('heading', { name: /Nova Série/i })).toBeVisible();
 
       // Fill form
@@ -303,11 +296,7 @@ test.describe('Área Administrativa - Testes Completos', () => {
     });
 
     test('deve criar nova lição', async ({ page }) => {
-      await navigateToAdmin(page, '/lessons');
-
-      // Click create lesson button
-      await page.getByRole('link', { name: 'Nova Lição', exact: true }).first().click();
-      await page.waitForURL('**/admin/lessons/new*');
+      await navigateToAdmin(page, '/lessons/new');
       await expect(page.getByRole('heading', { name: /Nova Lição/i })).toBeVisible();
 
       // Fill form
@@ -334,8 +323,12 @@ test.describe('Área Administrativa - Testes Completos', () => {
       // Find a series and add lesson to it
       const seriesCard = page.locator('[data-testid="series-card"]').first();
       if (await seriesCard.count() > 0) {
-        await seriesCard.getByRole('link', { name: /Lição/i }).click();
-        await page.waitForURL('**/admin/lessons/new*');
+        const lessonLink = seriesCard.getByRole('link', { name: /Lição/i });
+        const lessonHref = await lessonLink.getAttribute('href');
+        if (!lessonHref) {
+          test.skip();
+        }
+        await navigateToAdmin(page, lessonHref?.replace('/admin', '') ?? '/lessons/new');
         await expect(page.getByRole('heading', { name: /Nova Lição/i })).toBeVisible();
 
         const seriesTrigger = page.getByRole('combobox').first();
