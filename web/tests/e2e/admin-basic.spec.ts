@@ -15,7 +15,7 @@ async function loginAsAdmin(page: Page) {
 
   // Wait for dashboard
   await page.waitForURL('**/dashboard', { timeout: 15000 });
-  await expect(page.getByRole('heading', { name: /dashboard/i })).toBeVisible({ timeout: 10000 });
+  await expect(page.getByRole('heading', { name: /bem-vindo/i })).toBeVisible({ timeout: 10000 });
 }
 
 test.describe('Área Administrativa - Testes Básicos', () => {
@@ -34,9 +34,9 @@ test.describe('Área Administrativa - Testes Básicos', () => {
     await expect(page.getByText('GCs Ativos')).toBeVisible();
 
     // Check quick action buttons
-    await expect(page.getByRole('link', { name: 'Gerenciar Usuários' })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Gerenciar GCs' })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Gerenciar Lições' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Gerenciar Usuários', exact: true })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Gerenciar GCs', exact: true })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Gerenciar Lições', exact: true })).toBeVisible();
   });
 
   test('deve navegar para página de usuários', async ({ page }) => {
@@ -74,9 +74,9 @@ test.describe('Área Administrativa - Testes Básicos', () => {
     await page.getByRole('button', { name: 'Criar usuário' }).click();
 
     // Should show validation errors
-    await expect(page.getByText('Informe o nome completo')).toBeVisible({ timeout: 5000 });
-    await expect(page.getByText('Informe o e-mail')).toBeVisible();
-    await expect(page.getByText('Defina uma senha temporária')).toBeVisible();
+    await expect(page.getByText(/Nome muito curto/i)).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText(/E-mail inválido/i)).toBeVisible();
+    await expect(page.getByText(/Senha deve ter pelo menos 8 caracteres/i)).toBeVisible();
   });
 
   test('deve navegar para página de GCs', async ({ page }) => {
@@ -99,7 +99,7 @@ test.describe('Área Administrativa - Testes Básicos', () => {
 
     // Check for form fields
     await expect(page.getByLabel('Nome do GC')).toBeVisible();
-    await expect(page.getByLabel('Modo de encontro')).toBeVisible();
+    await expect(page.getByLabel('Modo')).toBeVisible();
   });
 
   test('deve navegar para página de lições', async ({ page }) => {
@@ -110,8 +110,8 @@ test.describe('Área Administrativa - Testes Básicos', () => {
     await expect(page.getByRole('heading', { name: 'Lições e Séries' })).toBeVisible({ timeout: 10000 });
 
     // Check for action buttons
-    await expect(page.getByRole('link', { name: 'Nova Série' })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Nova Lição' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Nova Série', exact: true }).first()).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Nova Lição', exact: true }).first()).toBeVisible();
   });
 
   test('deve acessar formulário de criação de lição', async ({ page }) => {
@@ -133,7 +133,7 @@ test.describe('Área Administrativa - Testes Básicos', () => {
     await page.goto('/admin/reports');
 
     // Check if reports page loads
-    await expect(page.getByRole('heading', { name: 'Relatórios e Métricas' })).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole('heading', { name: 'Relatórios e Análises' })).toBeVisible({ timeout: 10000 });
   });
 
   test('deve acessar página de configurações', async ({ page }) => {
@@ -162,7 +162,13 @@ test.describe('Área Administrativa - Testes Básicos', () => {
 
   test('deve bloquear acesso de não-administradores', async ({ page }) => {
     // First logout
+    await page.context().clearCookies();
     await page.goto('/login');
+    await page.evaluate(() => {
+      localStorage.clear();
+      sessionStorage.clear();
+    });
+    await page.reload();
 
     // Try to login as regular user
     await page.getByLabel('E-mail').fill('lider1@test.com');

@@ -15,7 +15,7 @@ export const createSupabaseServerClient = async (cookieStoreArg?: unknown) => {
   // disallowed (this prevents the app from crashing with an unhandled
   // exception). Call-sites that need to modify cookies should pass the
   // `cookies()` store explicitly.
-  const cookieStore = cookieStoreArg ?? (await cookies());
+  const cookieStore = cookieStoreArg ? await Promise.resolve(cookieStoreArg) : await cookies();
   const allowSet = cookieStoreArg != null;
   type CookiePair = { name: string; value: string };
   type CookieStoreLike = { getAll?: () => CookiePair[] | null | Promise<CookiePair[] | null>; set?: (name: string, value: string, options?: Record<string, unknown>) => void };

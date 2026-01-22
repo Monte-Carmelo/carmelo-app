@@ -7,11 +7,14 @@ import { test, expect } from '@playwright/test';
  */
 
 test.describe('T039: Admin Responsiveness', () => {
+  const adminEmail = process.env.E2E_SUPABASE_EMAIL || 'admin@test.com';
+  const adminPassword = process.env.E2E_SUPABASE_PASSWORD || 'senha123';
+
   test.beforeEach(async ({ page }) => {
     // Login as admin
     await page.goto('/login');
-    await page.fill('input[type="email"]', 'admin@exemplo.com');
-    await page.fill('input[type="password"]', 'admin123');
+    await page.fill('input[type="email"]', adminEmail);
+    await page.fill('input[type="password"]', adminPassword);
     await page.click('button[type="submit"]');
     await page.waitForURL('/dashboard', { timeout: 10000 });
   });

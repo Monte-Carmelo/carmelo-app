@@ -48,20 +48,43 @@ async function AdminUserDetailContent({ userId, searchParams }: { userId: string
 
   const supabase = await createSupabaseServerClient();
 
-  const [userResult, groupsResult, rolesResult] = await Promise.all([
+  const userResult = await supabase
+    .from('users')
+    .select(
+      `id, person_id, is_admin,
+       people:person_id ( id, name, email, phone )`
+    )
+    .eq('id', userId)
+    .is('deleted_at', null)
+    .maybeSingle();
+
+  if (userResult.error) {
+    throw userResult.error;
+  }
+
+  if (!userResult.data) {
+    notFound();
+  }
+
+  const user = {
+    ...userResult.data,
+    assignments: [],
+  } as UserRow;
+  const person = user.people;
+
+  if (!person) {
+    throw new Error('Registro de pessoa não encontrado para o usuário.');
+  }
+
+  const [assignmentsResult, groupsResult, rolesResult] = await Promise.all([
     supabase
-      .from('users')
+      .from('growth_group_participants')
       .select(
-        `id, person_id, is_admin,
-         people:person_id ( id, name, email, phone ),
-         assignments:growth_group_participants!growth_group_participants_person_id_fkey (
-           id, gc_id, role, status, deleted_at,
-           growth_groups ( id, name )
-         )`
+        `id, gc_id, role, status, deleted_at,
+         growth_groups ( id, name )`
       )
-      .eq('id', userId)
-      .is('deleted_at', null)
-      .maybeSingle(),
+      .eq('person_id', person.id)
+      .is('deleted_at', null),
     supabase
       .from('growth_groups')
       .select('id, name, status')
@@ -73,20 +96,10 @@ async function AdminUserDetailContent({ userId, searchParams }: { userId: string
       .order('name', { ascending: true }),
   ]);
 
-  if (userResult.error) {
-    throw userResult.error;
+  if (assignmentsResult.error) {
+    throw assignmentsResult.error;
   }
-
-  if (!userResult.data) {
-    notFound();
-  }
-
-  const user = userResult.data as UserRow;
-  const person = user.people;
-
-  if (!person) {
-    throw new Error('Registro de pessoa não encontrado para o usuário.');
-  }
+  user.assignments = (assignmentsResult.data ?? []) as UserRow['assignments'];
 
   if (groupsResult.error) {
     throw groupsResult.error;

@@ -17,7 +17,7 @@ async function AdminSeriesNewContent() {
         </p>
       </div>
 
-      <AdminSeriesForm onSubmit={createSeriesAction} onCancel={() => redirect('/admin/lessons')} />
+      <AdminSeriesForm onSubmit={createSeriesAction} />
     </div>
   );
 }

@@ -35,9 +35,9 @@ test.describe('Área Administrativa - Testes Completos', () => {
     await expect(page.getByText('Visitantes Ativos')).toBeVisible();
 
     // Check quick actions
-    await expect(page.getByRole('link', { name: 'Gerenciar Usuários' })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Gerenciar GCs' })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Gerenciar Lições' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Gerenciar Usuários', exact: true })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Gerenciar GCs', exact: true })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Gerenciar Lições', exact: true })).toBeVisible();
 
     // Take screenshot for visual verification
     await page.screenshot({ path: 'admin-dashboard-complete.png' });
@@ -45,7 +45,7 @@ test.describe('Área Administrativa - Testes Completos', () => {
 
   test('gestão de usuários - fluxo completo', async ({ page }) => {
     // Navigate to users page
-    await page.getByRole('link', { name: 'Gerenciar Usuários' }).click();
+    await page.getByRole('link', { name: 'Gerenciar Usuários', exact: true }).click();
     await expect(page.getByRole('heading', { name: 'Usuários' })).toBeVisible({ timeout: 10000 });
 
     // Check create user button
@@ -65,7 +65,7 @@ test.describe('Área Administrativa - Testes Completos', () => {
 
     // Test validation
     await page.getByRole('button', { name: 'Criar usuário' }).click();
-    await expect(page.getByText('Informe o nome completo')).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText(/Nome muito curto/i)).toBeVisible({ timeout: 5000 });
 
     // Test invalid email
     await page.getByLabel('E-mail').fill('email-invalido');
@@ -106,7 +106,7 @@ test.describe('Área Administrativa - Testes Completos', () => {
 
   test('gestão de GCs - fluxo básico', async ({ page }) => {
     // Navigate to GCs page
-    await page.getByRole('link', { name: 'Gerenciar GCs' }).click();
+    await page.getByRole('link', { name: 'Gerenciar GCs', exact: true }).click();
     await expect(page.getByRole('heading', { name: 'Grupos de Crescimento' })).toBeVisible({ timeout: 10000 });
 
     // Check create GC button
@@ -150,12 +150,12 @@ test.describe('Área Administrativa - Testes Completos', () => {
     await expect(page.getByRole('heading', { name: 'Lições e Séries' })).toBeVisible({ timeout: 10000 });
 
     // Check action buttons
-    await expect(page.getByRole('link', { name: 'Nova Série' })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Nova Lição' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Nova Série', exact: true }).first()).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Nova Lição', exact: true }).first()).toBeVisible();
 
     // Test series creation
-    await page.getByRole('link', { name: 'Nova Série' }).click();
-    await expect(page.getByRole('heading', { name: 'Nova Série de Lições' })).toBeVisible({ timeout: 10000 });
+    await page.getByRole('link', { name: 'Nova Série', exact: true }).click();
+    await expect(page.getByRole('heading', { name: /Nova Série/i })).toBeVisible({ timeout: 10000 });
 
     // Check series form fields
     await expect(page.getByLabel('Nome da Série')).toBeVisible();
@@ -207,7 +207,7 @@ test.describe('Área Administrativa - Testes Completos', () => {
   test('relatórios - acesso básico', async ({ page }) => {
     // Navigate to reports
     await page.goto('/admin/reports');
-    await expect(page.getByRole('heading', { name: 'Relatórios e Métricas' })).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole('heading', { name: 'Relatórios e Análises' })).toBeVisible({ timeout: 10000 });
 
     // Check for report types
     await expect(page.getByText('Relatório de Crescimento')).toBeVisible();

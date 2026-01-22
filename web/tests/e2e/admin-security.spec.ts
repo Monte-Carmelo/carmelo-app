@@ -146,8 +146,8 @@ test.describe('T040: Admin Security', () => {
   test('should maintain security across browser refresh', async ({ page }) => {
     // Login as non-admin
     await page.goto('/login');
-    await page.fill('input[type="email"]', 'user@exemplo.com');
-    await page.fill('input[type="password"]', 'user123');
+    await page.fill('input[type="email"]', nonAdminEmail);
+    await page.fill('input[type="password"]', nonAdminPassword);
     await page.click('button[type="submit"]');
     await page.waitForURL('/dashboard', { timeout: 10000 });
 
@@ -181,8 +181,8 @@ test.describe('T040: Admin Security', () => {
   test('should handle logout and prevent admin access', async ({ page }) => {
     // Login as admin
     await page.goto('/login');
-    await page.fill('input[type="email"]', 'admin@exemplo.com');
-    await page.fill('input[type="password"]', 'admin123');
+    await page.fill('input[type="email"]', adminEmail);
+    await page.fill('input[type="password"]', adminPassword);
     await page.click('button[type="submit"]');
     await page.waitForURL('/dashboard', { timeout: 10000 });
 
