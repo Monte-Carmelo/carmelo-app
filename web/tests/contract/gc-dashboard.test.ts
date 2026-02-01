@@ -1,7 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { supabase } from '../supabase';
+import { supabase, supabaseReachable } from '../supabase';
 
-describe('GC Dashboard Contract Tests', () => {
+const describeIf = supabaseReachable ? describe : describe.skip;
+
+describeIf('GC Dashboard Contract Tests', () => {
   it('should fetch GCs for a user', async () => {
     // This test assumes that there is a user in the database with at least one GC.
     // We will fetch the GCs for the first user we find.

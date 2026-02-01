@@ -3,7 +3,7 @@
 **Feature Branch**: `003-vamos-ajustar-a`
 **Created**: 2025-10-18
 **Status**: Draft
-**Input**: User description: "vamos ajustar a navegação/identidade visual do app com base no @refs/prototype.png. Dentro de @refs/assets/ temos alguns exemplos de logo que você pode utilizar (copiando para a pasta correta). Importante, deve ser trabalhado apenas o app web react, não o flutter"
+**Input**: User description: "vamos ajustar a navegação/identidade visual do app com base no @refs/prototype.png. Dentro de @refs/assets/ temos alguns exemplos de logo que você pode utilizar (copiando para a pasta correta). Importante, deve ser trabalhado apenas o app web react."
 **Language**: Brazilian Portuguese (pt-BR) - per Constitution Principle VI
 
 ## Execution Flow (main)
@@ -14,7 +14,7 @@
    → Actors: All users of the web application
    → Actions: View brand identity, navigate through application
    → Data: Logo assets, color scheme, layout structure
-   → Constraints: Web React app only (not Flutter)
+   → Constraints: Web React app only
 3. For each unclear aspect:
    → [NEEDS CLARIFICATION: Which specific logo variant should be primary?]
    → [NEEDS CLARIFICATION: Should the dashboard cards layout match prototype exactly?]

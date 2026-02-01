@@ -1,7 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { supabase } from '../supabase';
+import { supabase, supabaseReachable } from '../supabase';
 
-describe('Meetings Contract Tests', () => {
+const describeIf = supabaseReachable ? describe : describe.skip;
+
+describeIf('Meetings Contract Tests', () => {
   it('should create a new meeting', async () => {
     const { data: gcs, error: gcsError } = await supabase.from('growth_groups').select('id').limit(1);
     expect(gcsError).toBeNull();

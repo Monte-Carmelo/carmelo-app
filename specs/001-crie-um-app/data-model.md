@@ -1367,8 +1367,8 @@ SELECT EXISTS (
     AND gpr.deleted_at IS NULL
 ) AS is_leader;
 
--- Supabase (Flutter/Dart)
-final isLeader = await supabase
+-- Supabase (web/TypeScript)
+const { data: isLeader } = await supabase
   .from('growth_group_participants')
   .select('gc_id')
   .eq('role', 'leader')
@@ -1531,22 +1531,22 @@ JOIN people p ON p.id = u.person_id
 WHERE u.deleted_at IS NULL;
 ```
 
-Uso no app (exemplo Flutter):
+Uso no app (exemplo web):
 
-```dart
-final userRoles = await supabase
+```ts
+const { data: userRoles } = await supabase
   .from('user_gc_roles')
-  .select()
+  .select('*')
   .eq('user_id', currentUserId)
   .single();
 
-if (userRoles['is_leader']) {
+if (userRoles?.is_leader) {
   // Mostrar botão "Registrar Reunião"
 }
-if (userRoles['is_supervisor']) {
+if (userRoles?.is_supervisor) {
   // Mostrar dashboard "Minha Rede"
 }
-if (userRoles['is_coordinator']) {
+if (userRoles?.is_coordinator) {
   // Mostrar organograma
 }
 ```

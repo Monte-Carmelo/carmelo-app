@@ -62,6 +62,8 @@ export default function AttendanceReportsPage() {
       const startDate = new Date();
       startDate.setDate(startDate.getDate() - parseInt(selectedPeriod));
 
+      const startDateIso = startDate.toISOString();
+
       // Fetch attendance data
       const [
         meetingsResult,
@@ -72,8 +74,8 @@ export default function AttendanceReportsPage() {
         // Total meetings in period
         supabase
           .from('meetings')
-          .select('id, gc_id')
-          .gte('datetime', startDate.toISOString())
+          .select('id, gc_id, datetime')
+          .gte('datetime', startDateIso)
           .is('deleted_at', null),
 
         // Attendance records
@@ -81,21 +83,19 @@ export default function AttendanceReportsPage() {
           .from('meeting_member_attendance')
           .select(`
             id,
-            meetings!inner(id, gc_id, datetime),
-            growth_group_participants!inner(
-              gc_id,
-              status
-            )
+            participant_id,
+            meetings!inner(id, gc_id, datetime, deleted_at)
           `)
-          .gte('meetings.datetime', startDate.toISOString())
-          .eq('growth_group_participants.status', 'active'),
+          .gte('meetings.datetime', startDateIso)
+          .is('meetings.deleted_at', null),
 
         // GC members for calculating possible attendances
         supabase
           .from('growth_group_participants')
           .select(`
+            id,
             gc_id,
-            growth_groups!inner(name, deleted_at)
+            people ( name )
           `)
           .eq('status', 'active')
           .is('deleted_at', null),
@@ -108,17 +108,121 @@ export default function AttendanceReportsPage() {
           .is('deleted_at', null),
       ]);
 
-      // Process data (using mock data for demonstration)
-      const processedData = processAttendanceData(
-        meetingsResult.data || [],
-        attendancesResult.data || [],
-        gcMembersResult.data || [],
-        gcInfoResult.data || []
-      );
+      if (meetingsResult.error || attendancesResult.error || gcMembersResult.error || gcInfoResult.error) {
+        throw meetingsResult.error || attendancesResult.error || gcMembersResult.error || gcInfoResult.error;
+      }
 
-      setMetrics(processedData.metrics);
-      setGCAttendanceData(processedData.gcAttendance);
-      setMemberAttendanceData(processedData.memberAttendance);
+      const meetings = meetingsResult.data || [];
+      const attendances = attendancesResult.data || [];
+      const members = gcMembersResult.data || [];
+      const gcs = gcInfoResult.data || [];
+
+      const gcNameById = new Map(gcs.map((gc) => [gc.id, gc.name]));
+
+      const meetingCountByGc = new Map<string, number>();
+      meetings.forEach((meeting) => {
+        if (!meeting.gc_id) return;
+        meetingCountByGc.set(meeting.gc_id, (meetingCountByGc.get(meeting.gc_id) || 0) + 1);
+      });
+
+      const attendanceCountByGc = new Map<string, number>();
+      const attendanceCountByParticipant = new Map<string, number>();
+
+      attendances.forEach((attendance) => {
+        const meeting = attendance.meetings;
+        if (!meeting?.gc_id) return;
+        attendanceCountByGc.set(meeting.gc_id, (attendanceCountByGc.get(meeting.gc_id) || 0) + 1);
+        if (attendance.participant_id) {
+          attendanceCountByParticipant.set(
+            attendance.participant_id,
+            (attendanceCountByParticipant.get(attendance.participant_id) || 0) + 1,
+          );
+        }
+      });
+
+      const membersByGc = new Map<string, number>();
+      const memberInfoById = new Map<string, { name: string; gcId: string; gcName: string }>();
+
+      members.forEach((member) => {
+        if (!member.gc_id || !member.id) return;
+        membersByGc.set(member.gc_id, (membersByGc.get(member.gc_id) || 0) + 1);
+        memberInfoById.set(member.id, {
+          name: member.people?.name || 'Membro',
+          gcId: member.gc_id,
+          gcName: gcNameById.get(member.gc_id) || 'GC desconhecido',
+        });
+      });
+
+      const gcIds = new Set<string>([
+        ...gcNameById.keys(),
+        ...meetingCountByGc.keys(),
+        ...membersByGc.keys(),
+      ]);
+
+      const gcAttendance = Array.from(gcIds).map((gcId) => {
+        const totalMeetings = meetingCountByGc.get(gcId) || 0;
+        const totalAttendances = attendanceCountByGc.get(gcId) || 0;
+        const membersCount = membersByGc.get(gcId) || 0;
+        const possible = totalMeetings * membersCount;
+        return {
+          gcName: gcNameById.get(gcId) || 'GC desconhecido',
+          totalMeetings,
+          totalAttendances,
+          attendanceRate: possible > 0 ? (totalAttendances / possible) * 100 : 0,
+          membersCount,
+        };
+      });
+
+      const memberAttendance = Array.from(memberInfoById.entries()).map(([memberId, info]) => {
+        const attendedMeetings = attendanceCountByParticipant.get(memberId) || 0;
+        const totalMeetings = meetingCountByGc.get(info.gcId) || 0;
+        return {
+          memberName: info.name,
+          gcName: info.gcName,
+          attendedMeetings,
+          totalMeetings,
+          attendanceRate: totalMeetings > 0 ? (attendedMeetings / totalMeetings) * 100 : 0,
+        };
+      });
+
+      const totalMeetings = meetings.length;
+      const totalAttendances = attendances.length;
+      const totalPossibleAttendances = Array.from(gcIds).reduce((acc, gcId) => {
+        const possible = (membersByGc.get(gcId) || 0) * (meetingCountByGc.get(gcId) || 0);
+        return acc + possible;
+      }, 0);
+
+      const filteredGcAttendance = gcAttendance.filter((gc) => gc.totalMeetings > 0 && gc.membersCount > 0);
+      const mostAttendedGC = filteredGcAttendance
+        .slice()
+        .sort((a, b) => b.attendanceRate - a.attendanceRate)[0]?.gcName || '';
+      const leastAttendedGC = filteredGcAttendance
+        .slice()
+        .sort((a, b) => a.attendanceRate - b.attendanceRate)[0]?.gcName || '';
+
+      const membersWithMeetings = memberAttendance.filter((member) => member.totalMeetings > 0);
+      const topAttendee = membersWithMeetings
+        .slice()
+        .sort((a, b) => b.attendanceRate - a.attendanceRate)[0]?.memberName || '';
+      const lowAttendee = membersWithMeetings
+        .slice()
+        .sort((a, b) => a.attendanceRate - b.attendanceRate)[0]?.memberName || '';
+
+      setMetrics({
+        totalMeetings,
+        totalAttendances,
+        totalPossibleAttendances,
+        overallAttendanceRate: totalPossibleAttendances > 0
+          ? Math.round((totalAttendances / totalPossibleAttendances) * 1000) / 10
+          : 0,
+        mostAttendedGC,
+        leastAttendedGC,
+        topAttendee,
+        lowAttendee,
+      });
+
+      setGCAttendanceData(gcAttendance);
+      setMemberAttendanceData(memberAttendance);
 
     } catch (error) {
       console.error('Error fetching attendance data:', error);
@@ -127,55 +231,6 @@ export default function AttendanceReportsPage() {
       setLoading(false);
     }
   }, [period]);
-
-  const processAttendanceData = (
-    meetings: unknown[],
-    attendances: unknown[],
-    gcMembers: unknown[],
-    gcInfo: unknown[]
-  ) => {
-    // Mock data for demonstration - in production, this would process real data
-    const mockGCAttendance: GCAttendance[] = [
-      { gcName: 'GC Jovens - Vila Madalena', totalMeetings: 12, totalAttendances: 45, attendanceRate: 93.8, membersCount: 12 },
-      { gcName: 'GC Famílias - Moema', totalMeetings: 11, totalAttendances: 88, attendanceRate: 89.8, membersCount: 15 },
-      { gcName: 'GC Universitários - Butantã', totalMeetings: 12, totalAttendances: 72, attendanceRate: 85.7, membersCount: 14 },
-      { gcName: 'GC Adolescentes - Ibirapuera', totalMeetings: 10, totalAttendances: 54, attendanceRate: 90.0, membersCount: 10 },
-      { gcName: 'GC Casais - Pinheiros', totalMeetings: 11, totalAttendances: 42, attendanceRate: 76.4, membersCount: 8 },
-    ];
-
-    const mockMemberAttendance: MemberAttendance[] = [
-      { memberName: 'João Silva', gcName: 'GC Jovens - Vila Madalena', attendedMeetings: 12, totalMeetings: 12, attendanceRate: 100 },
-      { memberName: 'Maria Santos', gcName: 'GC Jovens - Vila Madalena', attendedMeetings: 11, totalMeetings: 12, attendanceRate: 91.7 },
-      { memberName: 'Pedro Costa', gcName: 'GC Famílias - Moema', attendedMeetings: 10, totalMeetings: 11, attendanceRate: 90.9 },
-      { memberName: 'Ana Oliveira', gcName: 'GC Universitários - Butantã', attendedMeetings: 8, totalMeetings: 12, attendanceRate: 66.7 },
-      { memberName: 'Carlos Mendes', gcName: 'GC Casais - Pinheiros', attendedMeetings: 6, totalMeetings: 11, attendanceRate: 54.5 },
-    ];
-
-    const totalMeetings = meetings.length || 56; // Mock
-    const totalAttendances = attendances.length || 301; // Mock
-    const totalMembers = gcMembers.length || 45;
-    const totalPossibleAttendances = totalMembers * (totalMeetings || 12);
-    const gcNames = gcInfo
-      .map((gc) => (gc && typeof gc === 'object' && 'name' in gc ? (gc as { name?: string }).name : undefined))
-      .filter((name): name is string => Boolean(name));
-    const fallbackMostAttended = gcNames[0] || 'GC Jovens - Vila Madalena';
-    const fallbackLeastAttended = gcNames[gcNames.length - 1] || 'GC Casais - Pinheiros';
-
-    return {
-      metrics: {
-        totalMeetings,
-        totalAttendances,
-        totalPossibleAttendances,
-        overallAttendanceRate: Math.round((totalAttendances / totalPossibleAttendances) * 100 * 10) / 10,
-        mostAttendedGC: fallbackMostAttended,
-        leastAttendedGC: fallbackLeastAttended,
-        topAttendee: 'João Silva',
-        lowAttendee: 'Carlos Mendes',
-      },
-      gcAttendance: mockGCAttendance,
-      memberAttendance: mockMemberAttendance,
-    };
-  };
 
   useEffect(() => {
     fetchAttendanceData();

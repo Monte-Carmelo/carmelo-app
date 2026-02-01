@@ -19,7 +19,9 @@ Aplicação Next.js 15 (App Router) com Supabase SSR e React Query. Design mobil
   - `/meetings` – lista reuniões recentes com contagem de presenças; filtro por GC.
   - `/meetings/new` – **MeetingForm** completo (GC pré-selecionado via query opcional) para registrar reunião com lição de catálogo ou título custom, e presenças de membros/visitantes.
   - `/meetings/[id]` e `/meetings/[id]/edit` – rotas stub/placeholder.
-  - `/lessons`, `/supervision`, `/admin` – placeholders ou primeiras versões de layout.
+  - `/lessons` – catálogo de lições (últimas séries) com links e detalhes.
+  - `/supervision` – painel de métricas por GC para supervisores/coordenadores.
+  - `/admin` – área administrativa (dashboard, usuários, GCs, lições, eventos, relatórios e configurações).
   - `/events` – lista eventos (usa server action `listEventsAction`), filtragem por ano/futuro.
   - `/docs/roadmap` – roadmap textual das sprints planejadas.
 
@@ -33,7 +35,6 @@ Aplicação Next.js 15 (App Router) com Supabase SSR e React Query. Design mobil
 - **MeetingFormLoader** (`/meetings/new/page.tsx`) usa `session.user.id` mas `session` não está definido; deve usar o `user` autenticado obtido na função ou passar `session` via contexto.
 - **GC detail**: rotas `/gc/{id}` não existem — links criam 404.
 - **Eventos públicos**: landing sugere “Ver Eventos”, mas rota `/events` exige autenticação (redireciona para login).
-- **Teste Vitest** (`src/app/page.test.tsx`) falha: espera heading “gestão dos grupos de crescimento”, mas título atual é “Sistema de Gestão de Grupos de Crescimento”.
 - **RLS/Permissões**: rely nas policies Supabase; revisar impacto da migration `015_disable_rls_for_tests.sql` antes de usar em produção.
 
 ## Como rodar localmente

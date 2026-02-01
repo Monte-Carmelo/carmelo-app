@@ -50,7 +50,7 @@ Atualização da identidade visual da aplicação web para refletir a marca "Igr
 - Largura mínima suportada: 320px
 - Sem requisitos formais WCAG (alt text obrigatório, legibilidade razoável)
 - Inspiração no protótipo sem cópia exata
-- Web React apenas (Flutter não afetado)
+- Web React apenas (mobile fora de escopo)
 
 **Scale/Scope**:
 - 4 páginas principais afetadas: login, dashboard home (nova), GCs list (movida), header global

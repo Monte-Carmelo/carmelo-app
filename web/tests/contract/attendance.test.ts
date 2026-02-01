@@ -1,7 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { supabase } from '../supabase';
+import { supabase, supabaseReachable } from '../supabase';
 
-describe('Attendance Contract Tests', () => {
+const describeIf = supabaseReachable ? describe : describe.skip;
+
+describeIf('Attendance Contract Tests', () => {
   it('should mark a member as present', async () => {
     const { data: meetings, error: meetingsError } = await supabase.from('meetings').select('id').limit(1);
     expect(meetingsError).toBeNull();

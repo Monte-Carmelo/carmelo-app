@@ -46,15 +46,70 @@ export default function ReportsPage() {
   const [topGCsData, setTopGCsData] = useState<TopGCData[]>([]);
   const [period, setPeriod] = useState('90');
 
+  const formatMonthLabel = (date: Date) => {
+    const formatted = new Intl.DateTimeFormat('pt-BR', { month: 'short', year: 'numeric' }).format(date);
+    return formatted.replace('.', '').replace(' de ', '/');
+  };
+
+  const getMonthKey = (date: Date) => (
+    `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+  );
+
+  const buildMonthBuckets = (start: Date, end: Date) => {
+    const buckets: { key: string; label: string; date: Date }[] = [];
+    const cursor = new Date(start.getFullYear(), start.getMonth(), 1);
+    const endCursor = new Date(end.getFullYear(), end.getMonth(), 1);
+
+    while (cursor <= endCursor) {
+      buckets.push({
+        key: getMonthKey(cursor),
+        label: formatMonthLabel(cursor),
+        date: new Date(cursor),
+      });
+      cursor.setMonth(cursor.getMonth() + 1);
+    }
+
+    return buckets;
+  };
+
   const fetchReportsData = useCallback(async (selectedPeriod = period) => {
     setLoading(true);
     const supabase = getSupabaseBrowserClient();
 
     try {
-      // Calculate date range
       const now = new Date();
-      const daysAgo = new Date(now.getTime() - parseInt(selectedPeriod) * 24 * 60 * 60 * 1000);
-      const startDate = daysAgo.toISOString();
+      const isAllPeriod = selectedPeriod === 'all';
+      const days = isAllPeriod ? null : parseInt(selectedPeriod);
+      const startDate = isAllPeriod ? null : new Date(now.getTime() - (days ?? 0) * 24 * 60 * 60 * 1000);
+      const startDateIso = startDate?.toISOString() ?? null;
+
+      const membersPeriodQuery = supabase
+        .from('growth_group_participants')
+        .select('joined_at')
+        .is('deleted_at', null);
+
+      const gcsPeriodQuery = supabase
+        .from('growth_groups')
+        .select('created_at')
+        .is('deleted_at', null);
+
+      const visitorsQuery = supabase
+        .from('visitors')
+        .select('id', { count: 'exact', head: true })
+        .is('deleted_at', null);
+
+      const convertedVisitorsQuery = supabase
+        .from('visitors')
+        .select('id', { count: 'exact', head: true })
+        .eq('status', 'converted')
+        .is('deleted_at', null);
+
+      if (startDateIso) {
+        membersPeriodQuery.gte('joined_at', startDateIso);
+        gcsPeriodQuery.gte('created_at', startDateIso);
+        visitorsQuery.gte('created_at', startDateIso);
+        convertedVisitorsQuery.gte('created_at', startDateIso);
+      }
 
       // Fetch metrics in parallel
       const [
@@ -65,7 +120,9 @@ export default function ReportsPage() {
         visitorsResult,
         convertedVisitorsResult,
         modeDistributionResult,
-        topGCsResult
+        topGCsResult,
+        membersPeriodResult,
+        gcsPeriodResult,
       ] = await Promise.all([
         // Total GCs
         supabase
@@ -94,19 +151,10 @@ export default function ReportsPage() {
           .is('deleted_at', null),
 
         // Visitors in period
-        supabase
-          .from('visitors')
-          .select('id', { count: 'exact', head: true })
-          .gte('created_at', startDate)
-          .is('deleted_at', null),
+        visitorsQuery,
 
         // Converted visitors
-        supabase
-          .from('visitors')
-          .select('id', { count: 'exact', head: true })
-          .eq('status', 'converted')
-          .gte('created_at', startDate)
-          .is('deleted_at', null),
+        convertedVisitorsQuery,
 
         // Mode distribution
         supabase
@@ -119,10 +167,18 @@ export default function ReportsPage() {
           .from('growth_groups')
           .select(`
             name,
-            growth_group_participants!inner(id)
+            growth_group_participants!inner(id, status, deleted_at)
           `)
           .eq('status', 'active')
           .is('deleted_at', null)
+          .eq('growth_group_participants.status', 'active')
+          .is('growth_group_participants.deleted_at', null),
+
+        // Members added in selected period
+        membersPeriodQuery,
+
+        // GCs created in selected period
+        gcsPeriodQuery,
       ]);
 
       // Calculate metrics
@@ -176,24 +232,56 @@ export default function ReportsPage() {
         setTopGCsData(topGCs);
       }
 
-      // Generate growth data (simplified for now - in real implementation would use date grouping)
-      const generateGrowthData = () => {
-        const months = [];
-        const now = new Date();
+      const memberDates = (membersPeriodResult.data || [])
+        .map((row) => row.joined_at)
+        .filter((date): date is string => Boolean(date));
+      const gcDates = (gcsPeriodResult.data || [])
+        .map((row) => row.created_at)
+        .filter((date): date is string => Boolean(date));
 
-        for (let i = 5; i >= 0; i--) {
-          const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
-          months.push({
-            month: date.toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' }),
-            members: Math.floor(Math.random() * 50) + 100, // Mock data
-            gcs: Math.floor(Math.random() * 5) + 15, // Mock data
-          });
+      const resolveStartDate = () => {
+        if (startDate) return startDate;
+        const timestamps = [...memberDates, ...gcDates]
+          .map((date) => new Date(date))
+          .filter((date) => !Number.isNaN(date.getTime()))
+          .map((date) => date.getTime());
+        if (timestamps.length === 0) {
+          return new Date(now.getFullYear(), now.getMonth(), 1);
         }
-
-        return months;
+        return new Date(Math.min(...timestamps));
       };
 
-      setGrowthData(generateGrowthData());
+      const growthStartDate = resolveStartDate();
+      const monthBuckets = buildMonthBuckets(growthStartDate, now);
+      const membersByMonth = new Map<string, number>();
+      const gcsByMonth = new Map<string, number>();
+
+      memberDates.forEach((date) => {
+        const key = getMonthKey(new Date(date));
+        membersByMonth.set(key, (membersByMonth.get(key) || 0) + 1);
+      });
+
+      gcDates.forEach((date) => {
+        const key = getMonthKey(new Date(date));
+        gcsByMonth.set(key, (gcsByMonth.get(key) || 0) + 1);
+      });
+
+      const baselineMembers = startDate ? Math.max(0, totalMembers - memberDates.length) : 0;
+      const baselineGcs = startDate ? Math.max(0, totalGcs - gcDates.length) : 0;
+      let runningMembers = baselineMembers;
+      let runningGcs = baselineGcs;
+
+      const computedGrowthData = monthBuckets.map((bucket) => {
+        runningMembers += membersByMonth.get(bucket.key) || 0;
+        runningGcs += gcsByMonth.get(bucket.key) || 0;
+        return {
+          month: bucket.label,
+          members: runningMembers,
+          gcs: runningGcs,
+        };
+      });
+
+      setGrowthData(computedGrowthData);
 
     } catch (error) {
       console.error('Error fetching reports data:', error);

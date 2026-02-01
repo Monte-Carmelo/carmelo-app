@@ -31,6 +31,6 @@
 - Contratos de API: `contracts/` (já atualizados para novos relacionamentos).
 
 ## Próximos Passos
-1. Atualizar `tasks.md` para refletir arquitetura web (tarefas Flutter tornam-se legado).
+1. Atualizar `tasks.md` para refletir arquitetura web (tarefas mobile tornam-se legado).
 2. Adicionar guia de setup rápido (`web/README.md`) — concluído.
 3. Planejar Storybook + testes E2E detalhados em Sprint 2.

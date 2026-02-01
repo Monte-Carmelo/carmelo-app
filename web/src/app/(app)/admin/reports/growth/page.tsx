@@ -46,6 +46,28 @@ export default function GrowthReportsPage() {
     growthRate: 0,
   });
 
+  const formatMonthLabel = (date: Date) => {
+    const formatted = new Intl.DateTimeFormat('pt-BR', { month: 'short', year: 'numeric' }).format(date);
+    return formatted.replace('.', '').replace(' de ', '/');
+  };
+
+  const getMonthKey = (date: Date) => (
+    `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+  );
+
+  const buildMonthBuckets = (start: Date, end: Date) => {
+    const buckets: { key: string; label: string; date: Date }[] = [];
+    const cursor = new Date(start.getFullYear(), start.getMonth(), 1);
+    const endCursor = new Date(end.getFullYear(), end.getMonth(), 1);
+
+    while (cursor <= endCursor) {
+      buckets.push({ key: getMonthKey(cursor), label: formatMonthLabel(cursor), date: new Date(cursor) });
+      cursor.setMonth(cursor.getMonth() + 1);
+    }
+
+    return buckets;
+  };
+
   const fetchGrowthData = useCallback(async (selectedPeriod = period) => {
     setLoading(true);
     const supabase = getSupabaseBrowserClient();
@@ -53,6 +75,9 @@ export default function GrowthReportsPage() {
     try {
       // Calculate date ranges
       const now = new Date();
+      const days = parseInt(selectedPeriod);
+      const periodStartDate = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+      const periodStartIso = periodStartDate.toISOString();
       const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
       // Fetch growth data
@@ -62,7 +87,10 @@ export default function GrowthReportsPage() {
         totalGCsResult,
         newGCsResult,
         multiplicationsResult,
-        newMultiplicationsResult
+        newMultiplicationsResult,
+        membersPeriodResult,
+        gcsPeriodResult,
+        multiplicationsPeriodResult,
       ] = await Promise.all([
         // Total members
         supabase
@@ -94,20 +122,122 @@ export default function GrowthReportsPage() {
           .eq('status', 'active')
           .is('deleted_at', null),
 
-        // Total multiplications (mock)
-        Promise.resolve({ count: 5, error: null } as { count: number | null; error: string | null }),
+        // Total multiplications
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (supabase as any)
+          .from('gc_multiplication_events')
+          .select('id', { count: 'exact', head: true }),
 
-        // New multiplications this month (mock)
-        Promise.resolve({ count: 2, error: null } as { count: number | null; error: string | null }),
+        // New multiplications this month
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (supabase as any)
+          .from('gc_multiplication_events')
+          .select('id', { count: 'exact', head: true })
+          .gte('multiplied_at', thisMonthStart.toISOString()),
+
+        // Members joined in selected period
+        supabase
+          .from('growth_group_participants')
+          .select('joined_at')
+          .eq('status', 'active')
+          .gte('joined_at', periodStartIso)
+          .is('deleted_at', null),
+
+        // GCs created in selected period
+        supabase
+          .from('growth_groups')
+          .select('created_at')
+          .eq('status', 'active')
+          .gte('created_at', periodStartIso)
+          .is('deleted_at', null),
+
+        // Multiplications in selected period
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (supabase as any)
+          .from('gc_multiplication_events')
+          .select('multiplied_at')
+          .gte('multiplied_at', periodStartIso),
       ]);
+
+      if (
+        totalMembersResult.error ||
+        newMembersResult.error ||
+        totalGCsResult.error ||
+        newGCsResult.error ||
+        multiplicationsResult.error ||
+        newMultiplicationsResult.error ||
+        membersPeriodResult.error ||
+        gcsPeriodResult.error ||
+        multiplicationsPeriodResult.error
+      ) {
+        throw (
+          totalMembersResult.error ||
+          newMembersResult.error ||
+          totalGCsResult.error ||
+          newGCsResult.error ||
+          multiplicationsResult.error ||
+          newMultiplicationsResult.error ||
+          membersPeriodResult.error ||
+          gcsPeriodResult.error ||
+          multiplicationsPeriodResult.error
+        );
+      }
 
       // Calculate metrics
       const totalMembers = totalMembersResult.count || 0;
       const totalGCs = totalGCsResult.count || 0;
       const avgMembersPerGC = totalGCs > 0 ? Math.round(totalMembers / totalGCs) : 0;
 
-      // Generate monthly growth data (simplified - would use proper date grouping in production)
-      const monthlyGrowth = generateMonthlyGrowthData(parseInt(selectedPeriod));
+      const memberDates = (membersPeriodResult.data || [])
+        .map((row) => row.joined_at)
+        .filter((date): date is string => Boolean(date));
+      const gcDates = (gcsPeriodResult.data || [])
+        .map((row) => row.created_at)
+        .filter((date): date is string => Boolean(date));
+      const multiplicationDates = (multiplicationsPeriodResult.data || [])
+        .map((row: { multiplied_at?: string | null }) => row.multiplied_at)
+        .filter((date): date is string => Boolean(date));
+
+      const membersByMonth = new Map<string, number>();
+      const gcsByMonth = new Map<string, number>();
+      const multiplicationsByMonth = new Map<string, number>();
+
+      memberDates.forEach((date) => {
+        const key = getMonthKey(new Date(date));
+        membersByMonth.set(key, (membersByMonth.get(key) || 0) + 1);
+      });
+
+      gcDates.forEach((date) => {
+        const key = getMonthKey(new Date(date));
+        gcsByMonth.set(key, (gcsByMonth.get(key) || 0) + 1);
+      });
+
+      multiplicationDates.forEach((date) => {
+        const key = getMonthKey(new Date(date));
+        multiplicationsByMonth.set(key, (multiplicationsByMonth.get(key) || 0) + 1);
+      });
+
+      const baselineMembers = Math.max(0, totalMembers - memberDates.length);
+      const baselineGcs = Math.max(0, totalGCs - gcDates.length);
+      let runningMembers = baselineMembers;
+      let runningGcs = baselineGcs;
+
+      const monthBuckets = buildMonthBuckets(periodStartDate, now);
+      const monthlyGrowth = monthBuckets.map((bucket) => {
+        const newMembers = membersByMonth.get(bucket.key) || 0;
+        const newGCs = gcsByMonth.get(bucket.key) || 0;
+        runningMembers += newMembers;
+        runningGcs += newGCs;
+        return {
+          month: bucket.label,
+          newMembers,
+          totalMembers: runningMembers,
+          newGCs,
+          totalGCs: runningGcs,
+          multiplications: multiplicationsByMonth.get(bucket.key) || 0,
+        };
+      });
+
       setMonthlyData(monthlyGrowth);
 
       setMetrics({
@@ -128,30 +258,6 @@ export default function GrowthReportsPage() {
       setLoading(false);
     }
   }, [period]);
-
-  const generateMonthlyGrowthData = (months: number): MonthlyGrowth[] => {
-    const data: MonthlyGrowth[] = [];
-    const now = new Date();
-
-    for (let i = months - 1; i >= 0; i--) {
-      const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
-
-      // Mock data for demonstration
-      const baseMembers = 100 + (months - i - 1) * 15;
-      const baseGCs = 15 + (months - i - 1) * 2;
-
-      data.push({
-        month: date.toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' }),
-        newMembers: Math.floor(Math.random() * 20) + 5,
-        totalMembers: baseMembers + Math.floor(Math.random() * 30),
-        newGCs: Math.floor(Math.random() * 3) + 1,
-        totalGCs: baseGCs + Math.floor(Math.random() * 5),
-        multiplications: Math.random() > 0.7 ? 1 : 0,
-      });
-    }
-
-    return data;
-  };
 
   const calculateGrowthRate = (data: MonthlyGrowth[]): number => {
     if (data.length < 2) return 0;

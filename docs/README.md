@@ -3,7 +3,7 @@
 Repositório monorepo que combina:
 - **Web Next.js** em `web/` (App Router, React Query, Supabase SSR)
 - **Infra Supabase** em `supabase/` (migrations, seeds e RLS)
-- **Testes de contrato** em `tests/contract/` e especificações em `specs/`
+- **Testes de contrato (web)** em `web/tests/contract/` e especificações em `specs/`
 
 Leituras rápidas:
 - `docs/web.md` — detalhes da aplicação web
@@ -11,9 +11,9 @@ Leituras rápidas:
 
 ## Visão geral rápida
 - Domínio: gestão de Grupos de Crescimento (GCs), reuniões, membros, visitantes, catálogo de lições e eventos da igreja.
-- Autenticação: Supabase Auth (email/senha) + tabela `users` com `person_id`, `is_admin` e hierarquia por `parent_user_id`/`hierarchy_path`.
+- Autenticação: Supabase Auth (email/senha) + tabela `users` com `person_id` e flag `is_admin`.
 - Papéis: líderes, co-líderes (removido em migrations mais recentes), supervisores, coordenadores (hierarquia livre), admins (flag).
-- Principais entidades: `people`, `users`, `growth_groups`, `growth_group_participants`, `members`, `visitors`, `lessons`/`lesson_series`, `meetings`, `meeting_member_attendance`, `meeting_visitor_attendance`, `events`.
+- Principais entidades: `people`, `users`, `growth_groups`, `growth_group_participants`, `visitors`, `lessons`/`lesson_series`, `meetings`, `meeting_member_attendance`, `meeting_visitor_attendance`, `events`.
 
 ## Como levantar o ambiente local (Supabase + Web)
 1) **Supabase**
@@ -28,13 +28,12 @@ Leituras rápidas:
    - `npm run dev`
 
 ## Estado atual resumido
-- **Web Next**: Layout autenticado, dashboards básicos, listagem de GCs, participantes, visitantes e reuniões com formulários server/client. Fluxo de eventos implementado (server actions). Alguns endpoints/rotas incompletos e testes quebrados. Ver `docs/web.md`.
+- **Web Next**: Layout autenticado, dashboards básicos, listagem de GCs, participantes, visitantes e reuniões com formulários server/client. Fluxo de eventos implementado (server actions). Alguns endpoints/rotas ainda incompletos. Ver `docs/web.md`.
 - **Banco**: 20+ migrations, triggers de hierarquia e conversão de visitantes, seeds completas + script adicional para Auth. Migrations recentes adicionam eventos. RLS parcialmente desativado pela migration `015_disable_rls_for_tests.sql` (somente para ambiente de teste). Ver `docs/supabase.md`.
 
 ## Testes
-- **Contrato (Dart)**: em `tests/contract/` — cobrem signup/login/listagem/criação de GCs; T010-T018 pendentes.
-- **Web**: Vitest mínimo (`web/src/app/page.test.tsx`, atualmente falha por texto divergente); Playwright configurado mas sem cenários ativos.
+- **Web**: Vitest e contract tests em `web/tests/contract` (dependem de Supabase local + seed). Playwright configurado; cenários exigem credenciais válidas.
 
 ## Pendências críticas (alto nível)
-- Web: corrigir MeetingFormLoader (usa `session` indefinido), alinhar textos de testes, criar telas de detalhe/edição de GC e revisar proteções de rota `/events` (atualmente autenticada).
+- Web: corrigir MeetingFormLoader (usa `session` indefinido), criar telas de detalhe/edição de GC e revisar proteções de rota `/events` (atualmente autenticada).
 - Supabase: revisar se RLS deve permanecer desligado após testes; confirmar aplicação das migrations e seeds em ambientes reais.

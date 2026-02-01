@@ -1,7 +1,7 @@
 # Decisões de Stack para Web App (React)
 
 **Data**: 2025-10-04  
-**Contexto**: Migração do plano mobile (Flutter) para web responsiva mobile-first, mantendo requisitos funcionais definidos em `spec.md`.
+**Contexto**: Migração do plano mobile para web responsiva mobile-first, mantendo requisitos funcionais definidos em `spec.md`.
 
 ## Objetivos
 - Entregar valor rapidamente com uma superfície web acessível em navegadores mobile e desktop.

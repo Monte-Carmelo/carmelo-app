@@ -59,6 +59,28 @@ export default function ConversionsReportsPage() {
   const [gcConversionData, setGCConversionData] = useState<GCConversions[]>([]);
   const [recentConversions, setRecentConversions] = useState<RecentConversion[]>([]);
 
+  const formatMonthLabel = (date: Date) => {
+    const formatted = new Intl.DateTimeFormat('pt-BR', { month: 'short', year: 'numeric' }).format(date);
+    return formatted.replace('.', '').replace(' de ', '/');
+  };
+
+  const getMonthKey = (date: Date) => (
+    `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+  );
+
+  const buildMonthBuckets = (start: Date, end: Date) => {
+    const buckets: { key: string; label: string }[] = [];
+    const cursor = new Date(start.getFullYear(), start.getMonth(), 1);
+    const endCursor = new Date(end.getFullYear(), end.getMonth(), 1);
+
+    while (cursor <= endCursor) {
+      buckets.push({ key: getMonthKey(cursor), label: formatMonthLabel(cursor) });
+      cursor.setMonth(cursor.getMonth() + 1);
+    }
+
+    return buckets;
+  };
+
   const fetchConversionData = useCallback(async (selectedPeriod = period) => {
     setLoading(true);
     const supabase = getSupabaseBrowserClient();
@@ -66,55 +88,173 @@ export default function ConversionsReportsPage() {
     try {
       const startDate = new Date();
       startDate.setDate(startDate.getDate() - parseInt(selectedPeriod));
+      const startDateIso = startDate.toISOString();
+      const now = new Date();
+      const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
       // Fetch conversion data
       const [
         visitorsResult,
-        conversionsResult,
-        gcVisitorsResult,
-        thisMonthStart
+        conversionsAllResult,
+        conversionsThisMonthResult,
+        recentConversionsResult
       ] = await Promise.all([
         // Total visitors in period
         supabase
           .from('visitors')
-          .select('id, name, gc_id, created_at, status')
-          .gte('created_at', startDate.toISOString())
+          .select(`
+            id,
+            gc_id,
+            status,
+            created_at,
+            converted_at,
+            first_visit_date,
+            people ( name ),
+            growth_groups ( name )
+          `)
+          .gte('created_at', startDateIso)
           .is('deleted_at', null),
 
-        // All conversions (for all-time metrics)
+        // All conversions count (for all-time metrics)
         supabase
           .from('visitors')
-          .select('id, name, gc_id, created_at, status, converted_at')
+          .select('id', { count: 'exact', head: true })
           .eq('status', 'converted')
           .is('deleted_at', null),
 
-        // Visitors by GC for conversion rates
+        // Conversions this month
+        supabase
+          .from('visitors')
+          .select('id', { count: 'exact', head: true })
+          .eq('status', 'converted')
+          .gte('converted_at', thisMonthStart.toISOString())
+          .is('deleted_at', null),
+
+        // Recent conversions
         supabase
           .from('visitors')
           .select(`
-            gc_id,
+            id,
             status,
-            growth_groups!inner(name)
+            created_at,
+            converted_at,
+            first_visit_date,
+            people ( name ),
+            growth_groups ( name )
           `)
-          .gte('created_at', startDate.toISOString())
+          .eq('status', 'converted')
+          .not('converted_at', 'is', null)
+          .order('converted_at', { ascending: false })
+          .limit(5)
           .is('deleted_at', null),
-
-        // This month start date
-        Promise.resolve(new Date(new Date().getFullYear(), new Date().getMonth(), 1))
       ]);
 
-      // Process data (using mock data for demonstration)
-      const processedData = processConversionData(
-        visitorsResult.data || [],
-        conversionsResult.data || [],
-        gcVisitorsResult.data || [],
-        thisMonthStart
-      );
+      if (visitorsResult.error || conversionsAllResult.error || conversionsThisMonthResult.error || recentConversionsResult.error) {
+        throw visitorsResult.error || conversionsAllResult.error || conversionsThisMonthResult.error || recentConversionsResult.error;
+      }
 
-      setMetrics(processedData.metrics);
-      setMonthlyData(processedData.monthlyData);
-      setGCConversionData(processedData.gcConversions);
-      setRecentConversions(processedData.recentConversions);
+      const visitors = visitorsResult.data || [];
+      const convertedVisitors = visitors.filter((visitor) => visitor.status === 'converted' && visitor.converted_at);
+
+      const totalVisitors = visitors.length;
+      const convertedCount = convertedVisitors.length;
+      const conversionRate = totalVisitors > 0
+        ? Math.round((convertedCount / totalVisitors) * 1000) / 10
+        : 0;
+
+      const conversionDays = convertedVisitors
+        .map((visitor) => {
+          const start = visitor.first_visit_date || visitor.created_at;
+          if (!start || !visitor.converted_at) return null;
+          const diffMs = new Date(visitor.converted_at).getTime() - new Date(start).getTime();
+          return Math.max(0, Math.round(diffMs / (1000 * 60 * 60 * 24)));
+        })
+        .filter((value): value is number => value !== null);
+
+      const avgConversionTime = conversionDays.length > 0
+        ? Math.round(conversionDays.reduce((acc, value) => acc + value, 0) / conversionDays.length)
+        : 0;
+
+      const gcTotals = new Map<string, { name: string; total: number; conversions: number }>();
+      visitors.forEach((visitor) => {
+        if (!visitor.gc_id) return;
+        const gcName = visitor.growth_groups?.name || 'GC desconhecido';
+        const entry = gcTotals.get(visitor.gc_id) || { name: gcName, total: 0, conversions: 0 };
+        entry.total += 1;
+        if (visitor.status === 'converted') {
+          entry.conversions += 1;
+        }
+        gcTotals.set(visitor.gc_id, entry);
+      });
+
+      const gcConversions = Array.from(gcTotals.values()).map((entry) => ({
+        gcName: entry.name,
+        totalVisitors: entry.total,
+        conversions: entry.conversions,
+        conversionRate: entry.total > 0 ? (entry.conversions / entry.total) * 100 : 0,
+      }));
+
+      const topConvertingGC = gcConversions
+        .slice()
+        .sort((a, b) => b.conversions - a.conversions)[0]?.gcName || 'Sem dados';
+
+      const monthBuckets = buildMonthBuckets(startDate, now);
+      const visitorsByMonth = new Map<string, number>();
+      const conversionsByMonth = new Map<string, number>();
+
+      visitors.forEach((visitor) => {
+        if (!visitor.created_at) return;
+        const key = getMonthKey(new Date(visitor.created_at));
+        visitorsByMonth.set(key, (visitorsByMonth.get(key) || 0) + 1);
+      });
+
+      convertedVisitors.forEach((visitor) => {
+        if (!visitor.converted_at) return;
+        const key = getMonthKey(new Date(visitor.converted_at));
+        conversionsByMonth.set(key, (conversionsByMonth.get(key) || 0) + 1);
+      });
+
+      const monthlyData = monthBuckets.map((bucket) => {
+        const monthVisitors = visitorsByMonth.get(bucket.key) || 0;
+        const monthConversions = conversionsByMonth.get(bucket.key) || 0;
+        return {
+          month: bucket.label,
+          visitors: monthVisitors,
+          conversions: monthConversions,
+          conversionRate: monthVisitors > 0 ? (monthConversions / monthVisitors) * 100 : 0,
+        };
+      });
+
+      const recentConversionsData = (recentConversionsResult.data || []).map((conversion) => {
+        const start = conversion.first_visit_date || conversion.created_at;
+        const convertedAt = conversion.converted_at ? new Date(conversion.converted_at) : null;
+        const startDateValue = start ? new Date(start) : null;
+        const diffMs = convertedAt && startDateValue
+          ? convertedAt.getTime() - startDateValue.getTime()
+          : 0;
+        return {
+          visitorName: conversion.people?.name || 'Visitante',
+          gcName: conversion.growth_groups?.name || 'GC desconhecido',
+          conversionDate: convertedAt ? convertedAt.toLocaleDateString('pt-BR') : '-',
+          timeAsVisitor: convertedAt && startDateValue
+            ? Math.max(0, Math.round(diffMs / (1000 * 60 * 60 * 24)))
+            : 0,
+        };
+      });
+
+      setMetrics({
+        totalVisitors,
+        convertedVisitors: convertedCount,
+        conversionRate,
+        avgConversionTime,
+        conversionsThisMonth: conversionsThisMonthResult.count || 0,
+        topConvertingGC,
+        totalConversionsAllTime: conversionsAllResult.count || 0,
+      });
+
+      setMonthlyData(monthlyData);
+      setGCConversionData(gcConversions);
+      setRecentConversions(recentConversionsData);
 
     } catch (error) {
       console.error('Error fetching conversion data:', error);
@@ -123,63 +263,6 @@ export default function ConversionsReportsPage() {
       setLoading(false);
     }
   }, [period]);
-
-  const processConversionData = (
-    visitors: { status: string; converted_at?: string }[],
-    allConversions: { converted_at?: string }[],
-    gcVisitors: unknown[],
-    thisMonthStart: Date
-  ) => {
-    // Mock data for demonstration
-    const mockMonthlyData: MonthlyConversions[] = [
-      { month: 'Jun/2024', visitors: 45, conversions: 8, conversionRate: 17.8 },
-      { month: 'Jul/2024', visitors: 52, conversions: 12, conversionRate: 23.1 },
-      { month: 'Ago/2024', visitors: 38, conversions: 7, conversionRate: 18.4 },
-      { month: 'Set/2024', visitors: 61, conversions: 15, conversionRate: 24.6 },
-      { month: 'Out/2024', visitors: 48, conversions: 11, conversionRate: 22.9 },
-      { month: 'Nov/2024', visitors: 55, conversions: 14, conversionRate: 25.5 },
-    ];
-
-    const mockGCConversions: GCConversions[] = [
-      { gcName: 'GC Jovens - Vila Madalena', totalVisitors: 28, conversions: 8, conversionRate: 28.6 },
-      { gcName: 'GC Famílias - Moema', totalVisitors: 35, conversions: 9, conversionRate: 25.7 },
-      { gcName: 'GC Universitários - Butantã', totalVisitors: 22, conversions: 6, conversionRate: 27.3 },
-      { gcName: 'GC Adolescentes - Ibirapuera', totalVisitors: 18, conversions: 2, conversionRate: 11.1 },
-      { gcName: 'GC Casais - Pinheiros', totalVisitors: 12, conversions: 4, conversionRate: 33.3 },
-    ];
-
-    const mockRecentConversions: RecentConversion[] = [
-      { visitorName: 'Ana Silva', gcName: 'GC Jovens - Vila Madalena', conversionDate: '15/11/2024', timeAsVisitor: 45 },
-      { visitorName: 'Carlos Costa', gcName: 'GC Famílias - Moema', conversionDate: '10/11/2024', timeAsVisitor: 30 },
-      { visitorName: 'Mariana Santos', gcName: 'GC Casais - Pinheiros', conversionDate: '08/11/2024', timeAsVisitor: 60 },
-      { visitorName: 'Pedro Oliveira', gcName: 'GC Universitários - Butantã', conversionDate: '05/11/2024', timeAsVisitor: 90 },
-      { visitorName: 'Julia Mendes', gcName: 'GC Jovens - Vila Madalena', conversionDate: '02/11/2024', timeAsVisitor: 15 },
-    ];
-
-    const totalVisitors = visitors.length || gcVisitors.length || 190;
-    const convertedVisitors = visitors.filter(v => v.status === 'converted').length || 39;
-    const conversionsThisMonth = allConversions.filter(c =>
-      c.converted_at && new Date(c.converted_at) >= thisMonthStart
-    ).length || 8;
-    const fallbackGCName = gcVisitors
-      .map((gc) => (gc && typeof gc === 'object' && 'growth_groups' in gc ? (gc as { growth_groups?: { name?: string } }).growth_groups?.name : undefined))
-      .find((name): name is string => Boolean(name)) || 'GC Casais - Pinheiros';
-
-    return {
-      metrics: {
-        totalVisitors,
-        convertedVisitors,
-        conversionRate: Math.round((convertedVisitors / totalVisitors) * 100 * 10) / 10,
-        avgConversionTime: 42, // Mock: average days as visitor before conversion
-        conversionsThisMonth,
-        topConvertingGC: fallbackGCName,
-        totalConversionsAllTime: allConversions.length || 156,
-      },
-      monthlyData: mockMonthlyData,
-      gcConversions: mockGCConversions,
-      recentConversions: mockRecentConversions,
-    };
-  };
 
   useEffect(() => {
     fetchConversionData();

@@ -91,36 +91,52 @@ export function AdminUserList({ currentUserId: propCurrentUserId, users: propUse
         }
         setCurrentUserId(session.user.id);
 
-        // Fetch users with their roles and stats
-        const { data: usersData, error } = await supabase
-          .from('users')
-          .select(`
-            id,
-            is_admin,
-            people!inner(name, email, phone)
-          `)
-          .is('deleted_at', null);
+        const [rolesResult, phonesResult] = await Promise.all([
+          supabase
+            .from('user_gc_roles')
+            .select(
+              'user_id, name, email, is_admin, is_leader, is_supervisor, is_coordinator, gcs_led, gcs_supervised, direct_subordinates',
+            )
+            .order('name', { ascending: true }),
+          supabase
+            .from('users')
+            .select('id, people:person_id ( phone )')
+            .is('deleted_at', null),
+        ]);
 
-        if (error) {
-          console.error('Error fetching users:', error);
+        if (rolesResult.error) {
+          console.error('Error fetching user roles:', rolesResult.error);
           toast.error('Erro ao carregar usuários.');
           return;
         }
 
-        // Process users data
-        const processedUsers: AdminUserSummary[] = (usersData || []).map((user) => ({
-          id: user.id,
-          name: user.people?.name || 'Nome não definido',
-          email: user.people?.email || null,
-          phone: user.people?.phone || null,
-          isAdmin: user.is_admin || false,
-          isLeader: false, // TODO: Fetch from growth_group_participants
-          isSupervisor: false, // TODO: Fetch from growth_group_participants
-          isCoordinator: false, // TODO: Implement hierarchy logic
-          gcsLed: 0, // TODO: Count GCs where user is leader
-          gcsSupervised: 0, // TODO: Count GCs where user is supervisor
-          directSubordinates: 0, // TODO: Count direct subordinates
-        }));
+        if (phonesResult.error) {
+          console.error('Error fetching user phones:', phonesResult.error);
+          toast.error('Erro ao carregar usuários.');
+          return;
+        }
+
+        const phoneByUserId = new Map(
+          (phonesResult.data || [])
+            .filter((user) => Boolean(user.id))
+            .map((user) => [user.id, user.people?.phone ?? null]),
+        );
+
+        const processedUsers: AdminUserSummary[] = (rolesResult.data || [])
+          .filter((row) => Boolean(row.user_id))
+          .map((row) => ({
+            id: row.user_id as string,
+            name: row.name || 'Nome não definido',
+            email: row.email || null,
+            phone: phoneByUserId.get(row.user_id as string) ?? null,
+            isAdmin: row.is_admin ?? false,
+            isLeader: row.is_leader ?? false,
+            isSupervisor: row.is_supervisor ?? false,
+            isCoordinator: row.is_coordinator ?? false,
+            gcsLed: row.gcs_led ?? 0,
+            gcsSupervised: row.gcs_supervised ?? 0,
+            directSubordinates: row.direct_subordinates ?? 0,
+          }));
 
         setUsers(processedUsers);
       } catch (error) {

@@ -24,62 +24,57 @@ Os contract tests em `tests/contract/` devem validar:
 3. **RLS Policies**: Usuários sem permissão recebem 403/vazio
 4. **Edge cases**: Duplicatas (409), not found (404), bad request (400)
 
-### Exemplo de Teste (Dart + Supabase)
+### Exemplo de Teste (TypeScript + supabase-js)
 
-```dart
-// tests/contract/test_grupos_post.dart
-import 'package:test/test.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+```ts
+import { beforeAll, describe, expect, it } from 'vitest';
+import { createClient } from '@supabase/supabase-js';
 
-void main() {
-  late SupabaseClient supabase;
+const supabase = createClient(
+  process.env.SUPABASE_URL!,
+  process.env.SUPABASE_ANON_KEY!,
+);
 
-  setUpAll(() async {
-    await Supabase.initialize(
-      url: const String.fromEnvironment('SUPABASE_URL'),
-      anonKey: const String.fromEnvironment('SUPABASE_ANON_KEY'),
-    );
-    supabase = Supabase.instance.client;
-
-    await supabase.auth.signInWithPassword(
+describe('POST /growth_groups', () => {
+  beforeAll(async () => {
+    await supabase.auth.signInWithPassword({
       email: 'coordinator@test.com',
       password: 'senha123',
-    );
+    });
   });
 
-  test('POST /growth_groups cria GC com schema válido', () async {
-    final payload = {
-      'name': 'GC Test Contract',
-      'mode': 'online',
-      'status': 'active',
+  it('cria GC com schema válido', async () => {
+    const payload = {
+      name: 'GC Test Contract',
+      mode: 'online',
+      status: 'active',
     };
 
-    final response = await supabase
-        .from('growth_groups')
-        .insert(payload)
-        .select()
-        .single();
+    const { data, error } = await supabase
+      .from('growth_groups')
+      .insert(payload)
+      .select()
+      .single();
 
-    expect(response['id'], isA<String>());
-    expect(response['name'], equals('GC Test Contract'));
-    expect(response['mode'], equals('online'));
-    expect(response['status'], equals('active'));
-    expect(response['created_at'], isNotNull);
+    expect(error).toBeNull();
+    expect(data?.id).toBeTypeOf('string');
+    expect(data?.name).toBe('GC Test Contract');
+    expect(data?.mode).toBe('online');
+    expect(data?.status).toBe('active');
+    expect(data?.created_at).toBeTruthy();
   });
 
-  test('POST /growth_groups presencial sem address retorna 400', () async {
-    final payload = {
-      'name': 'GC Inválido',
-      'mode': 'in_person',
-      'status': 'active',
+  it('presencial sem address retorna erro', async () => {
+    const payload = {
+      name: 'GC Inválido',
+      mode: 'in_person',
+      status: 'active',
     };
 
-    expect(
-      () async => await supabase.from('growth_groups').insert(payload),
-      throwsA(isA<PostgrestException>()),
-    );
+    const { error } = await supabase.from('growth_groups').insert(payload);
+    expect(error).not.toBeNull();
   });
-}
+});
 ```
 
 ## Notas
