@@ -67,7 +67,7 @@ test.describe('Área Administrativa - Testes Simples', () => {
 
     // Then try to access admin
     await page.goto('/admin');
-    await page.waitForTimeout(3000);
+    await expect(page.getByRole('heading', { name: /dashboard admin/i })).toBeVisible({ timeout: 10000 });
 
     // Check current URL
     const currentUrl = page.url();

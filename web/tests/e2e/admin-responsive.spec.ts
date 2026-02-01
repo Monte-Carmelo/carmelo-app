@@ -124,8 +124,7 @@ test.describe('T039: Admin Responsiveness', () => {
     await page.goto('/admin/reports');
     await page.waitForLoadState('networkidle');
 
-    // Wait for any charts to render
-    await page.waitForTimeout(2000);
+    await expect(page.getByRole('heading', { name: /relatórios/i })).toBeVisible({ timeout: 10000 });
 
     // Verify charts container
     const chartsContainer = page.locator('.recharts-surface, canvas, [role="img"]');
@@ -133,6 +132,7 @@ test.describe('T039: Admin Responsiveness', () => {
 
     if (hasCharts) {
       const firstChart = chartsContainer.first();
+      await firstChart.waitFor({ state: 'visible', timeout: 3000 }).catch(() => {});
       await expect(firstChart).toBeVisible();
 
       // Check chart dimensions fit viewport
@@ -169,7 +169,7 @@ test.describe('T039: Admin Responsiveness', () => {
     } else {
       await multiplyBtn.click();
     }
-    await page.waitForTimeout(1000);
+    await page.waitForLoadState('networkidle');
 
     // Verify wizard loads on mobile
     const wizardStep = page.locator('text=Step, text=Passo, [role="progressbar"]');

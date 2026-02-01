@@ -33,7 +33,7 @@ test.describe('T040: Admin Security', () => {
     await page.goto('/admin');
 
     // Should redirect back to dashboard (not allowed)
-    await page.waitForTimeout(2000);
+    await expect(page).toHaveURL(/\/dashboard/, { timeout: 10000 });
 
     const currentUrl = page.url();
     expect(currentUrl).not.toContain('/admin');
@@ -54,7 +54,7 @@ test.describe('T040: Admin Security', () => {
 
     // Try to access admin GCs page
     await page.goto('/admin/growth-groups');
-    await page.waitForTimeout(2000);
+    await expect(page).toHaveURL(/\/dashboard/, { timeout: 10000 });
 
     // Should redirect
     const currentUrl = page.url();
@@ -71,7 +71,7 @@ test.describe('T040: Admin Security', () => {
 
     // Try to access admin lessons page
     await page.goto('/admin/lessons');
-    await page.waitForTimeout(2000);
+    await expect(page).toHaveURL(/\/dashboard/, { timeout: 10000 });
 
     // Should redirect
     const currentUrl = page.url();
@@ -88,7 +88,7 @@ test.describe('T040: Admin Security', () => {
 
     // Try to access admin reports page
     await page.goto('/admin/reports');
-    await page.waitForTimeout(2000);
+    await expect(page).toHaveURL(/\/dashboard/, { timeout: 10000 });
 
     // Should redirect
     const currentUrl = page.url();
@@ -128,7 +128,6 @@ test.describe('T040: Admin Security', () => {
 
     // Should NOT redirect, should stay on /admin
     await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(1000);
 
     const currentUrl = page.url();
     expect(currentUrl).toContain('/admin');
@@ -152,7 +151,7 @@ test.describe('T040: Admin Security', () => {
 
     // Try to access admin
     await page.goto('/admin');
-    await page.waitForTimeout(2000);
+    await expect(page).toHaveURL(/\/dashboard/, { timeout: 10000 });
 
     let currentUrl = page.url();
     expect(currentUrl).not.toContain('/admin');
@@ -171,7 +170,7 @@ test.describe('T040: Admin Security', () => {
     await page.goto('/admin');
 
     // Should redirect to login
-    await page.waitForTimeout(2000);
+    await expect(page).toHaveURL(/\/login/, { timeout: 10000 });
 
     const currentUrl = page.url();
     expect(currentUrl).toContain('/login');
@@ -196,11 +195,11 @@ test.describe('T040: Admin Security', () => {
 
     if (hasLogout) {
       await logoutBtn.first().click();
-      await page.waitForTimeout(1000);
+      await expect(page).toHaveURL(/\/login/, { timeout: 10000 });
 
       // Try to access admin again
       await page.goto('/admin');
-      await page.waitForTimeout(2000);
+      await expect(page).toHaveURL(/\/login/, { timeout: 10000 });
 
       // Should redirect to login
       const currentUrl = page.url();

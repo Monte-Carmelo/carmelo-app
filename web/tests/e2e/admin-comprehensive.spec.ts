@@ -117,9 +117,6 @@ test.describe('Área Administrativa - Testes Completos', () => {
     // Submit and check result
     await page.getByRole('button', { name: 'Criar usuário' }).click();
 
-    // Wait for result (either success or error)
-    await page.waitForTimeout(3000);
-
     // Take screenshot to see result
     await page.screenshot({ path: 'user-creation-result.png' });
   });
@@ -156,7 +153,6 @@ test.describe('Área Administrativa - Testes Completos', () => {
 
     // Try to submit
     await page.getByRole('button', { name: 'Criar GC' }).click();
-    await page.waitForTimeout(3000);
 
     // Take screenshot to see result
     await page.screenshot({ path: 'gc-creation-result.png' });
@@ -187,7 +183,6 @@ test.describe('Área Administrativa - Testes Completos', () => {
 
     // Submit series
     await page.getByRole('button', { name: 'Criar Série' }).click();
-    await page.waitForTimeout(3000);
 
     // Test lesson creation
     await navigateToAdmin(page, '/lessons/new');
@@ -213,7 +208,6 @@ test.describe('Área Administrativa - Testes Completos', () => {
 
     // Submit lesson
     await page.getByRole('button', { name: 'Criar Lição' }).click();
-    await page.waitForTimeout(3000);
 
     // Take screenshots for verification
     await page.screenshot({ path: 'lesson-series-result.png' });
@@ -262,11 +256,9 @@ test.describe('Área Administrativa - Testes Completos', () => {
 
     // Check responsive layout
     await page.setViewportSize({ width: 768, height: 1024 }); // Tablet
-    await page.waitForTimeout(1000);
     await expect(page.getByRole('heading', { name: /dashboard admin/i })).toBeVisible({ timeout: 5000 });
 
     await page.setViewportSize({ width: 393, height: 851 }); // Mobile
-    await page.waitForTimeout(1000);
     await expect(page.getByRole('heading', { name: /dashboard admin/i })).toBeVisible({ timeout: 5000 });
 
     // Check for mobile menu button
@@ -290,7 +282,7 @@ test.describe('Área Administrativa - Testes Completos', () => {
 
     // Try to access admin as non-admin
     await page.goto('/admin');
-    await page.waitForTimeout(3000);
+    await expect(page).toHaveURL(/\/dashboard/, { timeout: 10000 });
 
     // Check result
     const currentUrl = page.url();
@@ -326,7 +318,7 @@ test.describe('Área Administrativa - Testes Completos', () => {
     for (const pageUrl of pagesToTest) {
       const pageStartTime = Date.now();
       await navigateToAdmin(page, pageUrl.replace('/admin', ''));
-      await page.waitForTimeout(2000); // Wait for content to load
+      await page.waitForLoadState('networkidle');
       const pageLoadTime = Date.now() - pageStartTime;
       console.log(`${pageUrl} load time:`, pageLoadTime, 'ms');
       expect(pageLoadTime).toBeLessThan(5000);

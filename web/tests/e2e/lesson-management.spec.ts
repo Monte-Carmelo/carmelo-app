@@ -187,9 +187,6 @@ test.describe('T027: Lesson Management', () => {
     await deleteBtn.click();
 
     // Wait for confirmation dialog
-    await page.waitForTimeout(500);
-
-    // Verify dialog appears
     const confirmDialog = page.locator('[role="alertdialog"], [role="dialog"]');
     await expect(confirmDialog).toBeVisible({ timeout: 2000 });
 

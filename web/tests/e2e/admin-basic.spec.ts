@@ -206,13 +206,13 @@ test.describe('Testes de Erro e Edge Cases', () => {
 
     // Navigate to multiple admin pages
     await page.goto('/admin');
-    await page.waitForTimeout(1000);
+    await expect(page.getByRole('heading', { name: /dashboard admin/i })).toBeVisible({ timeout: 10000 });
 
     await page.goto('/admin/users');
-    await page.waitForTimeout(1000);
+    await expect(page.getByRole('heading', { name: 'Usuários' })).toBeVisible({ timeout: 10000 });
 
     await page.goto('/admin/growth-groups');
-    await page.waitForTimeout(1000);
+    await expect(page.getByRole('heading', { name: /grupos de crescimento/i })).toBeVisible({ timeout: 10000 });
 
     // Should still be logged in
     await expect(page.getByRole('heading', { name: /grupos de crescimento/i })).toBeVisible({ timeout: 5000 });
