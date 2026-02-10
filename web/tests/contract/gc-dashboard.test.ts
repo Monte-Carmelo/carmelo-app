@@ -3,16 +3,24 @@ import { supabase, supabaseReachable } from '../supabase';
 
 const describeIf = supabaseReachable ? describe : describe.skip;
 
+function assertRows<T>(rows: T[] | null, label: string): T[] {
+  expect(rows).not.toBeNull();
+  if (!rows) {
+    throw new Error(`${label} returned null`);
+  }
+  return rows;
+}
+
 describeIf('GC Dashboard Contract Tests', () => {
   it('should fetch GCs for a user', async () => {
     // This test assumes that there is a user in the database with at least one GC.
     // We will fetch the GCs for the first user we find.
     const { data: users, error: usersError } = await supabase.from('users').select('id').limit(1);
+    const userRows = assertRows(users, 'users');
     expect(usersError).toBeNull();
-    expect(users).toBeDefined();
-    console.log('Users:', users);
-    expect(users.length).toBe(1);
-    const userId = users[0].id;
+    console.log('Users:', userRows);
+    expect(userRows.length).toBe(1);
+    const userId = userRows[0].id;
 
     const { data, error } = await supabase
       .from('growth_group_participants')
@@ -20,15 +28,15 @@ describeIf('GC Dashboard Contract Tests', () => {
       .eq('person_id', userId);
 
     expect(error).toBeNull();
-    expect(data).toBeDefined();
+    expect(data).not.toBeNull();
   });
 
   it('should fetch recent meetings for a GC', async () => {
     const { data: gcs, error: gcsError } = await supabase.from('growth_groups').select('id').limit(1);
+    const gcRows = assertRows(gcs, 'growth_groups');
     expect(gcsError).toBeNull();
-    expect(gcs).toBeDefined();
-    expect(gcs.length).toBe(1);
-    const gcId = gcs[0].id;
+    expect(gcRows.length).toBe(1);
+    const gcId = gcRows[0].id;
 
     const { data, error } = await supabase
       .from('meetings')
@@ -38,15 +46,15 @@ describeIf('GC Dashboard Contract Tests', () => {
       .limit(5);
 
     expect(error).toBeNull();
-    expect(data).toBeDefined();
+    expect(data).not.toBeNull();
   });
 
   it('should fetch members for a GC', async () => {
     const { data: gcs, error: gcsError } = await supabase.from('growth_groups').select('id').limit(1);
+    const gcRows = assertRows(gcs, 'growth_groups');
     expect(gcsError).toBeNull();
-    expect(gcs).toBeDefined();
-    expect(gcs.length).toBe(1);
-    const gcId = gcs[0].id;
+    expect(gcRows.length).toBe(1);
+    const gcId = gcRows[0].id;
 
     const { data, error } = await supabase
       .from('growth_group_participants')
@@ -54,6 +62,6 @@ describeIf('GC Dashboard Contract Tests', () => {
       .eq('gc_id', gcId);
 
     expect(error).toBeNull();
-    expect(data).toBeDefined();
+    expect(data).not.toBeNull();
   });
 });

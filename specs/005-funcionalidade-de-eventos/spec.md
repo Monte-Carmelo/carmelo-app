@@ -2,7 +2,7 @@
 
 **Feature Branch**: `005-funcionalidade-de-eventos`
 **Created**: 2025-10-20
-**Status**: Draft
+**Status**: Completed
 **Input**: User description: "Funcionalidade de Eventos - Sistema de gestão e visualização de eventos da igreja"
 **Language**: Brazilian Portuguese (pt-BR) - per Constitution Principle VI
 

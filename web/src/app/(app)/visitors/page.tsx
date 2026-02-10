@@ -16,7 +16,7 @@ type SearchParams = {
   status?: Database['public']['Tables']['visitors']['Row']['status'] | 'all';
 };
 
-export async function VisitorsContent({ searchParams }: { searchParams: SearchParams }) {
+async function VisitorsContent({ searchParams }: { searchParams: SearchParams }) {
   const user = await getAuthenticatedUser();
 
   if (!user) {

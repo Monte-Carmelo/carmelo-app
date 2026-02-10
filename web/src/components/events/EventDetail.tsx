@@ -85,6 +85,8 @@ export function EventDetail({ event }: EventDetailProps) {
                     src={event.banner_url}
                     alt={event.title}
                     fill
+                    sizes="(max-width: 1024px) 100vw, 66vw"
+                    loading="lazy"
                     className="object-cover rounded-lg"
                   />
                 </div>

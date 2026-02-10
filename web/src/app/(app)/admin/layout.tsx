@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { redirect } from 'next/navigation';
 import { createSupabaseServerClient } from '@/lib/supabase/server-client';
+import { getSupabaseServiceClient } from '@/lib/supabase/service-client';
 import { AdminShell } from '@/components/admin/AdminShell';
 import { Toaster } from 'sonner';
 
@@ -25,7 +26,23 @@ export default async function AdminLayout({ children }: AdminLayoutProps) {
     .eq('id', authUser.id)
     .maybeSingle() as { data: { is_admin: boolean } | null };
 
-  if (!user?.is_admin) {
+  let isAdmin = user?.is_admin ?? false;
+
+  if (!isAdmin) {
+    try {
+      const serviceClient = getSupabaseServiceClient();
+      const { data: adminRow } = await serviceClient
+        .from('users')
+        .select('is_admin')
+        .eq('id', authUser.id)
+        .maybeSingle();
+      isAdmin = adminRow?.is_admin ?? false;
+    } catch {
+      isAdmin = false;
+    }
+  }
+
+  if (!isAdmin) {
     redirect('/dashboard');
   }
 

@@ -9,6 +9,7 @@ const adminPassword = 'senha123';
  */
 async function loginAsAdmin(page: Page) {
   await page.goto('/login');
+  await page.waitForTimeout(1000);
   await page.getByLabel('E-mail').fill(adminEmail);
   await page.getByLabel('Senha').fill(adminPassword);
   await page.getByRole('button', { name: /entrar/i }).click();
@@ -164,6 +165,7 @@ test.describe('Área Administrativa - Testes Básicos', () => {
     // First logout
     await page.context().clearCookies();
     await page.goto('/login');
+    await page.waitForTimeout(1000);
     await page.evaluate(() => {
       localStorage.clear();
       sessionStorage.clear();

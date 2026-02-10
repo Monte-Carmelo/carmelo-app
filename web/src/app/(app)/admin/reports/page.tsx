@@ -31,6 +31,32 @@ interface TopGCData {
   members: number;
 }
 
+const formatMonthLabel = (date: Date) => {
+  const formatted = new Intl.DateTimeFormat('pt-BR', { month: 'short', year: 'numeric' }).format(date);
+  return formatted.replace('.', '').replace(' de ', '/');
+};
+
+const getMonthKey = (date: Date) => (
+  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+);
+
+const buildMonthBuckets = (start: Date, end: Date) => {
+  const buckets: { key: string; label: string; date: Date }[] = [];
+  const cursor = new Date(start.getFullYear(), start.getMonth(), 1);
+  const endCursor = new Date(end.getFullYear(), end.getMonth(), 1);
+
+  while (cursor <= endCursor) {
+    buckets.push({
+      key: getMonthKey(cursor),
+      label: formatMonthLabel(cursor),
+      date: new Date(cursor),
+    });
+    cursor.setMonth(cursor.getMonth() + 1);
+  }
+
+  return buckets;
+};
+
 export default function ReportsPage() {
   const [loading, setLoading] = useState(true);
   const [metrics, setMetrics] = useState<ReportsMetrics>({
@@ -45,32 +71,6 @@ export default function ReportsPage() {
   const [distributionData, setDistributionData] = useState<DistributionData[]>([]);
   const [topGCsData, setTopGCsData] = useState<TopGCData[]>([]);
   const [period, setPeriod] = useState('90');
-
-  const formatMonthLabel = (date: Date) => {
-    const formatted = new Intl.DateTimeFormat('pt-BR', { month: 'short', year: 'numeric' }).format(date);
-    return formatted.replace('.', '').replace(' de ', '/');
-  };
-
-  const getMonthKey = (date: Date) => (
-    `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
-  );
-
-  const buildMonthBuckets = (start: Date, end: Date) => {
-    const buckets: { key: string; label: string; date: Date }[] = [];
-    const cursor = new Date(start.getFullYear(), start.getMonth(), 1);
-    const endCursor = new Date(end.getFullYear(), end.getMonth(), 1);
-
-    while (cursor <= endCursor) {
-      buckets.push({
-        key: getMonthKey(cursor),
-        label: formatMonthLabel(cursor),
-        date: new Date(cursor),
-      });
-      cursor.setMonth(cursor.getMonth() + 1);
-    }
-
-    return buckets;
-  };
 
   const fetchReportsData = useCallback(async (selectedPeriod = period) => {
     setLoading(true);

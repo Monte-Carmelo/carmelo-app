@@ -22,6 +22,7 @@ test.describe('Participantes', () => {
 
   test('visualizar participantes e acessar cadastro rápido', async ({ page }) => {
     await page.goto('/login');
+    await page.waitForTimeout(1000);
 
     await page.getByLabel('E-mail').fill(loginEmail!);
     await page.getByLabel('Senha').fill(loginPassword!);
@@ -41,6 +42,7 @@ test.describe('Participantes', () => {
 
   test('navegar para visitantes pela listagem de participantes', async ({ page }) => {
     await page.goto('/login');
+    await page.waitForTimeout(1000);
     await page.getByLabel('E-mail').fill(loginEmail!);
     await page.getByLabel('Senha').fill(loginPassword!);
     await page.getByRole('button', { name: /entrar/i }).click();

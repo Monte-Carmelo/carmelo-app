@@ -18,7 +18,7 @@ export type MeetingDetails = {
     participant_id: string;
     growth_group_participants: {
       id: string;
-      person: {
+      people: {
         id: string;
         name: string;
       };
@@ -30,7 +30,7 @@ export type MeetingDetails = {
     visitor_id: string;
     visitors: {
       id: string;
-      person: {
+      people: {
         id: string;
         name: string;
       };

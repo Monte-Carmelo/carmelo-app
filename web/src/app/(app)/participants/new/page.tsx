@@ -9,7 +9,7 @@ type SearchParams = {
   gcId?: string;
 };
 
-export async function ParticipantFormLoader({ searchParams }: { searchParams: SearchParams }) {
+async function ParticipantFormLoader({ searchParams }: { searchParams: SearchParams }) {
   const user = await getAuthenticatedUser();
 
   if (!user) {

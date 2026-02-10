@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Pencil, Trash2, Eye } from 'lucide-react';
@@ -59,6 +60,7 @@ const statusLabels = {
 };
 
 export function AdminEventList({ events }: AdminEventListProps) {
+  const router = useRouter();
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -104,6 +106,7 @@ export function AdminEventList({ events }: AdminEventListProps) {
       const result = await deleteEventAction({ id: eventId });
       if (result.success) {
         toast.success('Evento excluído com sucesso!');
+        router.refresh();
       } else {
         toast.error(result.error);
       }

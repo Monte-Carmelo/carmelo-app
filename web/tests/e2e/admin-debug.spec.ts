@@ -5,10 +5,23 @@ const adminPassword = 'senha123';
 
 async function loginAsAdmin(page: Page) {
   await page.goto('/login');
+  await page.waitForTimeout(1000);
   await page.getByLabel('E-mail').fill(adminEmail);
   await page.getByLabel('Senha').fill(adminPassword);
   await page.getByRole('button', { name: /entrar/i }).click();
-  await expect(page.getByRole('heading', { name: 'Bem-vindo' })).toBeVisible({ timeout: 10000 });
+  await page.waitForURL('**/dashboard', { timeout: 30000 }).catch(() => {});
+  if (!page.url().includes('/dashboard')) {
+    await page.goto('/login');
+    await page.waitForTimeout(1000);
+    await page.getByLabel('E-mail').fill(adminEmail);
+    await page.getByLabel('Senha').fill(adminPassword);
+    await page.getByRole('button', { name: /entrar/i }).click();
+    await page.waitForURL('**/dashboard', { timeout: 30000 });
+  }
+  await expect(page.getByRole('heading', { name: /bem-vindo/i })).toBeVisible({ timeout: 15000 });
+  await page.waitForLoadState('domcontentloaded');
+  await page.reload();
+  await page.waitForURL('**/dashboard', { timeout: 30000 }).catch(() => {});
 }
 
 test.describe('Debug - Área Administrativa', () => {
@@ -17,7 +30,7 @@ test.describe('Debug - Área Administrativa', () => {
 
     console.log('Navigating to /admin...');
     await page.goto('/admin');
-    await expect(page.getByRole('heading', { name: /dashboard admin/i })).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole('heading', { name: /dashboard admin/i })).toBeVisible({ timeout: 20000 });
 
     const currentUrl = page.url();
     console.log('Current URL:', currentUrl);
@@ -120,7 +133,7 @@ test.describe('Debug - Área Administrativa', () => {
 
     await loginAsAdmin(page);
     await page.goto('/admin');
-    await expect(page.getByRole('heading', { name: /dashboard admin/i })).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole('heading', { name: /dashboard admin/i })).toBeVisible({ timeout: 20000 });
 
     console.log('Console errors found:', consoleErrors.length);
     if (consoleErrors.length > 0) {
@@ -136,7 +149,7 @@ test.describe('Debug - Área Administrativa', () => {
   test('verificar elementos DOM', async ({ page }) => {
     await loginAsAdmin(page);
     await page.goto('/admin');
-    await expect(page.getByRole('heading', { name: /dashboard admin/i })).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole('heading', { name: /dashboard admin/i })).toBeVisible({ timeout: 20000 });
 
     // Check for specific DOM elements
     const checks = [

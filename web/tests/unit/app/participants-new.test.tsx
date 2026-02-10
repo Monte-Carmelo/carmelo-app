@@ -1,7 +1,7 @@
 import { Suspense } from 'react';
 import { render, screen } from '@testing-library/react';
 import { vi } from 'vitest';
-import NewParticipantPage, { ParticipantFormLoader } from '@/app/(app)/participants/new/page';
+import NewParticipantPage from '@/app/(app)/participants/new/page';
 
 const { getAuthenticatedUser, createSupabaseServerClient } = vi.hoisted(() => ({
   getAuthenticatedUser: vi.fn(),
@@ -38,7 +38,9 @@ describe('NewParticipantPage', () => {
   });
 
   it('carrega form com GC preselecionado', async () => {
-    const content = await ParticipantFormLoader({ searchParams: { gcId: 'gc-1' } });
+    const page = await NewParticipantPage({ searchParams: Promise.resolve({ gcId: 'gc-1' }) });
+    const participantLoader = page.props.children as any;
+    const content = await participantLoader.type(participantLoader.props);
     render(content);
     expect(screen.getByTestId('participant-form-stub').textContent).toContain('1:gc-1');
   });

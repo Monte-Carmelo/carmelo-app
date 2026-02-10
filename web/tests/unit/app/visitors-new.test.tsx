@@ -1,7 +1,7 @@
 import { Suspense } from 'react';
 import { render, screen } from '@testing-library/react';
 import { vi } from 'vitest';
-import NewVisitorPage, { VisitorFormLoader } from '@/app/(app)/visitors/new/page';
+import NewVisitorPage from '@/app/(app)/visitors/new/page';
 
 const { getAuthenticatedUser, createSupabaseServerClient } = vi.hoisted(() => ({
   getAuthenticatedUser: vi.fn(),
@@ -39,7 +39,9 @@ describe('NewVisitorPage', () => {
   });
 
   it('carrega form com grupos e gc preselecionado', async () => {
-    const content = await VisitorFormLoader({ searchParams: { gcId: 'gc-2' } });
+    const page = await NewVisitorPage({ searchParams: Promise.resolve({ gcId: 'gc-2' }) });
+    const visitorLoader = page.props.children as any;
+    const content = await visitorLoader.type(visitorLoader.props);
     render(content);
     expect(screen.getByTestId('visitor-form-stub').textContent).toContain('2:gc-2');
   });

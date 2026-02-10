@@ -6,6 +6,7 @@ const loginPassword = process.env.E2E_SUPABASE_PASSWORD || 'senha123';
 test.describe('Visual Identity & Navigation', () => {
   test('AS-001: Login page displays logo and teal colors', async ({ page }) => {
     await page.goto('/login');
+    await page.waitForTimeout(1000);
 
     // Verificar logo presente
     const logo = page.locator('img[alt*="Igreja Monte Carmelo"]');
@@ -23,6 +24,7 @@ test.describe('Visual Identity & Navigation', () => {
   test('AS-002: Authenticated dashboard shows cards and branding', async ({ page }) => {
     // Login
     await page.goto('/login');
+    await page.waitForTimeout(1000);
     await page.locator('input[type="email"]').fill(loginEmail);
     await page.locator('input[type="password"]').fill(loginPassword);
     await page.locator('button:has-text("Entrar")').click();
@@ -48,6 +50,7 @@ test.describe('Visual Identity & Navigation', () => {
 
     // Login
     await page.goto('/login');
+    await page.waitForTimeout(1000);
     await page.locator('input[type="email"]').fill(loginEmail);
     await page.locator('input[type="password"]').fill(loginPassword);
     await page.locator('button:has-text("Entrar")').click();
@@ -69,6 +72,7 @@ test.describe('Visual Identity & Navigation', () => {
   test('AS-004: Navigation consistency across pages', async ({ page }) => {
     // Login
     await page.goto('/login');
+    await page.waitForTimeout(1000);
     await page.locator('input[type="email"]').fill(loginEmail);
     await page.locator('input[type="password"]').fill(loginPassword);
     await page.locator('button:has-text("Entrar")').click();
@@ -96,6 +100,7 @@ test.describe('Visual Identity & Navigation', () => {
     });
 
     await page.goto('/login');
+    await page.waitForTimeout(1000);
 
     await expect(page.locator('text=Igreja Monte Carmelo')).toBeVisible();
   });

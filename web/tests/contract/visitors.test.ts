@@ -3,13 +3,21 @@ import { supabase, supabaseReachable } from '../supabase';
 
 const describeIf = supabaseReachable ? describe : describe.skip;
 
+function assertRows<T>(rows: T[] | null, label: string): T[] {
+  expect(rows).not.toBeNull();
+  if (!rows) {
+    throw new Error(`${label} returned null`);
+  }
+  return rows;
+}
+
 describeIf('Visitors Contract Tests', () => {
   it('should add a new visitor', async () => {
     const { data: gcs, error: gcsError } = await supabase.from('growth_groups').select('id').limit(1);
+    const gcRows = assertRows(gcs, 'growth_groups');
     expect(gcsError).toBeNull();
-    expect(gcs).toBeDefined();
-    expect(gcs.length).toBe(1);
-    const gcId = gcs[0].id;
+    expect(gcRows.length).toBe(1);
+    const gcId = gcRows[0].id;
 
     const personData = {
       name: 'New Visitor',
@@ -17,10 +25,10 @@ describeIf('Visitors Contract Tests', () => {
     };
 
     const { data: person, error: personError } = await supabase.from('people').insert(personData).select();
+    const personRows = assertRows(person, 'people');
     expect(personError).toBeNull();
-    expect(person).toBeDefined();
-    expect(person.length).toBe(1);
-    const personId = person[0].id;
+    expect(personRows.length).toBe(1);
+    const personId = personRows[0].id;
 
     const visitorData = {
       person_id: personId,
@@ -28,9 +36,9 @@ describeIf('Visitors Contract Tests', () => {
     };
 
     const { data, error } = await supabase.from('visitors').insert(visitorData).select();
+    const visitorRows = assertRows(data, 'visitors');
 
     expect(error).toBeNull();
-    expect(data).toBeDefined();
-    expect(data.length).toBe(1);
+    expect(visitorRows.length).toBe(1);
   });
 });

@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { vi } from 'vitest';
-import { VisitorsContent } from '@/app/(app)/visitors/page';
-import { ParticipantsContent } from '@/app/(app)/participants/page';
+import VisitorsPage from '@/app/(app)/visitors/page';
+import ParticipantsPage from '@/app/(app)/participants/page';
 
 const { redirectMock, getAuthenticatedUser, createSupabaseServerClient } = vi.hoisted(() => ({
   redirectMock: vi.fn(),
@@ -102,7 +102,9 @@ describe('Visitors and Participants pages', () => {
   });
 
   it('renderiza lista de visitantes com filtro padrão', async () => {
-    const content = await VisitorsContent({ searchParams: { status: 'all' } });
+    const page = await VisitorsPage({ searchParams: Promise.resolve({ status: 'all' }) });
+    const visitorsLoader = page.props.children as any;
+    const content = await visitorsLoader.type(visitorsLoader.props);
     render(content);
 
     expect(screen.getByRole('heading', { name: /visitantes/i })).toBeInTheDocument();
@@ -111,7 +113,9 @@ describe('Visitors and Participants pages', () => {
   });
 
   it('renderiza participantes ativos com filtros iniciais', async () => {
-    const content = await ParticipantsContent({ searchParams: {} });
+    const page = await ParticipantsPage({ searchParams: Promise.resolve({}) });
+    const participantsLoader = page.props.children as any;
+    const content = await participantsLoader.type(participantsLoader.props);
     render(content);
 
     expect(screen.getByRole('heading', { name: /participantes/i })).toBeInTheDocument();

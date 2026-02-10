@@ -43,7 +43,8 @@ export function AdminEventForm({ event, mode }: AdminEventFormProps) {
     title: event?.title || '',
     description: event?.description || '',
     event_date: event?.event_date || '',
-    event_time: event?.event_time || '',
+    // Input type="time" and schema expect HH:MM, but DB can return HH:MM:SS
+    event_time: event?.event_time?.slice(0, 5) || '',
     location: event?.location || '',
     banner_url: event?.banner_url || '',
     status: (event?.status as 'scheduled' | 'completed' | 'cancelled') || 'scheduled',
@@ -123,7 +124,7 @@ export function AdminEventForm({ event, mode }: AdminEventFormProps) {
       if (!validatedData.success) {
         // Convert Zod errors to user-friendly format
         const errors: Record<string, string> = {};
-        validatedData.error.errors.forEach((err) => {
+        validatedData.error.issues.forEach((err) => {
           const field = err.path[0] as string;
           errors[field] = err.message;
         });
@@ -283,6 +284,8 @@ export function AdminEventForm({ event, mode }: AdminEventFormProps) {
                   src={previewUrl}
                   alt="Preview"
                   fill
+                  sizes="100vw"
+                  loading="lazy"
                   className="object-cover"
                 />
                 <Button

@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Separator } from '@/components/ui/separator';
 
 type PageProps = {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 };
 
 const WEEKDAY_NAMES = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
@@ -21,7 +21,7 @@ export default async function GCDetailPage({ params }: PageProps) {
   }
 
   const supabase = await createSupabaseServerClient();
-  const gcId = params.id;
+  const { id: gcId } = await params;
 
   const [{ data: gc }, { data: participants }, meetingsResult, memberCountRes, visitorCountRes] = await Promise.all([
     supabase
@@ -235,7 +235,11 @@ export default async function GCDetailPage({ params }: PageProps) {
                   ? meeting.meeting_visitor_attendance.length
                   : 0;
                 return (
-                  <div key={meeting.id} className="rounded-lg border p-3">
+                  <Link
+                    key={meeting.id}
+                    href={`/meetings/${meeting.id}/edit`}
+                    className="rounded-lg border p-3 transition hover:bg-muted/50"
+                  >
                     <p className="text-sm font-semibold">
                       {meeting.lesson_title || 'Reunião'}
                     </p>
@@ -253,7 +257,7 @@ export default async function GCDetailPage({ params }: PageProps) {
                       <span>Membros: {memberAttendance}</span>
                       <span>Visitantes: {visitorAttendance}</span>
                     </div>
-                  </div>
+                  </Link>
                 );
               })
             )}

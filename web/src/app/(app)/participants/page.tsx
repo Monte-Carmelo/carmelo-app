@@ -12,7 +12,7 @@ type SearchParams = {
   status?: Database['public']['Tables']['growth_group_participants']['Row']['status'] | 'all';
 };
 
-export async function ParticipantsContent({ searchParams }: { searchParams: SearchParams }) {
+async function ParticipantsContent({ searchParams }: { searchParams: SearchParams }) {
   const user = await getAuthenticatedUser();
 
   if (!user) {

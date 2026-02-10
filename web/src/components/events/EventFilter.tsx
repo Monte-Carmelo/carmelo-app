@@ -20,9 +20,9 @@ export function EventFilter({ currentFilter, currentYear }: EventFilterProps) {
   };
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex flex-wrap items-center justify-center gap-2">
       <span className="text-sm font-medium text-slate-700">Mostrar:</span>
-      <div className="flex rounded-lg border border-slate-200 p-1">
+      <div className="flex flex-wrap rounded-lg border border-slate-200 p-1">
         <Button
           variant={currentFilter === 'future' ? 'default' : 'ghost'}
           size="sm"

@@ -9,12 +9,22 @@ async function navigateToSection(page: Page, url: string, linkPattern: RegExp) {
   const targetPattern = `**${url.startsWith('/') ? url : `/${url}`}*`;
 
   if ((await navLink.count()) > 0) {
-    await Promise.all([navLink.first().click(), page.waitForURL(targetPattern)]);
+    await Promise.all([
+      navLink.first().click(),
+      page.waitForURL(targetPattern, { waitUntil: 'domcontentloaded' }),
+    ]);
     return;
   }
 
   await page.goto(url);
-  await page.waitForURL(targetPattern);
+  await page.waitForURL(targetPattern, { waitUntil: 'domcontentloaded' });
+}
+
+async function selectFirstGc(page: Page) {
+  const gcTrigger = page.getByLabel('Grupo de Crescimento');
+  await gcTrigger.click();
+  const firstOption = page.getByRole('option').first();
+  await firstOption.click();
 }
 
 async function ensureConvertibleVisitor(page: Page) {
@@ -43,6 +53,7 @@ test.describe('Reuniões e Visitantes', () => {
 
   test('registrar reunião com placeholders', async ({ page }) => {
     await page.goto('/login');
+    await page.waitForTimeout(1000);
     await page.getByLabel('E-mail').fill(loginEmail!);
     await page.getByLabel('Senha').fill(loginPassword!);
     await page.getByRole('button', { name: /entrar/i }).click();
@@ -54,12 +65,12 @@ test.describe('Reuniões e Visitantes', () => {
 
     await expect(page.getByRole('heading', { name: /registrar reunião/i })).toBeVisible();
 
-    const gcSelect = page.locator('select[name="gcId"]');
-    await gcSelect.selectOption({ index: 1 });
+    await selectFirstGc(page);
 
     await page.getByLabel('Data').fill(new Date().toISOString().split('T')[0]);
     await page.getByLabel('Horário').fill('19:30');
-    await page.getByLabel('Título customizado').fill('Reunião teste e2e');
+    await page.getByRole('button', { name: /título personalizado/i }).click();
+    await page.getByLabel('Título da reunião').fill('Reunião teste e2e');
     await page.getByLabel('Comentários').fill('Anotações automáticas da suíte e2e.');
 
     const checkboxes = page.getByRole('checkbox');
@@ -77,6 +88,7 @@ test.describe('Reuniões e Visitantes', () => {
 
   test('converter visitante manualmente', async ({ page }) => {
     await page.goto('/login');
+    await page.waitForTimeout(1000);
     await page.getByLabel('E-mail').fill(loginEmail!);
     await page.getByLabel('Senha').fill(loginPassword!);
     await page.getByRole('button', { name: /entrar/i }).click();

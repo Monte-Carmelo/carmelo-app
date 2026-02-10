@@ -46,6 +46,20 @@ export type ActionResponse<T> =
   | { success: true; data: T }
   | { success: false; error: string };
 
+async function isAdminUser(supabase: any, userId: string): Promise<boolean> {
+  const { data: userData, error } = await supabase
+    .from('users')
+    .select('is_admin')
+    .eq('id', userId)
+    .single();
+
+  if (error) {
+    return false;
+  }
+
+  return Boolean(userData?.is_admin);
+}
+
 export async function createEventAction(input: CreateEventInput): Promise<ActionResponse<{ id: string; title: string }>> {
   // 1. Check authentication
   const user = await getAuthenticatedUser();
@@ -54,6 +68,10 @@ export async function createEventAction(input: CreateEventInput): Promise<Action
   }
 
   const supabase = await createSupabaseServerClient();
+  const isAdmin = await isAdminUser(supabase, user.id);
+  if (!isAdmin) {
+    return { success: false, error: 'Acesso negado' };
+  }
 
   // 3. Validate input
   try {
@@ -95,6 +113,10 @@ export async function updateEventAction(input: UpdateEventInput): Promise<Action
   }
 
   const supabase = await createSupabaseServerClient();
+  const isAdmin = await isAdminUser(supabase, user.id);
+  if (!isAdmin) {
+    return { success: false, error: 'Acesso negado' };
+  }
 
   // 2. Validate input (partial schema)
   const { id, ...updates } = input;
@@ -114,7 +136,7 @@ export async function updateEventAction(input: UpdateEventInput): Promise<Action
     .from('events')
     .update(updates)
     .eq('id', id)
-    .eq('deleted_at', null) // Only update non-deleted events
+    .is('deleted_at', null) // Only update non-deleted events
     .select('id, title')
     .single();
 
@@ -143,13 +165,17 @@ export async function deleteEventAction(input: DeleteEventInput): Promise<Action
   }
 
   const supabase = await createSupabaseServerClient();
+  const isAdmin = await isAdminUser(supabase, user.id);
+  if (!isAdmin) {
+    return { success: false, error: 'Acesso negado' };
+  }
 
   // 2. Soft delete event
   const { data, error } = await (supabase as any)
     .from('events')
     .update({ deleted_at: new Date().toISOString() })
     .eq('id', input.id)
-    .eq('deleted_at', null) // Only delete if not already deleted
+    .is('deleted_at', null) // Only delete if not already deleted
     .select('id')
     .single();
 
@@ -242,6 +268,13 @@ export async function listEventsAction(input: ListEventsInput = {}): Promise<Act
   }
 
   const supabase = await createSupabaseServerClient();
+
+  if (input.includeDeleted) {
+    const isAdmin = await isAdminUser(supabase, user.id);
+    if (!isAdmin) {
+      return { success: false, error: 'Acesso negado' };
+    }
+  }
 
   // 2. Build query
   let query = (supabase as any)

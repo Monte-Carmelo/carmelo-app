@@ -1,8 +1,8 @@
 import { render, screen } from '@testing-library/react';
 import { vi } from 'vitest';
 import GCDetailPage from '@/app/(app)/gc/[id]/page';
-import { GCListContent } from '@/app/(app)/gc/page';
-import { MeetingFormLoader } from '@/app/(app)/meetings/new/page';
+import GCPage from '@/app/(app)/gc/page';
+import NewMeetingPage from '@/app/(app)/meetings/new/page';
 
 const { redirectMock, getAuthenticatedUser, createSupabaseServerClient, meetingFormSpy } = vi.hoisted(() => ({
   redirectMock: vi.fn(),
@@ -183,7 +183,9 @@ describe('GC pages', () => {
   });
 
   it('lista GCs associados ao usuário com contagens e ações', async () => {
-    const content = await GCListContent();
+    const page = await GCPage();
+    const gcLoader = page.props.children as any;
+    const content = await gcLoader.type(gcLoader.props);
     render(content);
 
     await screen.findByText('GC Alpha');
@@ -199,7 +201,7 @@ describe('GC pages', () => {
   });
 
   it('exibe detalhes do GC com liderança, membros e reuniões recentes', async () => {
-    const page = await GCDetailPage({ params: { id: 'gc-1' } });
+    const page = await GCDetailPage({ params: Promise.resolve({ id: 'gc-1' }) });
     render(page);
 
     expect(screen.getByRole('heading', { name: 'GC Alpha' })).toBeInTheDocument();
@@ -248,7 +250,9 @@ describe('GC pages', () => {
       },
     });
 
-    const form = await MeetingFormLoader({ searchParams: { gcId: 'gc-1' } });
+    const page = await NewMeetingPage({ searchParams: Promise.resolve({ gcId: 'gc-1' }) });
+    const meetingLoader = page.props.children as any;
+    const form = await meetingLoader.type(meetingLoader.props);
     render(form);
 
     const formElement = form as unknown as { props: Record<string, unknown> };

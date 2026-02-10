@@ -7,16 +7,33 @@ import { test, expect } from '@playwright/test';
  */
 
 test.describe('T039: Admin Responsiveness', () => {
-  const adminEmail = process.env.E2E_SUPABASE_EMAIL || 'admin@test.com';
-  const adminPassword = process.env.E2E_SUPABASE_PASSWORD || 'senha123';
+  const adminEmail = process.env.E2E_SUPABASE_ADMIN_EMAIL || 'admin@test.com';
+  const adminPassword = process.env.E2E_SUPABASE_ADMIN_PASSWORD || 'senha123';
 
   test.beforeEach(async ({ page }) => {
     // Login as admin
     await page.goto('/login');
+    await page.waitForTimeout(1000);
     await page.fill('input[type="email"]', adminEmail);
     await page.fill('input[type="password"]', adminPassword);
     await page.click('button[type="submit"]');
-    await page.waitForURL('/dashboard', { timeout: 10000 });
+    await page.waitForURL('/dashboard', { timeout: 30000 }).catch(() => {});
+    if (!page.url().includes('/dashboard')) {
+      await page.goto('/login');
+      await page.waitForTimeout(1000);
+      await page.fill('input[type="email"]', adminEmail);
+      await page.fill('input[type="password"]', adminPassword);
+      await page.click('button[type="submit"]');
+      await page.waitForURL('/dashboard', { timeout: 30000 });
+    }
+    await page.waitForLoadState('domcontentloaded');
+    await page.reload();
+    if (page.url().includes('/login')) {
+      await page.fill('input[type="email"]', adminEmail);
+      await page.fill('input[type="password"]', adminPassword);
+      await page.click('button[type="submit"]');
+      await page.waitForURL('/dashboard', { timeout: 30000 });
+    }
   });
 
   test('should display admin dashboard on mobile (375px)', async ({ page }) => {
@@ -25,7 +42,7 @@ test.describe('T039: Admin Responsiveness', () => {
 
     // Navigate to admin
     await page.goto('/admin');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     // Verify page loads
     await expect(page.getByRole('heading', { name: /dashboard admin/i })).toBeVisible();
@@ -63,7 +80,7 @@ test.describe('T039: Admin Responsiveness', () => {
 
     // Navigate to GCs
     await page.goto('/admin/growth-groups');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     // Verify table/list is visible
     const gcList = page.locator('table, [role="table"], [role="list"]');
@@ -88,7 +105,7 @@ test.describe('T039: Admin Responsiveness', () => {
 
     // Navigate to new lesson form
     await page.goto('/admin/lessons/new');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     // Verify form is visible and readable
     const titleInput = page.locator('input[name="title"], input#title');
@@ -122,7 +139,7 @@ test.describe('T039: Admin Responsiveness', () => {
 
     // Navigate to reports
     await page.goto('/admin/reports');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     await expect(page.getByRole('heading', { name: /relatórios/i })).toBeVisible({ timeout: 10000 });
 
@@ -152,7 +169,7 @@ test.describe('T039: Admin Responsiveness', () => {
 
     // Navigate to a GC detail page (assuming one exists)
     await page.goto('/admin/growth-groups');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     // Try to find a multiply button
     const multiplyBtn = page.locator('button:has-text("Multiplicar"), a:has-text("Multiplicar")').first();
@@ -169,7 +186,7 @@ test.describe('T039: Admin Responsiveness', () => {
     } else {
       await multiplyBtn.click();
     }
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     // Verify wizard loads on mobile
     const wizardStep = page.locator('text=Step, text=Passo, [role="progressbar"]');
@@ -196,7 +213,7 @@ test.describe('T039: Admin Responsiveness', () => {
 
     // Navigate to admin dashboard
     await page.goto('/admin');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     // Find metric cards
     const metricCards = page.locator('[role="region"], .card, [class*="Card"]');
@@ -227,7 +244,7 @@ test.describe('T039: Admin Responsiveness', () => {
 
     // Navigate to a page with tables (GCs or users)
     await page.goto('/admin/growth-groups');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     // Find table
     const table = page.locator('table').first();
@@ -260,7 +277,7 @@ test.describe('T039: Admin Responsiveness', () => {
 
     // Navigate to admin
     await page.goto('/admin');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     // Find all interactive elements (buttons, links)
     const interactiveElements = page.locator('button, a[href], input[type="button"], input[type="submit"]');

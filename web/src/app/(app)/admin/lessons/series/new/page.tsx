@@ -1,5 +1,4 @@
 import { Suspense } from 'react';
-import { redirect } from 'next/navigation';
 import { AdminBreadcrumbs } from '@/components/admin/AdminBreadcrumbs';
 import { AdminSeriesForm } from '@/components/admin/AdminSeriesForm';
 import { Loading } from '@/components/ui/spinner';

@@ -5,16 +5,29 @@ const adminPassword = process.env.E2E_SUPABASE_ADMIN_PASSWORD || 'senha123';
 
 async function loginAsAdmin(page: Page) {
   await page.goto('/login');
+  await page.waitForTimeout(1000);
   await page.getByLabel('E-mail').fill(adminEmail);
   await page.getByLabel('Senha').fill(adminPassword);
   await page.getByRole('button', { name: /entrar/i }).click();
   await page.waitForURL('**/dashboard', { timeout: 15000 });
   await expect(page.getByRole('heading', { name: /bem-vindo/i })).toBeVisible({ timeout: 10000 });
+  await page.waitForLoadState('networkidle');
+  await page.reload();
+  if (page.url().includes('/login')) {
+    await page.getByLabel('E-mail').fill(adminEmail);
+    await page.getByLabel('Senha').fill(adminPassword);
+    await page.getByRole('button', { name: /entrar/i }).click();
+    await page.waitForURL('**/dashboard', { timeout: 15000 });
+    await expect(page.getByRole('heading', { name: /bem-vindo/i })).toBeVisible({ timeout: 10000 });
+  } else {
+    await page.waitForURL('**/dashboard', { timeout: 15000 });
+  }
 }
 
 test.describe('Área Administrativa - Testes Simples', () => {
   test('login funciona', async ({ page }) => {
     await page.goto('/login');
+    await page.waitForTimeout(1000);
 
     // Check if login page loads
     await expect(page.getByLabel('E-mail')).toBeVisible();

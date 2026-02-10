@@ -26,8 +26,8 @@ description: "Task list for Sistema de Eventos implementation"
 
 **Purpose**: Project initialization and basic structure
 
-- [ ] T001 Create migration file for events table in supabase/migrations/YYYYMMDDHHMMSS_create_events_table.sql
-- [ ] T002 Apply migration and regenerate types in web/src/lib/supabase/database.types.ts
+- [x] T001 Create migration file for events table in supabase/migrations/YYYYMMDDHHMMSS_create_events_table.sql
+- [x] T002 Apply migration and regenerate types in web/src/lib/supabase/database.types.ts
 
 ---
 
@@ -37,10 +37,10 @@ description: "Task list for Sistema de Eventos implementation"
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T003 Create Supabase Storage bucket `event-banners` with RLS policies
-- [ ] T004 [P] Create Zod validation schemas in web/src/lib/validations/event.ts
-- [ ] T005 [P] Create Server Actions for CRUD operations in web/src/app/(app)/admin/events/actions.ts
-- [ ] T006 [P] Create Server Actions for image upload in web/src/app/(app)/admin/events/storage-actions.ts
+- [x] T003 Create Supabase Storage bucket `event-banners` with RLS policies
+- [x] T004 [P] Create Zod validation schemas in web/src/lib/validations/event.ts
+- [x] T005 [P] Create Server Actions for CRUD operations in web/src/app/(app)/admin/events/actions.ts
+- [x] T006 [P] Create Server Actions for image upload in web/src/app/(app)/admin/events/storage-actions.ts
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
@@ -56,19 +56,19 @@ description: "Task list for Sistema de Eventos implementation"
 
 **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T007 [P] [US1] E2E test for admin creates event with banner in web/tests/e2e/events.spec.ts
-- [ ] T008 [P] [US1] E2E test for admin edits event in web/tests/e2e/events.spec.ts
-- [ ] T009 [P] [US1] E2E test for admin deletes event in web/tests/e2e/events.spec.ts
+- [x] T007 [P] [US1] E2E test for admin creates event with banner in web/tests/e2e/events.spec.ts
+- [x] T008 [P] [US1] E2E test for admin edits event in web/tests/e2e/events.spec.ts
+- [x] T009 [P] [US1] E2E test for admin deletes event in web/tests/e2e/events.spec.ts
 
 ### Implementation for User Story 1
 
-- [ ] T010 [P] [US1] Create AdminEventList component in web/src/components/admin/AdminEventList.tsx
-- [ ] T011 [P] [US1] Create AdminEventForm component in web/src/components/admin/AdminEventForm.tsx
-- [ ] T012 [US1] Implement admin events list page in web/src/app/(app)/admin/events/page.tsx (depends on T010)
-- [ ] T013 [US1] Implement create event page in web/src/app/(app)/admin/events/new/page.tsx (depends on T011)
-- [ ] T014 [US1] Implement edit event page in web/src/app/(app)/admin/events/[id]/edit/page.tsx (depends on T011)
-- [ ] T015 [US1] Implement event details admin page in web/src/app/(app)/admin/events/[id]/page.tsx
-- [ ] T016 [US1] Update AdminSidebar to include Events link in web/src/components/admin/AdminSidebar.tsx
+- [x] T010 [P] [US1] Create AdminEventList component in web/src/components/admin/AdminEventList.tsx
+- [x] T011 [P] [US1] Create AdminEventForm component in web/src/components/admin/AdminEventForm.tsx
+- [x] T012 [US1] Implement admin events list page in web/src/app/(app)/admin/events/page.tsx (depends on T010)
+- [x] T013 [US1] Implement create event page in web/src/app/(app)/admin/events/new/page.tsx (depends on T011)
+- [x] T014 [US1] Implement edit event page in web/src/app/(app)/admin/events/[id]/edit/page.tsx (depends on T011)
+- [x] T015 [US1] Implement event details admin page in web/src/app/(app)/admin/events/[id]/page.tsx
+- [x] T016 [US1] Update AdminSidebar to include Events link in web/src/components/admin/AdminSidebar.tsx
 
 **Checkpoint**: At this point, User Story 1 should be fully functional and testable independently
 
@@ -82,19 +82,19 @@ description: "Task list for Sistema de Eventos implementation"
 
 ### Tests for User Story 2 (OPTIONAL - only if tests requested) ⚠️
 
-- [ ] T017 [P] [US2] E2E test for user views events list in web/tests/e2e/events.spec.ts
-- [ ] T018 [P] [US2] E2E test for user views event details in web/tests/e2e/events.spec.ts
-- [ ] T019 [P] [US2] E2E test for user navigates between years in web/tests/e2e/events.spec.ts
+- [x] T017 [P] [US2] E2E test for user views events list in web/tests/e2e/events.spec.ts
+- [x] T018 [P] [US2] E2E test for user views event details in web/tests/e2e/events.spec.ts
+- [x] T019 [P] [US2] E2E test for user navigates between years in web/tests/e2e/events.spec.ts
 
 ### Implementation for User Story 2
 
-- [ ] T020 [P] [US2] Create EventCard component in web/src/components/events/EventCard.tsx
-- [ ] T021 [P] [US2] Create EventList component in web/src/components/events/EventList.tsx
-- [ ] T022 [P] [US2] Create EventDetail component in web/src/components/events/EventDetail.tsx
-- [ ] T023 [P] [US2] Create EventYearNavigator component in web/src/components/events/EventYearNavigator.tsx
-- [ ] T024 [P] [US2] Create EventFilter component in web/src/components/events/EventFilter.tsx
-- [ ] T025 [US2] Implement public events list page in web/src/app/(app)/events/page.tsx (depends on T020, T021, T023, T024)
-- [ ] T026 [US2] Implement public event details page in web/src/app/(app)/events/[id]/page.tsx (depends on T022)
+- [x] T020 [P] [US2] Create EventCard component in web/src/components/events/EventCard.tsx
+- [x] T021 [P] [US2] Create EventList component in web/src/components/events/EventList.tsx
+- [x] T022 [P] [US2] Create EventDetail component in web/src/components/events/EventDetail.tsx
+- [x] T023 [P] [US2] Create EventYearNavigator component in web/src/components/events/EventYearNavigator.tsx
+- [x] T024 [P] [US2] Create EventFilter component in web/src/components/events/EventFilter.tsx
+- [x] T025 [US2] Implement public events list page in web/src/app/(app)/events/page.tsx (depends on T020, T021, T023, T024)
+- [x] T026 [US2] Implement public event details page in web/src/app/(app)/events/[id]/page.tsx (depends on T022)
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work independently
 
@@ -108,13 +108,13 @@ description: "Task list for Sistema de Eventos implementation"
 
 ### Tests for User Story 3 (OPTIONAL - only if tests requested) ⚠️
 
-- [ ] T027 [P] [US3] E2E test for non-admin cannot access admin routes in web/tests/e2e/events.spec.ts
+- [x] T027 [P] [US3] E2E test for non-admin cannot access admin routes in web/tests/e2e/events.spec.ts
 
 ### Implementation for User Story 3
 
-- [ ] T028 [US3] Verify RLS policies are working correctly for events table
-- [ ] T029 [US3] Verify Storage RLS policies are working for event-banners bucket
-- [ ] T030 [US3] Add admin-only middleware check to admin event routes
+- [x] T028 [US3] Verify RLS policies are working correctly for events table
+- [x] T029 [US3] Verify Storage RLS policies are working for event-banners bucket
+- [x] T030 [US3] Add admin-only middleware check to admin event routes
 
 **Checkpoint**: All user stories should now be independently functional
 
@@ -124,14 +124,14 @@ description: "Task list for Sistema de Eventos implementation"
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [ ] T031 [P] Add loading states to all event pages and components
-- [ ] T032 [P] Add error handling with user-friendly messages
-- [ ] T033 [P] Add toast notifications for all user actions
-- [ ] T034 Add responsive design for mobile, tablet, and desktop
-- [ ] T035 Add image optimization with Next.js Image component
-- [ ] T036 Add lazy loading for event images
-- [ ] T037 Run quickstart.md validation scenarios
-- [ ] T038 Performance optimization and Lighthouse audit
+- [x] T031 [P] Add loading states to all event pages and components
+- [x] T032 [P] Add error handling with user-friendly messages
+- [x] T033 [P] Add toast notifications for all user actions
+- [x] T034 Add responsive design for mobile, tablet, and desktop
+- [x] T035 Add image optimization with Next.js Image component
+- [x] T036 Add lazy loading for event images
+- [x] T037 Run quickstart.md validation scenarios
+- [x] T038 Performance optimization and Lighthouse audit
 
 ---
 

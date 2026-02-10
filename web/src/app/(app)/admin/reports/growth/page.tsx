@@ -31,6 +31,28 @@ interface GrowthMetrics {
   growthRate: number;
 }
 
+const formatMonthLabel = (date: Date) => {
+  const formatted = new Intl.DateTimeFormat('pt-BR', { month: 'short', year: 'numeric' }).format(date);
+  return formatted.replace('.', '').replace(' de ', '/');
+};
+
+const getMonthKey = (date: Date) => (
+  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+);
+
+const buildMonthBuckets = (start: Date, end: Date) => {
+  const buckets: { key: string; label: string; date: Date }[] = [];
+  const cursor = new Date(start.getFullYear(), start.getMonth(), 1);
+  const endCursor = new Date(end.getFullYear(), end.getMonth(), 1);
+
+  while (cursor <= endCursor) {
+    buckets.push({ key: getMonthKey(cursor), label: formatMonthLabel(cursor), date: new Date(cursor) });
+    cursor.setMonth(cursor.getMonth() + 1);
+  }
+
+  return buckets;
+};
+
 export default function GrowthReportsPage() {
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState('180');
@@ -45,28 +67,6 @@ export default function GrowthReportsPage() {
     avgMembersPerGC: 0,
     growthRate: 0,
   });
-
-  const formatMonthLabel = (date: Date) => {
-    const formatted = new Intl.DateTimeFormat('pt-BR', { month: 'short', year: 'numeric' }).format(date);
-    return formatted.replace('.', '').replace(' de ', '/');
-  };
-
-  const getMonthKey = (date: Date) => (
-    `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
-  );
-
-  const buildMonthBuckets = (start: Date, end: Date) => {
-    const buckets: { key: string; label: string; date: Date }[] = [];
-    const cursor = new Date(start.getFullYear(), start.getMonth(), 1);
-    const endCursor = new Date(end.getFullYear(), end.getMonth(), 1);
-
-    while (cursor <= endCursor) {
-      buckets.push({ key: getMonthKey(cursor), label: formatMonthLabel(cursor), date: new Date(cursor) });
-      cursor.setMonth(cursor.getMonth() + 1);
-    }
-
-    return buckets;
-  };
 
   const fetchGrowthData = useCallback(async (selectedPeriod = period) => {
     setLoading(true);
@@ -194,9 +194,9 @@ export default function GrowthReportsPage() {
       const gcDates = (gcsPeriodResult.data || [])
         .map((row) => row.created_at)
         .filter((date): date is string => Boolean(date));
-      const multiplicationDates = (multiplicationsPeriodResult.data || [])
+      const multiplicationDates: string[] = (multiplicationsPeriodResult.data || [])
         .map((row: { multiplied_at?: string | null }) => row.multiplied_at)
-        .filter((date): date is string => Boolean(date));
+        .filter((date: string | null | undefined): date is string => Boolean(date));
 
       const membersByMonth = new Map<string, number>();
       const gcsByMonth = new Map<string, number>();

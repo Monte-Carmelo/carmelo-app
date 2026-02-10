@@ -17,7 +17,7 @@ export function EventYearNavigator({ currentYear, availableYears }: EventYearNav
   const nextYear = currentIndex > 0 ? sortedYears[currentIndex - 1] : null;
 
   return (
-    <div className="flex items-center justify-center gap-4">
+    <div className="flex flex-wrap items-center justify-center gap-3">
       {prevYear ? (
         <Button variant="outline" size="sm" asChild>
           <Link href={`/events?year=${prevYear}`}>
@@ -32,7 +32,7 @@ export function EventYearNavigator({ currentYear, availableYears }: EventYearNav
         </Button>
       )}
 
-      <div className="px-4 py-2 bg-slate-100 rounded-lg">
+      <div className="min-w-[84px] rounded-lg bg-slate-100 px-4 py-2 text-center">
         <span className="font-semibold text-slate-900">{currentYear}</span>
       </div>
 
