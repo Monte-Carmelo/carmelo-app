@@ -113,8 +113,8 @@
 - [ ] W021 [P] Escrever teste Vitest para serviço de reuniões (`web/src/lib/api/meetings.test.ts` – mocks supabase, deve falhar).
 
 ### Playwright Smoke (Cenários Quickstart)
-- [ ] W030 [P] Esboçar teste E2E "Líder registra reunião" em `web/tests/e2e/leader-register-meeting.spec.ts` (falhando).
-- [ ] W031 [P] Esboçar teste E2E "Visitante convertido após 3 visitas" (`web/tests/e2e/visitor-conversion.spec.ts`, falhando).
+- [x] W030 [P] Esboçar teste E2E "Líder registra reunião" em `web/tests/e2e/leader-register-meeting.spec.ts` (falhando).
+- [x] W031 [P] Esboçar teste E2E "Visitante convertido após 3 visitas" (`web/tests/e2e/visitor-conversion.spec.ts`, falhando).
 
 *Somente após todos os testes acima falharem é permitido iniciar Phase 3.3.*
 
@@ -157,7 +157,7 @@
 
 ### Testes Sprint 2
 - [ ] W210 Atualizar testes Vitest para hooks/serviços de participantes e visitantes.
-- [ ] W211 Fazer Playwright cenários W030/W031 passarem (incluindo fixtures Supabase seed).
+- [x] W211 Fazer Playwright cenários W030/W031 passarem (incluindo fixtures Supabase seed).
 
 ---
 
