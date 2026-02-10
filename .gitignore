@@ -19,3 +19,6 @@ supabase/.temp
 # Storybook
 web/storybook-static/
 web/.storybook-cache/
+
+# Local editor settings
+.vscode/

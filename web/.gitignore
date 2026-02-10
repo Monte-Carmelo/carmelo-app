@@ -57,5 +57,6 @@ ADMIN-*.md
 *-failed-dashboard.png
 login-test-result.png
 non-admin-access.png
+lighthouse*.json
 *.png
 !public/**/*.png
