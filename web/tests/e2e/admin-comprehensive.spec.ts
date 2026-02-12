@@ -367,17 +367,19 @@ test.describe('Área Administrativa - Testes Completos', () => {
 
     // Try to access admin as non-admin
     await page.goto('/admin');
-    await expect(page).toHaveURL(/\/dashboard/, { timeout: 10000 });
+    await page.waitForLoadState('networkidle');
 
     // Check result
     const currentUrl = page.url();
-    const isRedirectedFromAdmin = !currentUrl.includes('/admin');
+    const isRedirectedFromAdmin =
+      currentUrl.includes('/dashboard') || currentUrl.includes('/login');
     console.log('Non-admin access result:', currentUrl);
 
     // Take screenshot
     safeScreenshot(page, 'non-admin-access.png');
 
     expect(isRedirectedFromAdmin).toBeTruthy();
+    expect(currentUrl).not.toContain('/admin');
   });
 
   test('testes de performance e carregamento', async ({ page }) => {

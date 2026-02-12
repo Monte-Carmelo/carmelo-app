@@ -4,6 +4,8 @@ import { test, expect, type Page } from '@playwright/test';
 // Use admin credentials from env or seed data fallback
 const adminEmail = process.env.E2E_SUPABASE_ADMIN_EMAIL || 'admin@test.com';
 const adminPassword = process.env.E2E_SUPABASE_ADMIN_PASSWORD || 'senha123';
+const nonAdminEmail = process.env.E2E_SUPABASE_NON_ADMIN_EMAIL || 'lider1@test.com';
+const nonAdminPassword = process.env.E2E_SUPABASE_NON_ADMIN_PASSWORD || 'senha123';
 
 const shouldSkip = false; // Enable tests by default
 
@@ -57,6 +59,30 @@ async function loginAsAdmin(page: Page) {
 
   await expect(page.getByRole('heading', { name: /bem-vindo/i })).toBeVisible({ timeout: 15000 });
   await page.waitForLoadState('domcontentloaded');
+}
+
+async function loginAsNonAdmin(page: Page) {
+  await page.context().clearCookies();
+  await page.goto('/login', { waitUntil: 'domcontentloaded' });
+  await page.waitForTimeout(1000);
+
+  await page.evaluate(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+  });
+
+  await page.getByLabel('E-mail').fill(nonAdminEmail);
+  await page.getByLabel('Senha').fill(nonAdminPassword);
+  await page.getByRole('button', { name: /entrar/i }).click();
+
+  const loggedIn = await page
+    .waitForURL('**/dashboard', { timeout: 15000 })
+    .then(() => true)
+    .catch(() => false);
+
+  if (!loggedIn || !page.url().includes('/dashboard')) {
+    throw new Error('Falha no login não-admin. Verifique E2E_SUPABASE_NON_ADMIN_EMAIL/E2E_SUPABASE_NON_ADMIN_PASSWORD.');
+  }
 }
 
 /**
@@ -504,25 +530,13 @@ test.describe('Área Administrativa - Testes Completos', () => {
 
   test.describe('Testes de Segurança', () => {
     test('deve bloquear acesso de não-admins', async ({ page }) => {
-      // Create a non-admin user session
-      await page.context().clearCookies();
-      await page.goto('/login');
-      await page.waitForTimeout(1000);
-      await page.evaluate(() => {
-        localStorage.clear();
-        sessionStorage.clear();
-      });
-      await page.reload();
-      await page.getByLabel('E-mail').fill('lider1@test.com');
-      await page.getByLabel('Senha').fill('senha123');
-      await page.getByRole('button', { name: /entrar/i }).click();
+      await loginAsNonAdmin(page);
 
       // Try to access admin area
       await page.goto('/admin');
-
-      const currentUrl = page.url();
-      const blockedMessage = await page.getByText(/acesso não autorizado/i).isVisible().catch(() => false);
-      expect(blockedMessage || currentUrl.includes('/dashboard')).toBeTruthy();
+      await page.waitForLoadState('networkidle');
+      await expect(page).toHaveURL(/\/dashboard/, { timeout: 10000 });
+      expect(page.url()).not.toContain('/admin');
     });
 
     test('deve fazer logout corretamente', async ({ page }) => {
