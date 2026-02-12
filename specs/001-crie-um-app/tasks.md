@@ -102,15 +102,15 @@
 ## Phase 3.2 — Tests First (TDD obrigatório)
 **Pré-requisito**: Phase 3.2a deve estar completa (W008-W009b ✅)
 ### Contract Tests (Node + Supabase)
-- [ ] W010 [P] Teste contrato `GET /growth_groups` em `tests/contract/grupos.get.test.ts` validando agrupamentos por `growth_group_participants`.
-- [ ] W011 [P] Teste contrato `POST /growth_group_participants` (`tests/contract/gc_participants.post.test.ts`) garantindo regras de papel.
-- [ ] W012 [P] Teste contrato `POST /meetings` (`tests/contract/reunioes.post.test.ts`) cobrindo presença membros/visitantes, `lesson_title`, comentários.
-- [ ] W013 [P] Teste contrato `GET /meetings/{id}` (`tests/contract/reunioes.get.test.ts`) com joins de attendance.
-- [ ] W014 [P] Teste contrato `POST /visitor_conversion_events` (quando visitante convertido manualmente).
+- [x] W010 [P] Teste contrato `GET /growth_groups` em `tests/contract/grupos.get.test.ts` validando agrupamentos por `growth_group_participants`.
+- [x] W011 [P] Teste contrato `POST /growth_group_participants` (`tests/contract/gc_participants.post.test.ts`) garantindo regras de papel.
+- [x] W012 [P] Teste contrato `POST /meetings` (`tests/contract/reunioes.post.test.ts`) cobrindo presença membros/visitantes, `lesson_title`, comentários.
+- [x] W013 [P] Teste contrato `GET /meetings/{id}` (`tests/contract/reunioes.get.test.ts`) com joins de attendance.
+- [x] W014 [P] Teste contrato `POST /visitor_conversion_events` (quando visitante convertido manualmente).
 
 ### Vitest (UI/Serviços)
-- [ ] W020 [P] Escrever teste Vitest para hook de sessão Supabase (`web/src/lib/auth/use-session.test.ts` – deve falhar).
-- [ ] W021 [P] Escrever teste Vitest para serviço de reuniões (`web/src/lib/api/meetings.test.ts` – mocks supabase, deve falhar).
+- [x] W020 [P] Escrever teste Vitest para hook de sessão Supabase (`web/src/lib/auth/use-session.test.tsx` – deve falhar).
+- [x] W021 [P] Escrever teste Vitest para serviço de reuniões (`web/src/lib/api/meetings.test.ts` – mocks supabase, deve falhar).
 
 ### Playwright Smoke (Cenários Quickstart)
 - [x] W030 [P] Esboçar teste E2E "Líder registra reunião" em `web/tests/e2e/leader-register-meeting.spec.ts` (falhando).
@@ -122,41 +122,41 @@
 
 ## Phase 3.3 — Implementação Core (Sprint 1)
 ### Autenticação & Shell
-- [ ] W100 Implementar provider de sessão Supabase (`web/src/lib/auth/session-provider.tsx`) consumindo cookies SSR.
-- [ ] W101 Criar middleware/route-handlers para proteger rotas autenticadas (`web/src/middleware.ts`).
-- [ ] W102 Construir layout autenticado (navbar + sidebar responsiva) em `web/src/app/(app)/layout.tsx`.
-- [ ] W103 Implementar página de login (`web/src/app/(public)/login/page.tsx`) com React Hook Form + Zod.
+- [x] W100 Implementar provider de sessão Supabase (`web/src/lib/auth/session-provider.tsx`) consumindo cookies SSR.
+- [x] W101 Criar middleware/route-handlers para proteger rotas autenticadas (`web/src/middleware.ts`).
+- [x] W102 Construir layout autenticado (navbar + sidebar responsiva) em `web/src/app/(app)/layout.tsx`.
+- [x] W103 Implementar página de login (`web/src/app/(public)/login/page.tsx`) com React Hook Form + Zod.
 
 ### Dashboard do Líder
-- [ ] W110 Implementar serviço `growthGroupsService` (`web/src/lib/api/growth-groups.ts`) com TanStack Query clients.
-- [ ] W111 Criar hook/adapter `useLeaderDashboard` (`web/src/lib/hooks/use-leader-dashboard.ts`).
-- [ ] W112 Desenvolver página dashboard líder (`web/src/app/(app)/dashboard/page.tsx`) com cards (lição atual, presença, visitantes).
-- [ ] W113 Componentizar widgets (ex.: `MeetingSummaryCard`, `AttendanceTrend`) em `web/src/components/dashboard/`.
+- [x] W110 Implementar serviço `growthGroupsService` (`web/src/lib/api/growth-groups.ts`) com TanStack Query clients.
+- [x] W111 Criar hook/adapter `useLeaderDashboard` (`web/src/lib/hooks/use-leader-dashboard.ts`).
+- [x] W112 Desenvolver página dashboard líder (`web/src/app/(app)/dashboard/page.tsx`) com cards (lição atual, presença, visitantes).
+- [x] W113 Componentizar widgets (ex.: `MeetingSummaryCard`, `AttendanceTrend`) em `web/src/components/dashboard/`.
 
 ### Registro de Reuniões
-- [ ] W120 Implementar formulário de reunião (`web/src/components/meetings/meeting-form.tsx`) com RHF + Zod.
-- [ ] W121 Criar componentes de lista de presença (membros vs visitantes) em `web/src/components/meetings/attendance/`.
-- [ ] W122 Integrar envio para Supabase (`web/src/lib/api/meetings.ts`) e invalidar caches TanStack Query.
-- [ ] W123 Atualizar página/modal de criação de reunião (`web/src/app/(app)/meetings/new/page.tsx`).
+- [x] W120 Implementar formulário de reunião (`web/src/components/meetings/meeting-form.tsx`) com RHF + Zod.
+- [x] W121 Criar componentes de lista de presença (membros vs visitantes) em `web/src/components/meetings/attendance/`.
+- [x] W122 Integrar envio para Supabase (`web/src/lib/api/meetings.ts`) e invalidar caches TanStack Query.
+- [x] W123 Atualizar página/modal de criação de reunião (`web/src/app/(app)/meetings/new/page.tsx`).
 
 ### Comentários & Lições
-- [ ] W130 Criar seletor de lição (catálogo + custom) `web/src/components/lessons/lesson-selector.tsx`.
-- [ ] W131 Sincronizar catálogo padrão via serviço `web/src/lib/api/lessons.ts`.
+- [x] W130 Criar seletor de lição (catálogo + custom) `web/src/components/lessons/lesson-selector.tsx`.
+- [x] W131 Sincronizar catálogo padrão via serviço `web/src/lib/api/lessons.ts`.
 
 ---
 
 ## Phase 3.4 — Implementação Sprint 2 (Pessoas & Visitantes)
-- [ ] W200 Listagem de participantes com filtros por papel (`web/src/app/(app)/participants/page.tsx`).
-- [ ] W201 Serviço de participantes (`web/src/lib/api/participants.ts`).
-- [ ] W202 Fluxo de criação/edição de participante (`web/src/components/participants/participant-form.tsx`).
-- [ ] W203 Listagem e gestão de visitantes (`web/src/app/(app)/visitors/page.tsx`).
-- [ ] W204 Serviço de visitantes (`web/src/lib/api/visitors.ts`) com contagem de visitas.
-- [ ] W205 Implementar conversão manual → cria registro em `visitor_conversion_events` (`web/src/components/visitors/convert-dialog.tsx`).
-- [ ] W206 Atualizar dashboards com indicadores de frequência/conversão (`web/src/components/dashboard/conversion-banner.tsx`).
-- [ ] W207 Ajustar RLS para permitir líderes/co-líderes criarem/atualizarem pessoas/visitantes nos próprios GCs e validar com Playwright (`supabase/migrations/013_refactor_rls.sql`, `web/tests/e2e/meetings.spec.ts`).
+- [x] W200 Listagem de participantes com filtros por papel (`web/src/app/(app)/participants/page.tsx`).
+- [x] W201 Serviço de participantes (`web/src/lib/api/participants.ts`).
+- [x] W202 Fluxo de criação/edição de participante (`web/src/components/participants/participant-form.tsx`).
+- [x] W203 Listagem e gestão de visitantes (`web/src/app/(app)/visitors/page.tsx`).
+- [x] W204 Serviço de visitantes (`web/src/lib/api/visitors.ts`) com contagem de visitas.
+- [x] W205 Implementar conversão manual → cria registro em `visitor_conversion_events` (`web/src/components/visitors/convert-dialog.tsx`).
+- [x] W206 Atualizar dashboards com indicadores de frequência/conversão (`web/src/components/dashboard/conversion-banner.tsx`).
+- [x] W207 Ajustar RLS para permitir líderes/co-líderes criarem/atualizarem pessoas/visitantes nos próprios GCs e validar com Playwright (`supabase/migrations/013_refactor_rls.sql`, `web/tests/e2e/meetings.spec.ts`).
 
 ### Testes Sprint 2
-- [ ] W210 Atualizar testes Vitest para hooks/serviços de participantes e visitantes.
+- [x] W210 Atualizar testes Vitest para hooks/serviços de participantes e visitantes.
 - [x] W211 Fazer Playwright cenários W030/W031 passarem (incluindo fixtures Supabase seed).
 
 ---
@@ -212,7 +212,7 @@
 
 ---
 
-**Total**: 60 tarefas (12 concluídas: W001-W007 + W008-W009d). Atualize este arquivo conforme novas decisões forem tomadas.
+**Total**: 60 tarefas (45 concluídas). Atualize este arquivo conforme novas decisões forem tomadas.
 
 ---
 
@@ -228,3 +228,16 @@
   - **W009c**: 17 arquivos (Zod v4, type safety, RHF, Vitest)
   - **W009d**: 7 páginas (async params/searchParams Next.js 15)
 - **Resultado**: `npm run build` passa com **0 erros** e gera 17 rotas 🎯
+
+### 2026-02-12 - Avanço Sprint 1 + Sprint 2 (Auth, Dashboard, Reuniões, Pessoas e Visitantes) ✅
+- **Concluído**: W010-W014, W020-W021, W100-W113, W120-W123, W130-W131, W200-W207, W210-W211.
+- **Entrega**:
+  - Shell autenticado com middleware + provider de sessão.
+  - Dashboard de líder com métricas de conversão/frequência e widgets componentizados.
+  - Fluxo de reuniões com serviço de API, selector de lição reutilizável e listas de presença componentizadas.
+  - Serviços de participantes/visitantes e conversão manual com confirmação.
+  - Ajustes RLS incrementais para criação de `people` por líderes e `WITH CHECK` explícito em `visitors`.
+- **Validação**:
+  - `npm run type-check` ✅
+  - `npm test` (Vitest/contract) ✅
+  - `playwright tests/e2e/meetings.spec.ts` ✅ com credenciais de seed.

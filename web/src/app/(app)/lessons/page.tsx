@@ -2,18 +2,11 @@ import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 import { createSupabaseServerClient } from '@/lib/supabase/server-client';
 import { getAuthenticatedUser } from '@/lib/supabase/server-auth';
+import { getRecentSeriesWithLessons } from '@/lib/api/lessons';
 import { Loading } from '@/components/ui/spinner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { BookOpen, ExternalLink } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import type { Database } from '@/lib/supabase/types';
-
-type LessonSeries = Database['public']['Tables']['lesson_series']['Row'];
-type Lesson = Database['public']['Tables']['lessons']['Row'];
-
-interface SeriesWithLessons extends LessonSeries {
-  lessons: Lesson[];
-}
 
 async function LessonsCatalogLoader() {
   const user = await getAuthenticatedUser();
@@ -24,36 +17,7 @@ async function LessonsCatalogLoader() {
 
   const supabase = await createSupabaseServerClient();
 
-  // Buscar as 2 séries mais recentes
-  const { data: series, error: seriesError } = await supabase
-    .from('lesson_series')
-    .select('*')
-    .order('created_at', { ascending: false })
-    .limit(2);
-
-  if (seriesError) {
-    throw seriesError;
-  }
-
-  // Para cada série, buscar suas lições
-  const seriesWithLessons: SeriesWithLessons[] = [];
-
-  for (const s of series ?? []) {
-    const { data: lessons, error: lessonsError } = await supabase
-      .from('lessons')
-      .select('*')
-      .eq('series_id', s.id)
-      .order('order_in_series', { ascending: true, nullsFirst: false });
-
-    if (lessonsError) {
-      throw lessonsError;
-    }
-
-    seriesWithLessons.push({
-      ...s,
-      lessons: lessons ?? [],
-    });
-  }
+  const seriesWithLessons = await getRecentSeriesWithLessons(supabase, 2);
 
   return (
     <div className="mx-auto w-full max-w-5xl space-y-6 px-4 py-8">

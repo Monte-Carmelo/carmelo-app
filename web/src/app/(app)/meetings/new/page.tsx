@@ -2,7 +2,8 @@ import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 import { createSupabaseServerClient } from '@/lib/supabase/server-client';
 import { getAuthenticatedUser } from '@/lib/supabase/server-auth';
-import { MeetingForm } from '@/components/meetings/MeetingForm';
+import { getLessonTemplates } from '@/lib/api/lessons';
+import { MeetingForm } from '@/components/meetings/meeting-form';
 import { Loading } from '@/components/ui/spinner';
 
 type SearchParams = {
@@ -40,15 +41,12 @@ async function MeetingFormLoader({ searchParams }: { searchParams: SearchParams 
 
   const supabase = await createSupabaseServerClient();
 
-  const [{ data: groups }, { data: lessons }] = await Promise.all([
+  const [groupsResult, lessonTemplates] = await Promise.all([
     supabase
       .from('growth_groups')
       .select('id, name')
       .order('name', { ascending: true }),
-    supabase
-      .from('lessons')
-      .select('id, title')
-      .order('title', { ascending: true }),
+    getLessonTemplates(supabase),
   ]);
 
   // Se gcId foi passado, buscar informações do GC
@@ -81,8 +79,8 @@ async function MeetingFormLoader({ searchParams }: { searchParams: SearchParams 
   return (
     <MeetingForm
       userId={user.id}
-      groups={groups ?? []}
-      lessonTemplates={lessons ?? []}
+      groups={groupsResult.data ?? []}
+      lessonTemplates={lessonTemplates}
       defaultGcId={selectedGc?.id}
       defaultGcName={selectedGc?.name}
       defaultDate={defaultDate}

@@ -1,5 +1,6 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { vi } from 'vitest';
 import { MeetingForm } from '@/components/meetings/MeetingForm';
 
@@ -42,9 +43,23 @@ const baseProps = {
   lessonTemplates: [{ id: 'lesson-1', title: 'Lição 1' }],
 };
 
+function renderWithProviders() {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+    },
+  });
+
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <MeetingForm {...baseProps} />
+    </QueryClientProvider>,
+  );
+}
+
 describe('MeetingForm', () => {
   it('mostra o formulário padrão com seleção de lição do catálogo', () => {
-    render(<MeetingForm {...baseProps} />);
+    renderWithProviders();
 
     // GC select e campos básicos
     expect(screen.getByLabelText(/grupo de crescimento/i)).toBeInTheDocument();
@@ -57,7 +72,7 @@ describe('MeetingForm', () => {
   });
 
   it('exibe campo de título personalizado ao escolher lição custom', async () => {
-    render(<MeetingForm {...baseProps} />);
+    renderWithProviders();
 
     await userEvent.click(screen.getByRole('button', { name: /título personalizado/i }));
 
@@ -67,7 +82,7 @@ describe('MeetingForm', () => {
   });
 
   it('mostra erros de validação quando campos obrigatórios não são preenchidos', async () => {
-    render(<MeetingForm {...baseProps} />);
+    renderWithProviders();
 
     await userEvent.click(screen.getByRole('button', { name: /registrar reunião/i }));
 

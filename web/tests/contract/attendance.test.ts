@@ -70,10 +70,13 @@ describeIf('Attendance Contract Tests', () => {
       visitor_id: visitorId,
     };
 
+    // Delete existing attendance first to avoid duplicate key error
+    await supabase.from('meeting_visitor_attendance').delete().match(attendanceData);
+
     const { data, error } = await supabase.from('meeting_visitor_attendance').insert(attendanceData).select();
-    const attendanceRows = assertRows(data, 'meeting_visitor_attendance');
 
     expect(error).toBeNull();
+    const attendanceRows = assertRows(data, 'meeting_visitor_attendance');
     expect(attendanceRows.length).toBe(1);
   });
 

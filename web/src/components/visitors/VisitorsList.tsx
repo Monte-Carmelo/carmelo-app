@@ -4,23 +4,13 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Users, Mail, Calendar, TrendingUp } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/browser-client';
-import type { Database } from '@/lib/supabase/types';
+import { convertVisitorToParticipant, type VisitorView } from '@/lib/api/visitors';
 import { useSession } from '@/lib/auth/session-context';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { ConvertDialog } from '@/components/visitors/convert-dialog';
 
-export interface VisitorView {
-  id: string;
-  gcId: string;
-  gcName: string;
-  personId: string;
-  name: string;
-  email: string | null;
-  status: Database['public']['Tables']['visitors']['Row']['status'];
-  visitCount: number;
-  lastVisitDate: string | null;
-}
+export type { VisitorView } from '@/lib/api/visitors';
 
 interface VisitorsListProps {
   visitors: VisitorView[];
@@ -37,62 +27,11 @@ export function VisitorsList({ visitors }: VisitorsListProps) {
     setProcessingId(visitor.id);
     setErrorMessage(null);
 
-    const now = new Date().toISOString();
-
-    const { data: participantData, error: participantError } = await supabase
-      .from('growth_group_participants')
-      .upsert(
-        {
-          gc_id: visitor.gcId,
-          person_id: visitor.personId,
-          role: 'member',
-          status: 'active',
-          joined_at: now,
-          converted_from_visitor_id: visitor.id,
-          added_by_user_id: session.user.id,
-        },
-        {
-          onConflict: 'gc_id,person_id,role',
-          ignoreDuplicates: false,
-        },
-      )
-      .select('id')
-      .single();
-
-    if (participantError || !participantData) {
-      setErrorMessage(participantError?.message ?? 'Não foi possível converter visitante.');
+    const result = await convertVisitorToParticipant(supabase, visitor, session.user.id);
+    if (!result.success) {
+      setErrorMessage(result.error ?? 'Não foi possível converter visitante.');
       setProcessingId(null);
       return;
-    }
-
-    const { error: updateVisitorError } = await supabase
-      .from('visitors')
-      .update({
-        status: 'converted',
-        converted_at: now,
-        converted_by_user_id: session.user.id,
-        converted_to_participant_id: participantData.id,
-      })
-      .eq('id', visitor.id);
-
-    if (updateVisitorError) {
-      setErrorMessage('Conversão parcial: visitante não atualizado.');
-      setProcessingId(null);
-      return;
-    }
-
-    const { error: eventError } = await supabase.from('visitor_conversion_events').insert({
-      visitor_id: visitor.id,
-      participant_id: participantData.id,
-      person_id: visitor.personId,
-      gc_id: visitor.gcId,
-      converted_at: now,
-      converted_by_user_id: session.user.id,
-      conversion_source: 'manual',
-    });
-
-    if (eventError) {
-      setErrorMessage('Conversão registrada, mas não foi possível logar o evento.');
     }
 
     setProcessingId(null);
@@ -171,12 +110,12 @@ export function VisitorsList({ visitors }: VisitorsListProps) {
 
                 {visitor.status === 'active' && visitor.personId ? (
                   <div className="flex justify-end">
-                    <Button
+                    <ConvertDialog
+                      visitorName={visitor.name}
                       disabled={processingId === visitor.id || !visitor.personId}
-                      onClick={() => handleConvert(visitor)}
-                    >
-                      {processingId === visitor.id ? 'Convertendo...' : 'Converter em membro'}
-                    </Button>
+                      isProcessing={processingId === visitor.id}
+                      onConfirm={() => handleConvert(visitor)}
+                    />
                   </div>
                 ) : !visitor.personId ? (
                   <p className="text-xs text-muted-foreground">

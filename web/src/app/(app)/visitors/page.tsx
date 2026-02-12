@@ -5,7 +5,8 @@ import { UserPlus, Users } from 'lucide-react';
 import { createSupabaseServerClient } from '@/lib/supabase/server-client';
 import { getAuthenticatedUser } from '@/lib/supabase/server-auth';
 import type { Database } from '@/lib/supabase/types';
-import { VisitorsList, type VisitorView } from '@/components/visitors/VisitorsList';
+import { VisitorsList } from '@/components/visitors/VisitorsList';
+import { listVisitors } from '@/lib/api/visitors';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -25,37 +26,7 @@ async function VisitorsContent({ searchParams }: { searchParams: SearchParams })
 
   const supabase = await createSupabaseServerClient();
 
-  const visitorsQuery = supabase
-    .from('visitors')
-    .select(
-      `id, gc_id, status, visit_count, last_visit_date,
-       people:person_id ( id, name, email ),
-       growth_groups ( name )`
-    )
-    .order('last_visit_date', { ascending: false });
-
-  // Only filter by status if it's not 'all'
-  if (searchParams.status && searchParams.status !== 'all') {
-    visitorsQuery.eq('status', searchParams.status);
-  }
-
-  const { data: visitors, error } = await visitorsQuery;
-
-  if (error) {
-    throw error;
-  }
-
-  const visitorViews: VisitorView[] = (visitors ?? []).map((visitor) => ({
-    id: visitor.id,
-    gcId: visitor.gc_id,
-    gcName: visitor.growth_groups?.name ?? 'GC desconhecido',
-    personId: visitor.people?.id ?? '',
-    name: visitor.people?.name ?? 'Sem nome',
-    email: visitor.people?.email ?? null,
-    status: visitor.status,
-    visitCount: visitor.visit_count,
-    lastVisitDate: visitor.last_visit_date,
-  }));
+  const visitorViews = await listVisitors(supabase, { status: searchParams.status });
 
   return (
     <section className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-10">

@@ -109,6 +109,7 @@ test.describe('Reuniões e Visitantes', () => {
       const button = convertButtons.nth(i);
       if (await button.isEnabled()) {
         await button.click();
+        await page.getByRole('button', { name: /confirmar conversão/i }).click();
         await expect.poll(async () => await convertButtons.count()).toBeLessThan(initialCount);
         converted = true;
         break;

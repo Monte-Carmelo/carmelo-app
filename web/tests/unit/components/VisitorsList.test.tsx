@@ -68,6 +68,7 @@ describe('VisitorsList', () => {
     render(<VisitorsList visitors={[visitor]} />);
 
     await userEvent.click(screen.getByRole('button', { name: /converter em membro/i }));
+    await userEvent.click(screen.getByRole('button', { name: /confirmar conversão/i }));
 
     await waitFor(() => {
       expect(refreshMock).toHaveBeenCalled();

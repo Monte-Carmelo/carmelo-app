@@ -1,5 +1,6 @@
 import { Users, BookOpen, UserCheck, UserPlus } from 'lucide-react';
 import { DashboardGrid } from '@/components/dashboard/DashboardGrid';
+import { LeaderDashboardOverview } from '@/components/dashboard/LeaderDashboardOverview';
 
 export default function DashboardPage() {
   const navigationItems = [
@@ -16,6 +17,7 @@ export default function DashboardPage() {
           Bem-vindo
         </h1>
         <DashboardGrid items={navigationItems} />
+        <LeaderDashboardOverview />
       </div>
     </main>
   );

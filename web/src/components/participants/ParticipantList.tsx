@@ -5,25 +5,12 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Users, UserPlus, Mail, Phone, Calendar } from 'lucide-react';
 import { getSupabaseBrowserClient } from '@/lib/supabase/browser-client';
-import type { Database } from '@/lib/supabase/types';
+import type { ParticipantView } from '@/lib/api/participants';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-
-interface ParticipantView {
-  participantId: string;
-  gcId: string;
-  gcName: string;
-  personId: string;
-  name: string;
-  email: string | null;
-  phone: string | null;
-  role: Database['public']['Tables']['growth_group_participants']['Row']['role'];
-  status: Database['public']['Tables']['growth_group_participants']['Row']['status'];
-  joinedAt: string;
-}
 
 interface ParticipantListProps {
   participants: ParticipantView[];
