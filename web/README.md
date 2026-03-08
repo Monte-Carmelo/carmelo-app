@@ -2,6 +2,8 @@
 
 Aplicação web responsiva (mobile-first) para gestão de Grupos de Crescimento, baseada nos requisitos da iniciativa `001-crie-um-app`.
 
+Antes de começar uma sessão nova sem contexto do projeto, leia `../docs/onboarding.md`.
+
 ## Pré-requisitos
 - Node.js 20+
 - npm 10+

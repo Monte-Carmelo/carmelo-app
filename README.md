@@ -1,5 +1,7 @@
 # Carmelo App – Guia de Execução
 
+Leitura inicial recomendada para qualquer dev ou agente sem contexto: `docs/onboarding.md`.
+
 Este repositório combina a aplicação web (`web/`) e a infraestrutura Supabase (`supabase/`). O guia abaixo descreve os passos mínimos para levantar o ambiente local, popular dados de teste e executar a interface.
 
 ## Pré-requisitos
@@ -77,6 +79,7 @@ Todos os usuários compartilham a senha `senha123`. Após rodar o seed de Auth, 
 Os perfis estão associados a pessoas e grupos na tabela `growth_group_participants`, garantindo que as políticas RLS reflitam a atuação de cada usuário.
 
 ## Outras referências
+- Ponto de entrada para onboarding e contexto operacional: `docs/onboarding.md`
 - Detalhes dos scripts e comandos front-end: `web/README.md`
 - Migrations e seeds do banco: `supabase/migrations/` e `supabase/seed.sql`
 - Especificações funcionais: `specs/`

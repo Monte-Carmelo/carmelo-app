@@ -1,31 +1,45 @@
 # Product Context
 
-This file provides a high-level overview of the project and the expected product that will be created. Initially it is based upon projectBrief.md (if provided) and all other available project-related information in the working directory. This file is intended to be updated as the project evolves, and should be used to inform all other modes of the project's goals and context.
-2025-10-20 15:39:47 - Log of updates made will be appended as footnotes to the end of this file.
+## Purpose
 
-*
+Carmelo App e uma plataforma de gestao de igreja com foco em operacao de grupos de crescimento, acompanhamento de pessoas e administracao interna.
 
-## Project Goal
+## Core Capabilities
 
-* Criar uma plataforma integrada para gestão de comunidades e igrejas, com foco em grupos de crescimento, eventos e administração de membros.
+- gestao de GCs
+- gestao de pessoas, participantes, lideres e supervisores
+- registro de reunioes e presenca
+- acompanhamento de visitantes e conversao
+- catalogo de licoes e series
+- administracao de eventos
+- area administrativa com usuarios, relatorios e configuracoes
 
-## Key Features
+## Primary Runtime
 
-* Sistema de gestão de pessoas e hierarquia
-* Grupos de crescimento (GC) e relacionamentos
-* Sistema de reuniões e controle de presença
-* Área administrativa completa
-* Sistema de eventos com administração e visualização pública
-* Dashboard para líderes
-* Sistema de visitantes e conversão
-* Integração com Supabase para autenticação e banco de dados
-* Interface responsiva e acessível
+O runtime principal ativo do projeto e:
+- `web/` com Next.js App Router
+- `supabase/` para banco, auth, migrations e seeds
 
-## Overall Architecture
+O contexto Flutter presente em partes do repositorio e historico. Nao trate `app/` como a superficie principal de trabalho sem evidencia explicita na tarefa.
 
-* Aplicação web desenvolvida com Next.js para o front-end
-* Supabase como backend-as-a-service, incluindo autenticação, banco de dados e políticas RLS
-* Estrutura modular com separação clara entre camadas de infraestrutura, validações, ações e componentes
-* Banco de dados PostgreSQL gerenciado pelo Supabase, com suporte a migrations e seeds
-* Padrões de design responsivo para garantir acessibilidade em dispositivos móveis e desktops
-[2025-10-20 17:41] - Adicionada funcionalidade de eventos ao produto
+## Domain Notes
+
+- uma pessoa base vive em `people`
+- relacionamento com GC vive em `growth_group_participants`
+- um GC pode ter multiplos lideres e multiplos supervisores
+- `co_leader` nao existe mais como papel valido
+- visitantes e participantes compartilham a base `people`
+- papeis sao derivados de relacionamentos e hierarquia, nao de um campo unico
+
+## Auth and Data Access
+
+- autenticacao via Supabase Auth
+- autorizacao combinando RLS, relacionamentos e flag `is_admin`
+- no web, fluxos criticos de escrita devem preferir API routes autenticadas ou server actions apropriadas
+
+## Reference Docs
+
+- `docs/onboarding.md`
+- `docs/web.md`
+- `docs/supabase.md`
+- `specs/001-crie-um-app/data-model.md`

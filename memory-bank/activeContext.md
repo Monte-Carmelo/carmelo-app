@@ -1,25 +1,31 @@
 # Active Context
 
-This file tracks the project's current status, including recent changes, current goals, and open questions.
-2025-10-20 15:39:54 - Log of updates made.
+## Current State
 
-*
+- o runtime principal do projeto hoje e o web app em `web/`
+- a infraestrutura de dados e auth vive em `supabase/`
+- o onboarding canonico esta em `docs/onboarding.md`
+- o `memory-bank/` atua como memoria persistente complementar
 
 ## Current Focus
 
-* 2025-10-20 17:45 - Memory Bank inicializado e contexto atual compreendido
-  - Memory Bank está ativo e pronto para coordenar as próximas tarefas do projeto
-  - Contexto do projeto carregado e disponível para consultas
+- manter o fluxo de trabalho centrado em `docs/onboarding.md`
+- preservar a estabilidade do setup local com Supabase local
+- manter a validacao do web previsivel: lint, type-check, unit, contract, build e e2e
 
-## Recent Changes
+## Recent Structural Changes
 
-* 2025-10-20 17:41 - Funcionalidade de eventos implementada com sucesso (specs/005-funcionalidade-de-eventos)
-  - Implementação completa em 5 fases
-  - Componentes criados: AdminEventList, AdminEventForm, EventCard, EventList, EventDetail, EventYearNavigator, EventFilter
-  - Páginas implementadas: Administração de eventos (CRUD) e visualização pública
-  - Infraestrutura: Tabela events no Supabase, storage para banners, políticas RLS configuradas
-  - Status: Funcionalidade pronta para uso em produção
+- validacao web estabilizada em 2026-03-08
+- fluxos criticos de reunioes e visitantes passaram a usar API routes autenticadas
+- lint oficial do web migrado para ESLint CLI
+- `docs/onboarding.md` foi criado como primeira leitura obrigatoria
 
-## Open Questions/Issues
+## Open Questions
 
-*   
+- revisar periodicamente documentacao historica que ainda mistura contexto Flutter e web
+- manter `AGENTS.md` alinhado com a arquitetura ativa real do repositorio
+
+## Read Next When Needed
+
+- `memory-bank/decisionLog.md`
+- `memory-bank/systemPatterns.md`

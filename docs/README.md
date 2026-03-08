@@ -6,6 +6,7 @@ Repositório monorepo que combina:
 - **Testes de contrato (web)** em `web/tests/contract/` e especificações em `specs/`
 
 Leituras rápidas:
+- `docs/onboarding.md` — ponto de entrada obrigatório para novos agentes/devs e sessões sem contexto
 - `docs/web.md` — detalhes da aplicação web
 - `docs/supabase.md` — banco, migrations e seeds
 

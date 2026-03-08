@@ -2,6 +2,22 @@
 
 Auto-generated from all feature plans. Last updated: 2025-10-04
 
+## Start Here
+
+Este arquivo nao e a primeira leitura para quem entra sem contexto.
+
+Leitura obrigatoria no inicio de toda sessao nova, em contexto compactado, ou quando houver duvida sobre o estado atual do projeto:
+1. `docs/onboarding.md`
+2. `AGENTS.md`
+3. Documentacao especifica da tarefa
+
+Regras operacionais:
+- `docs/onboarding.md` e o ponto de entrada canonico do projeto para devs seniores e agentes de IA.
+- Se uma mudanca alterar setup local, arquitetura ativa, comandos oficiais de validacao, invariantes de dominio/auth ou a forma correta de testar a aplicacao, atualize `docs/onboarding.md`.
+- Use `memory-bank/` como memoria persistente complementar, nao como ponto de entrada principal.
+- Ao iniciar sem contexto suficiente, leia ao menos `memory-bank/activeContext.md` e `memory-bank/decisionLog.md` depois do onboarding.
+- Ao concluir uma decisao duravel, atualize `memory-bank/decisionLog.md`; ao concluir uma mudanca estrutural relevante, atualize tambem `memory-bank/activeContext.md`, `memory-bank/systemPatterns.md` ou `memory-bank/progress.md` conforme o caso.
+
 ## Active Technologies
 - Dart 3.x+ com Flutter 3.x+ + Flutter SDK, Supabase Flutter SDK, Provider/Riverpod (state management) (001-crie-um-app)
 - PostgreSQL via Supabase (gerenciado) com Row Level Security (RLS)

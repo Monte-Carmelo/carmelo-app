@@ -1,30 +1,34 @@
-# System Patterns *Optional*
+# System Patterns
 
-This file documents recurring patterns and standards used in the project.
-It is optional, but recommended to be updated as the project evolves.
-2025-10-20 15:40:09 - Log of updates made.
+## Documentation Pattern
 
-*
+- `docs/onboarding.md` e o ponto de entrada canonico do projeto
+- `AGENTS.md` complementa o onboarding com regras do repositorio
+- `memory-bank/` preserva contexto entre sessoes, mas nao substitui onboarding, codigo ou testes
 
-## Coding Patterns
+## Architecture Pattern
 
-* Uso de TypeScript para tipagem estática e segurança no código
-* Componentes React para construção modular e reutilizável da interface
-* Validações de formulários com Zod
-* Scripts auxiliares escritos em TypeScript para automação de tarefas
+- runtime principal atual em `web/` + `supabase/`
+- Next.js App Router no frontend web
+- Supabase como backend, auth e banco
+- fluxos criticos de escrita no web priorizam API routes autenticadas ou server actions apropriadas
 
-## Architectural Patterns
+## Domain Pattern
 
-* Estrutura em 5 fases: Infraestrutura, Validações, Ações, Componentes, Páginas
-* Separação clara entre administração e visualização pública
-* Componentes reutilizáveis para listagem e detalhes
-* Validações com Zod para formulários
-* Storage do Supabase para uploads de arquivos
-* Banco de dados PostgreSQL com suporte a migrations e políticas RLS
-* Integração com Supabase para autenticação e gerenciamento de dados
+- nomes tecnicos em ingles no codigo e banco
+- documentacao em pt-BR
+- multiplos lideres e supervisores por GC com mesma autoridade
+- `co_leader` removido; nao reintroduzir
+- `people` como entidade base compartilhada
 
-## Testing Patterns
+## Testing Pattern
 
-* Testes E2E com Playwright para validação de fluxos completos
-* Testes de contrato para endpoints e integrações
-* Scripts de seed para garantir consistência nos dados de teste
+- lint via ESLint CLI no `web`
+- unitarios e contratos via Vitest
+- contratos em ambiente Node e sem paralelismo agressivo
+- fluxos completos validados via Playwright
+
+## Update Pattern
+
+- se um padrao precisar ser reaplicado em varias tarefas futuras, registre aqui
+- se a informacao for apenas temporaria ou local a uma tarefa, nao registre aqui
