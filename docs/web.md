@@ -7,13 +7,15 @@ Aplicação Next.js 15 (App Router) com Supabase SSR e React Query. Design mobil
 - **Supabase**: clients separados para server (`server-client.ts`) e browser (`browser-client.ts`), tipos em `src/lib/supabase/types.ts`.
 - **Formulários**: React Hook Form + Zod; componentes UI em `src/components/ui/`.
 - **Estado**: páginas SSR (server components) trazem dados iniciais; alguns formulários são client components (ex.: `MeetingForm`).
+- **API interna**: fluxos críticos (`/meetings/new`, `/visitors/new`) usam API routes autenticadas para escrita e carregamento dinâmico de opções, evitando acoplamento de negócio ao cliente Supabase no browser.
 
 ## Rotas principais
 - `/` (landing) – Hero com CTA para login; lista “Próximos incrementos”; checklist. **Obs:** CTA “Ver Eventos” aponta para `/events` que exige login.
 - `/login` – página pública; redireciona usuários autenticados para `/dashboard`.
 - `(app)` (autenticado):
   - `/dashboard` – grid de atalho (GC, lições, participantes, visitantes).
-  - `/gc` – lista GCs do usuário (via `growth_group_participants` + contagem de membros/visitantes). Links para `/gc/{id}` (rota ainda não criada).
+  - `/gc` – lista GCs do usuário (via `growth_group_participants` + contagem de membros/visitantes).
+  - `/gc/[id]` – detalhe do GC com liderança, membros, visitantes ativos e histórico recente de reuniões.
   - `/participants` – lista participantes com filtros (`role`, `status`, `gcId`). Usa `ParticipantList`.
   - `/visitors` – lista visitantes com filtros por GC e conversão.
   - `/meetings` – lista reuniões recentes com contagem de presenças; filtro por GC.
@@ -27,13 +29,12 @@ Aplicação Next.js 15 (App Router) com Supabase SSR e React Query. Design mobil
 
 ## Recursos construídos
 - **Eventos (feature 005)**: tabela `events` + server actions (`createEventAction`, `updateEventAction`, `deleteEventAction`, `listEventsAction`, `getEventAction`) em `src/app/(app)/admin/events/actions.ts`. Usa RLS “admins_manage_all_events” e listagem pública autenticada.
-- **Reuniões**: MeetingForm insere em `meetings`, `meeting_member_attendance` e `meeting_visitor_attendance`; pré-carrega lições e GCs, aplica validações Zod.
+- **Reuniões**: MeetingForm usa `/api/meetings` e `/api/growth-groups/[gcId]/attendance-options`; aplica validações Zod, pré-carrega GC quando informado e separa estado de carregamento de presença do submit.
 - **Pessoas**: listas unificadas de `growth_group_participants` e `visitors` com filtros e componentes dedicados (`ParticipantList`, `VisitorList`).
 - **Layout**: `AppShell` com navegação lateral, `Logo`, cabeçalhos e componentes de cartão/badge customizados.
+- **Visitantes**: VisitorForm usa `/api/visitors`; deduplicação de `people` prioriza e-mail e só usa telefone como fallback quando não há e-mail informado.
 
 ## Pontos em aberto / bugs
-- **MeetingFormLoader** (`/meetings/new/page.tsx`) usa `session.user.id` mas `session` não está definido; deve usar o `user` autenticado obtido na função ou passar `session` via contexto.
-- **GC detail**: rotas `/gc/{id}` não existem — links criam 404.
 - **Eventos públicos**: landing sugere “Ver Eventos”, mas rota `/events` exige autenticação (redireciona para login).
 - **RLS/Permissões**: rely nas policies Supabase; revisar impacto da migration `015_disable_rls_for_tests.sql` antes de usar em produção.
 
@@ -47,14 +48,12 @@ npm run dev
 Testes:
 ```bash
 npm run lint
-npm run test         # Vitest
+npm test             # unit + contract
 npm run test:e2e     # Playwright (define E2E_SUPABASE_EMAIL/PASSWORD)
 ```
 Supabase local deve estar ativo e seedado (ver `docs/supabase.md`).
 
 ## Próximos passos sugeridos
-1. Consertar MeetingFormLoader (`user.id` no loader; validar papéis).
-2. Criar rota `/gc/[id]` com resumo de GC, membros, visitantes e últimas reuniões.
-3. Ajustar teste de homepage e textos para alinhar Vitest ou atualizar assertion.
-4. Avaliar se `/events` deve ser público; se sim, mover rota para `(public)` ou relaxar guarda.
-5. Completar telas de edição/visualização de reunião e GC; adicionar estados de erro e loading consistentes.
+1. Avaliar se `/events` deve ser público; se sim, mover rota para `(public)` ou relaxar guarda.
+2. Completar telas de edição/visualização administrativa ainda stubadas.
+3. Revisar impacto da migration `015_disable_rls_for_tests.sql` antes de qualquer uso fora do ambiente local.

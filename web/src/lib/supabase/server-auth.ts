@@ -1,4 +1,5 @@
 import 'server-only';
+import { isEnvReady } from '../env';
 import { createSupabaseServerClient } from './server-client';
 
 /**
@@ -9,6 +10,10 @@ import { createSupabaseServerClient } from './server-client';
  * @returns User object ou null se não autenticado
  */
 export async function getAuthenticatedUser() {
+  if (!isEnvReady) {
+    return null;
+  }
+
   const supabase = await createSupabaseServerClient();
 
   const { data: { user }, error } = await supabase.auth.getUser();

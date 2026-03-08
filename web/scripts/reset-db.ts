@@ -7,7 +7,7 @@ const supabaseDir = resolve(repoRoot, 'supabase');
 const defaultConfigPath = resolve(supabaseDir, 'config.toml');
 const cliExecutable = process.env.SUPABASE_CLI_PATH ?? 'supabase';
 const configPath = process.env.SUPABASE_CONFIG_PATH ?? defaultConfigPath;
-const args = ['db', 'reset'];
+const args = ['db', 'reset', '--local'];
 
 if (process.argv.includes('--debug')) {
   args.push('--debug');
@@ -21,13 +21,15 @@ if (existsSync(configPath)) {
 
 console.log('📦 Resetando banco local do Supabase...');
 console.log(`→ CLI: ${cliExecutable}`);
-console.log(`→ Diretório: ${supabaseDir}`);
+console.log(`→ Diretório: ${repoRoot}`);
 if (existsSync(configPath)) {
   console.log(`→ Config: ${configPath}`);
+} else {
+  console.log('→ Config: usando descoberta padrão do Supabase CLI');
 }
 
 const child = spawn(cliExecutable, args, {
-  cwd: supabaseDir,
+  cwd: repoRoot,
   stdio: 'inherit',
   env: process.env,
 });

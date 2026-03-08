@@ -16,7 +16,7 @@ vi.mock('next/navigation', () => ({
 }));
 
 vi.mock('@/lib/auth/session-context', () => ({
-  useSession: () => ({ session: { user: { id: 'user-1' } }, roles: null }),
+  useSession: () => ({ user: { id: 'user-1' }, roles: null }),
 }));
 
 vi.mock('@/lib/supabase/server-auth', () => ({

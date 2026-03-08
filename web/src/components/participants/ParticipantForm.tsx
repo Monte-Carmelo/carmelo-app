@@ -34,7 +34,7 @@ interface ParticipantFormProps {
 export function ParticipantForm({ groups, preselectedGcId }: ParticipantFormProps) {
   const router = useRouter();
   const supabase = getSupabaseBrowserClient();
-  const { session } = useSession();
+  const { user } = useSession();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -108,7 +108,7 @@ export function ParticipantForm({ groups, preselectedGcId }: ParticipantFormProp
           role: values.role,
           status: 'active',
           joined_at: now,
-          added_by_user_id: session.user.id,
+          added_by_user_id: user.id,
         },
         {
           onConflict: 'gc_id,person_id,role',

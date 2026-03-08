@@ -1,11 +1,11 @@
 'use client';
 
 import { createContext, useContext } from 'react';
-import type { Session } from '@supabase/supabase-js';
+import type { User } from '@supabase/supabase-js';
 import type { Database } from '@/lib/supabase/types';
 
 export interface SessionContextValue {
-  session: Session;
+  user: User;
   roles: Database['public']['Views']['user_gc_roles']['Row'] | null;
 }
 

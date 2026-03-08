@@ -10,12 +10,12 @@ import {
 } from '@/lib/api/growth-groups';
 
 export function useLeaderDashboard() {
-  const { session } = useSession();
+  const { user } = useSession();
   const supabase = useMemo(() => getSupabaseBrowserClient(), []);
 
   const query = useQuery<LeaderDashboardData>({
-    queryKey: ['leader-dashboard', session.user.id],
-    queryFn: () => getLeaderDashboardData(supabase, session.user.id),
+    queryKey: ['leader-dashboard', user.id],
+    queryFn: () => getLeaderDashboardData(supabase, user.id),
     staleTime: 60_000,
   });
 

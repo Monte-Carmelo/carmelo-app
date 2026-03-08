@@ -17,13 +17,6 @@ export default async function AppLayout({ children }: AppLayoutProps) {
   }
 
   const supabase = await createSupabaseServerClient();
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-
-  if (!session) {
-    redirect('/login');
-  }
 
   const { data: roles } = await supabase
     .from('user_gc_roles')
@@ -32,7 +25,7 @@ export default async function AppLayout({ children }: AppLayoutProps) {
     .maybeSingle();
 
   return (
-    <SessionProvider initialSession={session} initialRoles={roles ?? null}>
+    <SessionProvider initialUser={user} initialRoles={roles ?? null}>
       <AppShell>{children}</AppShell>
     </SessionProvider>
   );

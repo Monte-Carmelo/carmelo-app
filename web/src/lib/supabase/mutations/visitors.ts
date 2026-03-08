@@ -43,7 +43,7 @@ export async function addVisitor(
     }
   }
 
-  if (!personId && trimmedPhone) {
+  if (!personId && !trimmedEmail && trimmedPhone) {
     const { data: existingByPhone } = await supabase
       .from('people')
       .select('id')

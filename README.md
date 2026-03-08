@@ -27,7 +27,7 @@ Na raiz do projeto:
 supabase start
 ```
 - A primeira execução cria os containers e mostra as portas (API: `http://127.0.0.1:54321`, Studio: `http://127.0.0.1:54323`).
-- Sempre que quiser um banco limpo, rode `supabase db reset` para reaplicar migrations e `supabase/seed.sql`.
+- Sempre que quiser um banco limpo, rode `supabase db reset --local` ou `cd web && npm run db:reset`.
 
 > Após `supabase start`, deixe os containers rodando em uma aba/terminal separada.
 
@@ -55,9 +55,12 @@ Acesse `http://localhost:3000` (Next.js em modo desenvolvimento).
 - Em seguida:
   ```bash
   cd web
+  npm test
   npm run test:e2e
   ```
 Para validar também o viewport mobile utilize `npm run test:e2e -- --project=chromium-mobile`.
+
+`npm run lint` no `web/` usa ESLint CLI (`eslint . --max-warnings=0`). Os scripts e2e limpam `NO_COLOR` automaticamente para evitar warnings espúrios do runner.
 
 ## Usuários de teste
 Todos os usuários compartilham a senha `senha123`. Após rodar o seed de Auth, você pode utilizar:
@@ -65,7 +68,7 @@ Todos os usuários compartilham a senha `senha123`. Após rodar o seed de Auth, 
 | Email                     | Nome               | Papel principal                                       |
 |---------------------------|--------------------|-------------------------------------------------------|
 | `lider1@test.com`         | João Líder         | Líder do `GC Esperança`                               |
-| `lider2@test.com`         | Ana Co-Líder       | Co-líder; lidera `GC Amor`                            |
+| `lider2@test.com`         | Ana Co-Líder       | Líder do `GC Amor`                                    |
 | `supervisor1@test.com`    | Maria Supervisora  | Supervisora do `GC Esperança`                         |
 | `supervisor2@test.com`    | Carlos Supervisor  | Supervisor adicional (mesmo GC)                       |
 | `coordenador1@test.com`   | Pedro Coordenador  | Coordenador responsável pela supervisão dos líderes   |
@@ -79,4 +82,3 @@ Os perfis estão associados a pessoas e grupos na tabela `growth_group_participa
 - Especificações funcionais: `specs/`
 
 Para interromper o ambiente local, utilize `supabase stop`. Se quiser remover containers/imagens, rode `supabase stop --destroy`.
-

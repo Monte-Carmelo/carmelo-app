@@ -40,7 +40,7 @@ export default defineConfig({
   webServer: skipWebServer
     ? undefined
     : {
-        command: 'npm run dev',
+        command: 'NODE_OPTIONS=--disable-warning=ExperimentalWarning npm run dev',
         url: baseURL,
         reuseExistingServer: !process.env.CI,
         timeout: 180 * 1000,

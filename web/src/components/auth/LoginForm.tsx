@@ -3,9 +3,10 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { z } from 'zod';
 import { getSupabaseBrowserClient } from '@/lib/supabase/browser-client';
+import { getMissingSupabaseEnvMessage, isEnvReady } from '@/lib/env';
 import { Spinner } from '@/components/ui/spinner';
 
 const schema = z.object({
@@ -17,7 +18,13 @@ type FormValues = z.infer<typeof schema>;
 
 export function LoginForm() {
   const router = useRouter();
-  const supabase = getSupabaseBrowserClient();
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get('redirect');
+  const safeRedirectTo =
+    redirectTo && redirectTo.startsWith('/') && !redirectTo.startsWith('//')
+      ? redirectTo
+      : '/dashboard';
+  const supabase = isEnvReady ? getSupabaseBrowserClient() : null;
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -32,6 +39,14 @@ export function LoginForm() {
       password: '',
     },
   });
+
+  if (!supabase) {
+    return (
+      <div className="w-full max-w-md rounded-2xl border border-amber-200 bg-amber-50 p-6 text-sm text-amber-900 shadow-sm">
+        {getMissingSupabaseEnvMessage('renderizar o login')}
+      </div>
+    );
+  }
 
   const onSubmit = handleSubmit(async (values) => {
     setErrorMessage(null);
@@ -48,7 +63,7 @@ export function LoginForm() {
       return;
     }
 
-    router.replace('/dashboard');
+    router.replace(safeRedirectTo);
     router.refresh();
   });
 

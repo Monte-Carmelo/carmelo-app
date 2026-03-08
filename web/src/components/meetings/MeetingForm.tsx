@@ -7,9 +7,11 @@ import { useState, useEffect } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { z } from 'zod';
 import { Calendar, FileText, UserCheck } from 'lucide-react';
-import { getSupabaseBrowserClient } from '@/lib/supabase/browser-client';
 import type { LessonTemplate } from '@/lib/api/lessons';
-import { registerMeeting } from '@/lib/api/meetings';
+import type {
+  AttendanceMemberOption,
+  AttendanceVisitorOption,
+} from '@/lib/api/growth-group-attendance';
 import type { Database } from '@/lib/supabase/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -53,17 +55,6 @@ type FormValues = z.infer<typeof schema>;
 
 type GrowthGroup = Database['public']['Tables']['growth_groups']['Row'];
 
-type Participant = {
-  id: string;
-  name: string;
-  role: Database['public']['Tables']['growth_group_participants']['Row']['role'];
-};
-
-type Visitor = {
-  id: string;
-  name: string;
-};
-
 interface MeetingFormProps {
   userId: string;
   groups: Pick<GrowthGroup, 'id' | 'name'>[];
@@ -72,6 +63,8 @@ interface MeetingFormProps {
   defaultGcName?: string;
   defaultDate?: string;
   defaultTime?: string;
+  initialParticipants?: AttendanceMemberOption[];
+  initialVisitors?: AttendanceVisitorOption[];
 }
 
 export function MeetingForm({
@@ -82,14 +75,16 @@ export function MeetingForm({
   defaultGcName,
   defaultDate,
   defaultTime,
+  initialParticipants = [],
+  initialVisitors = [],
 }: MeetingFormProps) {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const supabase = getSupabaseBrowserClient();
 
-  const [participants, setParticipants] = useState<Participant[]>([]);
-  const [visitors, setVisitors] = useState<Visitor[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [participants, setParticipants] = useState<AttendanceMemberOption[]>(initialParticipants);
+  const [visitors, setVisitors] = useState<AttendanceVisitorOption[]>(initialVisitors);
+  const [isFetchingAttendance, setIsFetchingAttendance] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const form = useForm<FormValues>({
@@ -111,59 +106,51 @@ export function MeetingForm({
 
   // Carregar participantes e visitantes automaticamente se gcId vier pré-selecionado
   useEffect(() => {
-    if (defaultGcId) {
-      handleGroupChange(defaultGcId);
+    if (defaultGcId && initialParticipants.length === 0 && initialVisitors.length === 0) {
+      void handleGroupChange(defaultGcId);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [defaultGcId]);
 
   const handleGroupChange = async (gcId: string) => {
-    form.reset({
-      ...form.getValues(),
-      gcId,
-      members: [],
-      visitors: [],
-    });
+    form.setValue('gcId', gcId, { shouldValidate: true });
+    form.setValue('members', [], { shouldValidate: true });
+    form.setValue('visitors', [], { shouldValidate: true });
+    setParticipants([]);
+    setVisitors([]);
+    setErrorMessage(null);
 
     if (!gcId) return;
 
-    setIsLoading(true);
-    const [{ data: memberRows }, { data: visitorRows }] = await Promise.all([
-      supabase
-        .from('growth_group_participants')
-        .select('id, role, people:person_id ( id, name )')
-        .eq('gc_id', gcId)
-        .eq('status', 'active')
-        .in('role', ['member', 'leader'])
-        .order('role', { ascending: true }),
-      supabase
-        .from('visitors')
-        .select('id, people:person_id ( id, name )')
-        .eq('gc_id', gcId)
-        .eq('status', 'active')
-        .order('first_visit_date', { ascending: false }),
-    ]);
+    setIsFetchingAttendance(true);
 
-    setParticipants(
-      (memberRows ?? []).map((row) => ({
-        id: row.id,
-        name: row.people?.name ?? 'Sem nome',
-        role: row.role,
-      })),
-    );
+    try {
+      const response = await fetch(`/api/growth-groups/${gcId}/attendance-options`, {
+        cache: 'no-store',
+      });
+      const payload = await response.json();
 
-    setVisitors(
-      (visitorRows ?? []).map((row) => ({
-        id: row.id,
-        name: row.people?.name ?? 'Sem nome',
-      })),
-    );
-    setIsLoading(false);
+      if (!response.ok) {
+        throw new Error(payload.error ?? 'Falha ao carregar participantes e visitantes.');
+      }
+
+      setParticipants(payload.members ?? []);
+      setVisitors(payload.visitors ?? []);
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : 'Falha ao carregar participantes e visitantes.',
+      );
+    } finally {
+      setIsFetchingAttendance(false);
+    }
   };
 
   const handleSubmit = form.handleSubmit(async (values) => {
     setErrorMessage(null);
-    setIsLoading(true);
+    setIsSubmitting(true);
+    let isSuccess = false;
 
     // Determinar o título da lição baseado no tipo selecionado
     let lessonTitle: string;
@@ -176,34 +163,50 @@ export function MeetingForm({
     // Validação adicional (não deveria acontecer devido ao Zod)
     if (!lessonTitle) {
       setErrorMessage('Por favor, selecione uma lição ou informe um título personalizado');
-      setIsLoading(false);
+      setIsSubmitting(false);
       return;
     }
 
     const datetime = new Date(`${values.meetingDate}T${values.meetingTime}:00`);
 
-    const result = await registerMeeting({
-      gcId: values.gcId,
-      lessonTemplateId: values.lessonType === 'catalog' ? values.lessonTemplateId || null : null,
-      lessonTitle,
-      comments: values.comments?.trim() || null,
-      datetime: datetime.toISOString(),
-      registeredByUserId: userId,
-      memberAttendance: values.members.map((member) => member.participantId),
-      visitorAttendance: values.visitors.map((visitor) => visitor.visitorId),
-      userId,
-      queryClient,
-    });
+    try {
+      const response = await fetch('/api/meetings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          gcId: values.gcId,
+          lessonTemplateId: values.lessonType === 'catalog' ? values.lessonTemplateId || null : null,
+          lessonTitle,
+          comments: values.comments?.trim() || null,
+          datetime: datetime.toISOString(),
+          memberAttendance: values.members.map((member) => member.participantId),
+          visitorAttendance: values.visitors.map((visitor) => visitor.visitorId),
+        }),
+      });
+      const result = await response.json();
 
-    if (!result.success) {
-      setErrorMessage(result.error ?? 'Falha ao criar reunião');
-      setIsLoading(false);
-      return;
+      if (!response.ok || !result.success) {
+        setErrorMessage(result.error ?? 'Falha ao criar reunião');
+        return;
+      }
+
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['leader-dashboard', userId] }),
+        queryClient.invalidateQueries({ queryKey: ['meetings'] }),
+        queryClient.invalidateQueries({ queryKey: ['gc', values.gcId] }),
+      ]);
+
+      isSuccess = true;
+      window.location.assign(`/gc/${values.gcId}`);
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : 'Falha ao criar reunião');
+    } finally {
+      if (!isSuccess) {
+        setIsSubmitting(false);
+      }
     }
-
-    setIsLoading(false);
-    router.push(`/gc/${values.gcId}`);
-    router.refresh();
   });
 
   const selectedMemberIds = form.watch('members').map((item) => item.participantId);
@@ -269,8 +272,10 @@ export function MeetingForm({
               </div>
             ) : (
               <Select
-                {...form.register('gcId')}
-                onValueChange={handleGroupChange}
+                value={form.watch('gcId')}
+                onValueChange={(value) => {
+                  void handleGroupChange(value);
+                }}
               >
                 <SelectTrigger id="gcId">
                   <SelectValue placeholder="Selecione..." />
@@ -397,13 +402,13 @@ export function MeetingForm({
           type="button"
           variant="outline"
           onClick={() => router.back()}
-          disabled={isLoading}
+          disabled={isSubmitting}
         >
           Cancelar
         </Button>
-        <Button type="submit" disabled={isLoading}>
+        <Button type="submit" disabled={isSubmitting || isFetchingAttendance}>
           <Calendar className="mr-2 h-4 w-4" />
-          {isLoading ? 'Salvando...' : 'Registrar reunião'}
+          {isSubmitting ? 'Salvando...' : 'Registrar reunião'}
         </Button>
       </div>
     </form>

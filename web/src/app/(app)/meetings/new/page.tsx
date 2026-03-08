@@ -3,6 +3,11 @@ import { redirect } from 'next/navigation';
 import { createSupabaseServerClient } from '@/lib/supabase/server-client';
 import { getAuthenticatedUser } from '@/lib/supabase/server-auth';
 import { getLessonTemplates } from '@/lib/api/lessons';
+import {
+  listGrowthGroupAttendanceOptions,
+  type AttendanceMemberOption,
+  type AttendanceVisitorOption,
+} from '@/lib/api/growth-group-attendance';
 import { MeetingForm } from '@/components/meetings/meeting-form';
 import { Loading } from '@/components/ui/spinner';
 
@@ -53,6 +58,8 @@ async function MeetingFormLoader({ searchParams }: { searchParams: SearchParams 
   let selectedGc = null;
   let defaultDate = new Date().toISOString().split('T')[0];
   let defaultTime = '19:30';
+  let initialParticipants: AttendanceMemberOption[] = [];
+  let initialVisitors: AttendanceVisitorOption[] = [];
 
   if (searchParams.gcId) {
     const { data: gc } = await supabase
@@ -73,6 +80,10 @@ async function MeetingFormLoader({ searchParams }: { searchParams: SearchParams 
       if (gc.time) {
         defaultTime = gc.time.substring(0, 5); // Formato HH:MM
       }
+
+      const attendanceOptions = await listGrowthGroupAttendanceOptions(supabase, gc.id);
+      initialParticipants = attendanceOptions.members;
+      initialVisitors = attendanceOptions.visitors;
     }
   }
 
@@ -85,6 +96,8 @@ async function MeetingFormLoader({ searchParams }: { searchParams: SearchParams 
       defaultGcName={selectedGc?.name}
       defaultDate={defaultDate}
       defaultTime={defaultTime}
+      initialParticipants={initialParticipants}
+      initialVisitors={initialVisitors}
     />
   );
 }

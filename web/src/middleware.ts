@@ -8,10 +8,26 @@ function isPublicPath(pathname: string) {
   return PUBLIC_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`));
 }
 
+function createLoginRedirect(request: NextRequest) {
+  const url = request.nextUrl.clone();
+  const redirectTo = `${request.nextUrl.pathname}${request.nextUrl.search}`;
+
+  url.pathname = '/login';
+  url.search = '';
+
+  if (redirectTo !== '/login') {
+    url.searchParams.set('redirect', redirectTo);
+  }
+
+  return NextResponse.redirect(url);
+}
+
 export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+  const isPublic = isPublicPath(pathname);
   const response = NextResponse.next({
     request: {
-      headers: request.headers,
+      headers: new Headers(request.headers),
     },
   });
 
@@ -19,6 +35,10 @@ export async function middleware(request: NextRequest) {
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   if (!supabaseUrl || !supabaseAnonKey) {
+    if (!isPublic) {
+      return createLoginRedirect(request);
+    }
+
     return response;
   }
 
@@ -39,18 +59,8 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { pathname, search } = request.nextUrl;
-  const isPublic = isPublicPath(pathname);
-
   if (!user && !isPublic) {
-    const url = request.nextUrl.clone();
-    url.pathname = '/login';
-    url.search = '';
-    const redirectTo = `${pathname}${search}`;
-    if (redirectTo !== '/login') {
-      url.searchParams.set('redirect', redirectTo);
-    }
-    return NextResponse.redirect(url);
+    return createLoginRedirect(request);
   }
 
   if (user && pathname === '/login') {

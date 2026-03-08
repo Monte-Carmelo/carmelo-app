@@ -5,7 +5,6 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useRouter } from 'next/navigation';
 import { z } from 'zod';
-import { getSupabaseBrowserClient } from '@/lib/supabase/browser-client';
 import type { Database } from '@/lib/supabase/types';
 
 const schema = z
@@ -31,7 +30,6 @@ interface VisitorFormProps {
 
 export function VisitorForm({ groups, preselectedGcId }: VisitorFormProps) {
   const router = useRouter();
-  const supabase = getSupabaseBrowserClient();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -49,46 +47,37 @@ export function VisitorForm({ groups, preselectedGcId }: VisitorFormProps) {
   const onSubmit = handleSubmit(async (values) => {
     setIsSubmitting(true);
     setErrorMessage(null);
+    let isSuccess = false;
 
-    const trimmedEmail = values.email?.trim() || null;
-    const trimmedPhone = values.phone?.trim() || null;
+    try {
+      const response = await fetch('/api/visitors', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          gcId: values.gcId,
+          name: values.name,
+          email: values.email ?? '',
+          phone: values.phone ?? '',
+        }),
+      });
+      const result = await response.json();
 
-    const { data: personData, error: personError } = await supabase
-      .from('people')
-      .insert({
-        name: values.name.trim(),
-        email: trimmedEmail,
-        phone: trimmedPhone,
-      })
-      .select('id')
-      .single();
+      if (!response.ok || !result.success) {
+        setErrorMessage(result.error ?? 'Falha ao cadastrar visitante.');
+        return;
+      }
 
-    if (personError || !personData) {
-      setErrorMessage(personError?.message ?? 'Falha ao salvar dados pessoais.');
-      setIsSubmitting(false);
-      return;
+      isSuccess = true;
+      window.location.assign(preselectedGcId ? `/gc/${preselectedGcId}` : '/visitors');
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : 'Falha ao cadastrar visitante.');
+    } finally {
+      if (!isSuccess) {
+        setIsSubmitting(false);
+      }
     }
-
-    const { error: visitorError } = await supabase.from('visitors').insert({
-      gc_id: values.gcId,
-      person_id: personData.id,
-      status: 'active',
-      // visit_count, first_visit_date e last_visit_date usam valores padrão do banco
-    });
-
-    if (visitorError) {
-      setErrorMessage(visitorError.message ?? 'Falha ao cadastrar visitante.');
-      setIsSubmitting(false);
-      return;
-    }
-
-    // Se veio da página do GC, redirecionar de volta
-    if (preselectedGcId) {
-      router.push(`/gc/${preselectedGcId}`);
-    } else {
-      router.push('/visitors');
-    }
-    router.refresh();
   });
 
   return (

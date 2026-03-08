@@ -84,12 +84,14 @@ export function AdminUserList({ currentUserId: propCurrentUserId, users: propUse
         const supabase = getSupabaseBrowserClient();
 
         // Get current user
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session?.user?.id) {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (!user?.id) {
           router.push('/login');
           return;
         }
-        setCurrentUserId(session.user.id);
+        setCurrentUserId(user.id);
 
         const [rolesResult, phonesResult] = await Promise.all([
           supabase

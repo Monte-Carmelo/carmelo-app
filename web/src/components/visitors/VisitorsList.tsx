@@ -18,7 +18,7 @@ interface VisitorsListProps {
 
 export function VisitorsList({ visitors }: VisitorsListProps) {
   const router = useRouter();
-  const { session } = useSession();
+  const { user } = useSession();
   const supabase = getSupabaseBrowserClient();
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -27,7 +27,7 @@ export function VisitorsList({ visitors }: VisitorsListProps) {
     setProcessingId(visitor.id);
     setErrorMessage(null);
 
-    const result = await convertVisitorToParticipant(supabase, visitor, session.user.id);
+    const result = await convertVisitorToParticipant(supabase, visitor, user.id);
     if (!result.success) {
       setErrorMessage(result.error ?? 'Não foi possível converter visitante.');
       setProcessingId(null);
