@@ -87,6 +87,7 @@ Leitura por tipo de tarefa:
 - tarefa web: `docs/web.md` e `web/README.md`
 - tarefa de teste: `docs/testing.md`
 - tarefa de banco ou auth: `docs/supabase.md`
+- tarefa de débitos técnicos: `docs/technical-debt.md`
 - tarefa orientada a requisito: `specs/...` relevante
 - tarefa sem contexto previo: `memory-bank/README.md`, `memory-bank/activeContext.md` e `memory-bank/decisionLog.md`
 
@@ -184,6 +185,7 @@ Antes de encerrar:
 - atualize docs tocadas pelo novo comportamento
 - registre decisao relevante no `memory-bank/decisionLog.md` se ela afetar futuras sessoes
 - se a mudanca alterar foco atual, padrao recorrente ou marco relevante, atualize tambem os arquivos correspondentes do `memory-bank/`
+- se identificar ou assumir um debito tecnico duravel, registre-o em `docs/technical-debt.md`
 
 ## Politica de manutencao desta doc
 
@@ -213,6 +215,7 @@ Nao transforme este arquivo em dump de changelog. Ele deve continuar curto, pres
 - `docs/web.md`
 - `docs/testing.md`
 - `docs/supabase.md`
+- `docs/technical-debt.md`
 - `web/README.md`
 - `memory-bank/activeContext.md`
 - `memory-bank/decisionLog.md`

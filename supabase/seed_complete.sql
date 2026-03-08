@@ -1,6 +1,8 @@
 -- Complete Seed Data for carmelo-app
 -- Feature: 001-crie-um-app
 -- Description: Test users, GCs, members, and lessons for development and testing
+-- LEGADO: nao use este arquivo como seed padrao em cloud.
+-- Ele depende de pressupostos antigos de auth/users e contem dados historicos como `co_leader`.
 --
 -- IMPORTANTE: Execute este seed com `supabase db reset`, depois execute:
 -- cd web && npx tsx scripts/seed-auth-users.ts

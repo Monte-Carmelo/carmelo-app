@@ -1,6 +1,7 @@
 -- Minimal Seed Data for carmelo-app
 -- Feature: 001-crie-um-app
 -- Description: Essential test data that works without auth.users dependencies
+-- BACKUP LEGADO: nao use como seed padrao sem revisar o modelo atual.
 
 -- Step 1: Create people (base entity for personal data)
 INSERT INTO people (id, name, email, phone, birth_date) VALUES

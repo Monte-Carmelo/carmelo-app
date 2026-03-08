@@ -4,7 +4,7 @@
 
 CREATE TABLE growth_groups (
   -- Identification
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL CHECK (char_length(name) > 0 AND char_length(name) <= 255),
 
   -- Mode and Location

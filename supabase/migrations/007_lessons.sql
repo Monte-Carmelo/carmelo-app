@@ -2,7 +2,7 @@
 -- Feature: 001-crie-um-app
 
 CREATE TABLE lesson_series (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL CHECK (char_length(name) > 0 AND char_length(name) <= 255),
   description TEXT,
   created_by_user_id UUID NOT NULL REFERENCES users(id),
@@ -17,7 +17,7 @@ BEFORE UPDATE ON lesson_series
 FOR EACH ROW EXECUTE FUNCTION update_timestamp();
 
 CREATE TABLE lessons (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   title TEXT NOT NULL CHECK (char_length(title) > 0 AND char_length(title) <= 255),
   description TEXT,
   series_id UUID REFERENCES lesson_series(id) ON DELETE SET NULL,

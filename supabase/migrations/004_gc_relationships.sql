@@ -3,7 +3,7 @@
 -- Description: Unifica líderes, supervisores e membros na tabela growth_group_participants
 
 CREATE TABLE growth_group_participants (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   gc_id UUID NOT NULL REFERENCES growth_groups(id) ON DELETE CASCADE,
   person_id UUID NOT NULL REFERENCES people(id) ON DELETE CASCADE,
   role TEXT NOT NULL CHECK (role IN ('member', 'leader', 'co_leader', 'supervisor')),

@@ -1,10 +1,15 @@
--- Complete Seed Data for carmelo-app (Two-step process)
+-- Demo Seed Data for carmelo-app (Two-step process)
 -- Feature: 001-crie-um-app
--- Description: Test users, GCs, members, and lessons for development and testing
+-- Description: Demo data for development, testing and non-production cloud environments
 --
 -- EXECUÇÃO:
 -- 1. supabase db reset
 -- 2. cd web && npx tsx scripts/seed-auth-users.ts
+--
+-- AVISO:
+-- - Este seed e apropriado para ambiente local, staging ou demo.
+-- - Nao use este seed como base de producao real.
+-- - Ele NAO cria usuarios em auth.users e nao deve mais depender de migrations que criem logins automaticamente.
 
 -- Create people (base entity for personal data)
 INSERT INTO people (id, name, email, phone, birth_date) VALUES
@@ -35,15 +40,6 @@ INSERT INTO growth_groups (id, name, mode, address, weekday, time, status) VALUE
   ('40000000-0000-0000-0000-000000000001', 'GC Esperança', 'in_person', 'Rua Teste 123', 3, '19:30', 'active'),
   ('40000000-0000-0000-0000-000000000002', 'GC Fé', 'online', NULL, NULL, NULL, 'active'),
   ('40000000-0000-0000-0000-000000000003', 'GC Amor', 'in_person', 'Av. Principal 456', 5, '20:00', 'active');
-
--- Create users table entries (auth.users created by migration)
-INSERT INTO users (id, person_id, is_admin) VALUES
-  ('90000000-0000-0000-0000-000000000001', '11111111-0000-0000-0000-000000000006', true),
-  ('10000000-0000-0000-0000-000000000001', '11111111-0000-0000-0000-000000000001', false),
-  ('10000000-0000-0000-0000-000000000002', '11111111-0000-0000-0000-000000000002', false),
-  ('20000000-0000-0000-0000-000000000001', '11111111-0000-0000-0000-000000000003', false),
-  ('20000000-0000-0000-0000-000000000002', '11111111-0000-0000-0000-000000000004', false),
-  ('30000000-0000-0000-0000-000000000001', '11111111-0000-0000-0000-000000000005', false);
 
 -- Create visitors
 INSERT INTO visitors (id, person_id, gc_id, status, created_at) VALUES

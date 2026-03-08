@@ -1,6 +1,7 @@
 -- Modified Seed Data for carmelo-app
 -- Feature: 001-crie-um-app
 -- Description: Test data that works with Supabase Auth constraints
+-- LEGADO: arquivo experimental/historico. Nao use como seed padrao em cloud.
 
 -- Step 1: Create people (base entity for personal data)
 INSERT INTO people (id, name, email, phone, birth_date) VALUES

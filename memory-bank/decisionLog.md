@@ -55,3 +55,17 @@ Sem governanca, memoria persistente vira arquivo morto ou dump historico pouco c
 ### Lasting Impact
 
 O `memory-bank/` passa a servir sessoes futuras com menos ambiguidade e menor custo de manutencao.
+
+## 2026-03-08 - Manter temporariamente `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+
+### Decision
+
+Manter o nome legado `NEXT_PUBLIC_SUPABASE_ANON_KEY` no `web/` por enquanto, mesmo com o projeto usando uma chave `sb_publishable_...` do Supabase moderno.
+
+### Rationale
+
+O deploy atual precisa de continuidade e o rename agora aumentaria o escopo sem destravar mais valor imediato. O valor tecnico da chave publica continua correto; o problema esta no nome da variavel.
+
+### Lasting Impact
+
+Existe um debito tecnico documentado no inventario central do projeto: `TD-001` em `docs/technical-debt.md`. O nome da env publica de Supabase esta desatualizado e deve ser migrado no futuro para `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, idealmente com periodo de compatibilidade entre os dois nomes.

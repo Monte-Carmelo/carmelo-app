@@ -20,7 +20,7 @@ INSERT INTO config (key, value, description) VALUES
 
 -- Histórico de conversão de visitantes
 CREATE TABLE visitor_conversion_events (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   visitor_id UUID NOT NULL REFERENCES visitors(id) ON DELETE CASCADE,
   participant_id UUID NOT NULL REFERENCES growth_group_participants(id) ON DELETE CASCADE,
   person_id UUID NOT NULL REFERENCES people(id) ON DELETE CASCADE,

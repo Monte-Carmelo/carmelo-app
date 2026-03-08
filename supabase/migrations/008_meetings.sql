@@ -2,7 +2,7 @@
 -- Feature: 001-crie-um-app
 
 CREATE TABLE meetings (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   gc_id UUID NOT NULL REFERENCES growth_groups(id) ON DELETE CASCADE,
   lesson_template_id UUID REFERENCES lessons(id) ON DELETE SET NULL,
   lesson_title TEXT NOT NULL CHECK (char_length(lesson_title) > 0 AND char_length(lesson_title) <= 255),

@@ -7,6 +7,7 @@ Repositório monorepo que combina:
 
 Leituras rápidas:
 - `docs/onboarding.md` — ponto de entrada obrigatório para novos agentes/devs e sessões sem contexto
+- `docs/technical-debt.md` — inventário central de débitos técnicos abertos
 - `docs/web.md` — detalhes da aplicação web
 - `docs/supabase.md` — banco, migrations e seeds
 

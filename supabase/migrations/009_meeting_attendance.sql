@@ -2,7 +2,7 @@
 -- Feature: 001-crie-um-app
 
 CREATE TABLE meeting_member_attendance (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   meeting_id UUID NOT NULL REFERENCES meetings(id) ON DELETE CASCADE,
   participant_id UUID NOT NULL REFERENCES growth_group_participants(id) ON DELETE CASCADE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -54,7 +54,7 @@ FOR ALL USING (
 -- ---------------------------------------------------------------------------
 
 CREATE TABLE meeting_visitor_attendance (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   meeting_id UUID NOT NULL REFERENCES meetings(id) ON DELETE CASCADE,
   visitor_id UUID NOT NULL REFERENCES visitors(id) ON DELETE CASCADE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),

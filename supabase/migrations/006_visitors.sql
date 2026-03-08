@@ -3,7 +3,7 @@
 -- Description: Registra visitantes vinculados a growth_groups e prepara vínculos de conversão
 
 CREATE TABLE visitors (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   person_id UUID NOT NULL REFERENCES people(id) ON DELETE CASCADE,
   gc_id UUID NOT NULL REFERENCES growth_groups(id) ON DELETE CASCADE,
 

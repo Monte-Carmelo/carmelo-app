@@ -2,8 +2,8 @@
 -- Feature: 001-crie-um-app
 -- Description: Normalized entity for personal data, avoids duplication between users, growth_group_participants, visitors
 
--- Enable UUID extension
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+-- Enable UUID helpers
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 -- Enable pg_trgm for text search
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
@@ -18,7 +18,7 @@ $$ LANGUAGE plpgsql;
 
 CREATE TABLE people (
   -- Identification
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL CHECK (char_length(name) > 0 AND char_length(name) <= 255),
   email TEXT,
   phone TEXT,
