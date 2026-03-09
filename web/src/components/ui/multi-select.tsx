@@ -90,7 +90,7 @@ export function MultiSelect({
             ref={inputRef}
             value={inputValue}
             onValueChange={setInputValue}
-            onBlur={() => setOpen(false)}
+            onBlur={() => setTimeout(() => setOpen(false), 150)}
             onFocus={() => setOpen(true)}
             placeholder={selected.length === 0 ? placeholder : undefined}
             disabled={disabled}
@@ -100,19 +100,20 @@ export function MultiSelect({
       </div>
       <div className="relative mt-2">
         {open && selectables.length > 0 ? (
-          <div className="absolute top-0 z-10 w-full rounded-md border bg-popover text-popover-foreground shadow-md outline-none animate-in">
+          <div
+            className="absolute top-0 z-10 w-full rounded-md border bg-popover text-popover-foreground shadow-md outline-none animate-in"
+            onMouseDown={(e) => e.preventDefault()}
+          >
             <CommandGroup className="h-full overflow-auto max-h-64">
               {selectables.map((option) => {
                 return (
                   <CommandItem
                     key={option.value}
-                    onMouseDown={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                    }}
                     onSelect={() => {
                       setInputValue('');
                       onChange([...selected, option.value]);
+                      setOpen(true);
+                      inputRef.current?.focus();
                     }}
                     className="cursor-pointer"
                   >

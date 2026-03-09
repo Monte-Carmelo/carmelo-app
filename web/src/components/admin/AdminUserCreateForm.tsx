@@ -25,16 +25,26 @@ const schema = z
 
 type FormValues = z.infer<typeof schema>;
 
+function formatPhone(value: string): string {
+  const digits = value.replace(/\D/g, '').slice(0, 11);
+  if (digits.length <= 2) return digits.length ? `(${digits}` : '';
+  if (digits.length <= 6) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+  if (digits.length <= 10) return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
+  return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+}
+
 export function AdminUserCreateForm() {
   const router = useRouter();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [phoneDisplay, setPhoneDisplay] = useState('');
 
   const {
     register,
     handleSubmit,
     reset,
+    setValue,
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -42,6 +52,12 @@ export function AdminUserCreateForm() {
       isAdmin: false,
     },
   });
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formatted = formatPhone(e.target.value);
+    setPhoneDisplay(formatted);
+    setValue('phone', formatted);
+  };
 
   const onSubmit = handleSubmit((values) => {
     setErrorMessage(null);
@@ -57,7 +73,7 @@ export function AdminUserCreateForm() {
       })
         .then((result) => {
           if (result.success && result.userId) {
-            setSuccessMessage('Usuário criado com sucesso. Redirecionando...');
+            setSuccessMessage('Usuário criado com sucesso. Um e-mail de confirmação foi enviado. Redirecionando...');
             reset({
               name: '',
               email: '',
@@ -66,6 +82,7 @@ export function AdminUserCreateForm() {
               confirmPassword: '',
               isAdmin: false,
             });
+            setPhoneDisplay('');
             router.replace(`/admin/users/${result.userId}?created=true`);
           } else {
             setErrorMessage(result.error ?? 'Não foi possível criar o usuário.');
@@ -82,7 +99,7 @@ export function AdminUserCreateForm() {
       <header className="flex flex-col gap-2">
         <h1 className="text-2xl font-semibold text-slate-900">Novo usuário</h1>
         <p className="text-sm text-slate-600">
-          Cadastre um novo usuário com acesso ao app. Defina uma senha temporária; atribua papéis posteriormente nos detalhes do usuário.
+          Cadastre um novo usuário com acesso ao app. Um e-mail de confirmação será enviado ao usuário. Atribua papéis posteriormente nos detalhes do usuário.
         </p>
       </header>
 
@@ -122,8 +139,9 @@ export function AdminUserCreateForm() {
           <input
             type="tel"
             placeholder="(11) 98888-8888"
+            value={phoneDisplay}
+            onChange={handlePhoneChange}
             className="rounded-lg border border-slate-300 px-3 py-2 text-slate-900 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
-            {...register('phone')}
           />
           {errors.phone ? <span className="text-xs text-red-600">{errors.phone.message}</span> : null}
         </label>
