@@ -39,6 +39,7 @@ jobs:
 
       - name: Start local Supabase
         run: supabase start
+        working-directory: .
 
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
