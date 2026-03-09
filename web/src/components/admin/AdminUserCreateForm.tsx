@@ -136,6 +136,7 @@ export function AdminUserCreateForm() {
               <input
                 type="tel"
                 placeholder="(11) 98888-8888"
+                name={field.name}
                 value={field.value ?? ''}
                 onChange={(event) => field.onChange(formatPhone(event.target.value))}
                 onBlur={field.onBlur}
