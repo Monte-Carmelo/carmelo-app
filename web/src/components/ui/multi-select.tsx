@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { Command, CommandGroup, CommandItem } from '@/components/ui/command';
+import { Command, CommandEmpty, CommandGroup, CommandItem, CommandList } from '@/components/ui/command';
 import { Command as CommandPrimitive } from 'cmdk';
 
 export type Option = {
@@ -124,30 +124,34 @@ export function MultiSelect({
         </div>
       </div>
       <div className="relative mt-2">
-        {open && selectables.length > 0 ? (
+        {open ? (
           <div
             className="absolute top-0 z-10 w-full rounded-md border bg-popover text-popover-foreground shadow-md outline-none animate-in"
             onMouseDown={(e) => e.preventDefault()}
           >
-            <CommandGroup className="h-full overflow-auto max-h-64">
-              {selectables.map((option) => {
-                return (
-                  <CommandItem
-                    key={option.value}
-                    onSelect={() => {
-                      clearBlurTimeout();
-                      setInputValue('');
-                      onChange([...selected, option.value]);
-                      setOpen(true);
-                      inputRef.current?.focus();
-                    }}
-                    className="cursor-pointer"
-                  >
-                    {option.label}
-                  </CommandItem>
-                );
-              })}
-            </CommandGroup>
+            <CommandList className="max-h-64">
+              <CommandEmpty>Nenhuma opção disponível.</CommandEmpty>
+              <CommandGroup className="h-full overflow-auto">
+                {selectables.map((option) => {
+                  return (
+                    <CommandItem
+                      key={option.value}
+                      value={option.label}
+                      onSelect={() => {
+                        clearBlurTimeout();
+                        setInputValue('');
+                        onChange([...selected, option.value]);
+                        setOpen(true);
+                        inputRef.current?.focus();
+                      }}
+                      className="cursor-pointer"
+                    >
+                      {option.label}
+                    </CommandItem>
+                  );
+                })}
+              </CommandGroup>
+            </CommandList>
           </div>
         ) : null}
       </div>
