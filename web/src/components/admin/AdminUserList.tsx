@@ -1,12 +1,10 @@
 'use client';
 
-import { useState, useTransition, useEffect, useMemo } from 'react';
+import { useMemo, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Pencil, Trash2 } from 'lucide-react';
-import { getSupabaseBrowserClient } from '@/lib/supabase/browser-client';
 import { deleteUser } from '@/app/(app)/admin/actions';
-import { Loading } from '@/components/ui/spinner';
 import {
   Table,
   TableBody,
@@ -37,7 +35,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 
-interface AdminUserSummary {
+export interface AdminUserSummary {
   id: string;
   name: string;
   email: string | null;
@@ -52,105 +50,19 @@ interface AdminUserSummary {
 }
 
 interface AdminUserListProps {
-  currentUserId?: string;
-  users?: AdminUserSummary[];
+  currentUserId: string;
+  users: AdminUserSummary[];
 }
 
-export function AdminUserList({ currentUserId: propCurrentUserId, users: propUsers }: AdminUserListProps) {
+export function AdminUserList({ currentUserId, users }: AdminUserListProps) {
   const router = useRouter();
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
-  const [loading, setLoading] = useState(true);
-  const [currentUserId, setCurrentUserId] = useState<string>('');
-  const [users, setUsers] = useState<AdminUserSummary[]>([]);
 
   // Filters
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'name' | 'email' | 'gcs'>('name');
-
-  useEffect(() => {
-    async function loadUsers() {
-      if (propCurrentUserId && propUsers) {
-        // Use props if provided (for backwards compatibility)
-        setCurrentUserId(propCurrentUserId);
-        setUsers(propUsers);
-        setLoading(false);
-        return;
-      }
-
-      // Otherwise, fetch data
-      try {
-        const supabase = getSupabaseBrowserClient();
-
-        // Get current user
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-        if (!user?.id) {
-          router.push('/login');
-          return;
-        }
-        setCurrentUserId(user.id);
-
-        const [rolesResult, phonesResult] = await Promise.all([
-          supabase
-            .from('user_gc_roles')
-            .select(
-              'user_id, name, email, is_admin, is_leader, is_supervisor, is_coordinator, gcs_led, gcs_supervised, direct_subordinates',
-            )
-            .order('name', { ascending: true }),
-          supabase
-            .from('users')
-            .select('id, people:person_id ( phone )')
-            .is('deleted_at', null),
-        ]);
-
-        if (rolesResult.error) {
-          console.error('Error fetching user roles:', rolesResult.error);
-          toast.error('Erro ao carregar usuários.');
-          return;
-        }
-
-        if (phonesResult.error) {
-          console.error('Error fetching user phones:', phonesResult.error);
-          toast.error('Erro ao carregar usuários.');
-          return;
-        }
-
-        const phoneByUserId = new Map(
-          (phonesResult.data || [])
-            .filter((user) => Boolean(user.id))
-            .map((user) => [user.id, user.people?.phone ?? null]),
-        );
-
-        const processedUsers: AdminUserSummary[] = (rolesResult.data || [])
-          .filter((row) => Boolean(row.user_id))
-          .map((row) => ({
-            id: row.user_id as string,
-            name: row.name || 'Nome não definido',
-            email: row.email || null,
-            phone: phoneByUserId.get(row.user_id as string) ?? null,
-            isAdmin: row.is_admin ?? false,
-            isLeader: row.is_leader ?? false,
-            isSupervisor: row.is_supervisor ?? false,
-            isCoordinator: row.is_coordinator ?? false,
-            gcsLed: row.gcs_led ?? 0,
-            gcsSupervised: row.gcs_supervised ?? 0,
-            directSubordinates: row.direct_subordinates ?? 0,
-          }));
-
-        setUsers(processedUsers);
-      } catch (error) {
-        console.error('Error loading users:', error);
-        toast.error('Erro ao carregar usuários.');
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    loadUsers();
-  }, [propCurrentUserId, propUsers, router]);
 
   const filteredAndSortedUsers = useMemo(() => {
     let result = [...users];
@@ -223,10 +135,6 @@ export function AdminUserList({ currentUserId: propCurrentUserId, users: propUse
         });
     });
   };
-
-  if (loading) {
-    return <Loading message="Carregando usuários..." />;
-  }
 
   return (
     <div className="space-y-4">

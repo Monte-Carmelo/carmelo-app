@@ -29,8 +29,24 @@ export function MultiSelect({
   disabled = false,
 }: MultiSelectProps) {
   const inputRef = React.useRef<HTMLInputElement>(null);
+  const blurTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const [open, setOpen] = React.useState(false);
   const [inputValue, setInputValue] = React.useState('');
+
+  React.useEffect(() => {
+    return () => {
+      if (blurTimeoutRef.current) {
+        clearTimeout(blurTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const clearBlurTimeout = React.useCallback(() => {
+    if (blurTimeoutRef.current) {
+      clearTimeout(blurTimeoutRef.current);
+      blurTimeoutRef.current = null;
+    }
+  }, []);
 
   const handleUnselect = React.useCallback(
     (value: string) => {
@@ -90,8 +106,17 @@ export function MultiSelect({
             ref={inputRef}
             value={inputValue}
             onValueChange={setInputValue}
-            onBlur={() => setTimeout(() => setOpen(false), 150)}
-            onFocus={() => setOpen(true)}
+            onBlur={() => {
+              clearBlurTimeout();
+              blurTimeoutRef.current = setTimeout(() => {
+                setOpen(false);
+                blurTimeoutRef.current = null;
+              }, 150);
+            }}
+            onFocus={() => {
+              clearBlurTimeout();
+              setOpen(true);
+            }}
             placeholder={selected.length === 0 ? placeholder : undefined}
             disabled={disabled}
             className="ml-2 flex-1 bg-transparent outline-none placeholder:text-muted-foreground"
@@ -110,6 +135,7 @@ export function MultiSelect({
                   <CommandItem
                     key={option.value}
                     onSelect={() => {
+                      clearBlurTimeout();
                       setInputValue('');
                       onChange([...selected, option.value]);
                       setOpen(true);

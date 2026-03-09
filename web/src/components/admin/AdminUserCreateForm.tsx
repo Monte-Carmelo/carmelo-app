@@ -2,7 +2,7 @@
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useState, useTransition } from 'react';
-import { useForm } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
 import { useRouter } from 'next/navigation';
 import { z } from 'zod';
 import { createUser } from '@/app/(app)/admin/actions';
@@ -38,26 +38,20 @@ export function AdminUserCreateForm() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
-  const [phoneDisplay, setPhoneDisplay] = useState('');
 
   const {
+    control,
     register,
     handleSubmit,
     reset,
-    setValue,
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
+      phone: '',
       isAdmin: false,
     },
   });
-
-  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const formatted = formatPhone(e.target.value);
-    setPhoneDisplay(formatted);
-    setValue('phone', formatted);
-  };
 
   const onSubmit = handleSubmit((values) => {
     setErrorMessage(null);
@@ -73,7 +67,7 @@ export function AdminUserCreateForm() {
       })
         .then((result) => {
           if (result.success && result.userId) {
-            setSuccessMessage('Usuário criado com sucesso. Um e-mail de confirmação foi enviado. Redirecionando...');
+            setSuccessMessage('Usuário criado com sucesso. Redirecionando...');
             reset({
               name: '',
               email: '',
@@ -82,7 +76,6 @@ export function AdminUserCreateForm() {
               confirmPassword: '',
               isAdmin: false,
             });
-            setPhoneDisplay('');
             router.replace(`/admin/users/${result.userId}?created=true`);
           } else {
             setErrorMessage(result.error ?? 'Não foi possível criar o usuário.');
@@ -99,7 +92,7 @@ export function AdminUserCreateForm() {
       <header className="flex flex-col gap-2">
         <h1 className="text-2xl font-semibold text-slate-900">Novo usuário</h1>
         <p className="text-sm text-slate-600">
-          Cadastre um novo usuário com acesso ao app. Um e-mail de confirmação será enviado ao usuário. Atribua papéis posteriormente nos detalhes do usuário.
+          Cadastre um novo usuário com acesso ao app. Defina uma senha temporária; atribua papéis posteriormente nos detalhes do usuário.
         </p>
       </header>
 
@@ -136,12 +129,20 @@ export function AdminUserCreateForm() {
 
         <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">
           Telefone
-          <input
-            type="tel"
-            placeholder="(11) 98888-8888"
-            value={phoneDisplay}
-            onChange={handlePhoneChange}
-            className="rounded-lg border border-slate-300 px-3 py-2 text-slate-900 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
+          <Controller
+            name="phone"
+            control={control}
+            render={({ field }) => (
+              <input
+                type="tel"
+                placeholder="(11) 98888-8888"
+                value={field.value ?? ''}
+                onChange={(event) => field.onChange(formatPhone(event.target.value))}
+                onBlur={field.onBlur}
+                ref={field.ref}
+                className="rounded-lg border border-slate-300 px-3 py-2 text-slate-900 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
+              />
+            )}
           />
           {errors.phone ? <span className="text-xs text-red-600">{errors.phone.message}</span> : null}
         </label>

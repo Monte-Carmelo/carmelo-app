@@ -13,7 +13,7 @@ export function AdminShell({ children }: AdminShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="flex flex-1 bg-slate-50" data-testid="admin-shell">
+    <div className="flex min-h-screen bg-slate-50" data-testid="admin-shell">
       {/* Mobile sidebar overlay */}
       {sidebarOpen && (
         <div
