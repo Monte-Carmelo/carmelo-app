@@ -15,15 +15,6 @@ const supabase = createClient<Database>(supabaseUrl, supabaseServiceKey, {
 
 describeIf('W012 - Contrato POST meetings', () => {
   it('cria reuniao com lesson_title, comentarios e presencas de membro/visitante', async () => {
-    const { data: group, error: groupError } = await supabase
-      .from('growth_groups')
-      .select('id')
-      .order('name', { ascending: true })
-      .limit(1)
-      .single();
-    expect(groupError).toBeNull();
-    expect(group).not.toBeNull();
-
     const { data: user, error: userError } = await supabase
       .from('users')
       .select('id')
@@ -34,8 +25,7 @@ describeIf('W012 - Contrato POST meetings', () => {
 
     const { data: participant, error: participantError } = await supabase
       .from('growth_group_participants')
-      .select('id')
-      .eq('gc_id', group!.id)
+      .select('id, gc_id')
       .eq('role', 'member')
       .eq('status', 'active')
       .limit(1)
@@ -43,10 +33,12 @@ describeIf('W012 - Contrato POST meetings', () => {
     expect(participantError).toBeNull();
     expect(participant).not.toBeNull();
 
+    const gcId = participant!.gc_id;
+
     const { data: existingVisitor, error: visitorFetchError } = await supabase
       .from('visitors')
       .select('id')
-      .eq('gc_id', group!.id)
+      .eq('gc_id', gcId)
       .eq('status', 'active')
       .limit(1)
       .maybeSingle();
@@ -69,7 +61,7 @@ describeIf('W012 - Contrato POST meetings', () => {
       const { data: createdVisitor, error: visitorCreateError } = await supabase
         .from('visitors')
         .insert({
-          gc_id: group!.id,
+          gc_id: gcId,
           person_id: person!.id,
           status: 'active',
         })
@@ -86,7 +78,7 @@ describeIf('W012 - Contrato POST meetings', () => {
     const { data: meeting, error: meetingError } = await supabase
       .from('meetings')
       .insert({
-        gc_id: group!.id,
+        gc_id: gcId,
         lesson_template_id: null,
         lesson_title: lessonTitle,
         datetime: new Date().toISOString(),
