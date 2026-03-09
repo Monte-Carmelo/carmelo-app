@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation';
 import { Plus, Users } from 'lucide-react';
 import { getAuthenticatedUser } from '@/lib/supabase/server-auth';
 import { createSupabaseServerClient } from '@/lib/supabase/server-client';
-import { AdminUserList } from '@/components/admin/AdminUserList';
+import { AdminUserList, type AdminUserSummary } from '@/components/admin/AdminUserList';
 import { AdminBreadcrumbs } from '@/components/admin/AdminBreadcrumbs';
 import { Loading } from '@/components/ui/spinner';
 import { Button } from '@/components/ui/button';
@@ -32,6 +32,14 @@ async function AdminUsersContent() {
       .is('deleted_at', null),
   ]);
 
+  if (rolesResult.error) {
+    throw rolesResult.error;
+  }
+
+  if (phonesResult.error) {
+    throw phonesResult.error;
+  }
+
   const phoneByUserId = new Map(
     (phonesResult.data || [])
       .filter((u) => Boolean(u.id))
@@ -41,7 +49,7 @@ async function AdminUsersContent() {
       }),
   );
 
-  const users = (rolesResult.data || [])
+  const users: AdminUserSummary[] = (rolesResult.data || [])
     .filter((row) => Boolean(row.user_id))
     .map((row) => ({
       id: row.user_id as string,
