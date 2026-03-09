@@ -38,7 +38,7 @@ export type GrowthGroupFormData = z.infer<typeof createGCSchema>;
 export interface GrowthGroupFormProps {
   gc?: Partial<GrowthGroupFormData> & { id?: string };
   onSubmit: (data: GrowthGroupFormData) => Promise<void>;
-  users: Array<{ id: string; name: string }>;
+  people: Array<{ id: string; name: string }>;
 }
 
 const modeOptions = [
@@ -57,7 +57,7 @@ const weekdayOptions = [
   { value: '6', label: 'Sábado' },
 ];
 
-export function AdminGrowthGroupForm({ gc, onSubmit, users }: GrowthGroupFormProps) {
+export function AdminGrowthGroupForm({ gc, onSubmit, people }: GrowthGroupFormProps) {
   const {
     register,
     handleSubmit,
@@ -83,7 +83,7 @@ export function AdminGrowthGroupForm({ gc, onSubmit, users }: GrowthGroupFormPro
   const supervisorIds = watch('supervisorIds');
   const showAddress = mode === 'in_person' || mode === 'hybrid';
 
-  const userOptions = users.map((user) => ({ label: user.name, value: user.id }));
+  const peopleOptions = people.map((person) => ({ label: person.name, value: person.id }));
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
@@ -184,7 +184,7 @@ export function AdminGrowthGroupForm({ gc, onSubmit, users }: GrowthGroupFormPro
               Líderes <span className="text-red-500">*</span>
             </Label>
             <MultiSelect
-              options={userOptions}
+              options={peopleOptions}
               selected={leaderIds || []}
               onChange={(selected) => setValue('leaderIds', selected)}
               placeholder="Selecione os líderes"
@@ -203,7 +203,7 @@ export function AdminGrowthGroupForm({ gc, onSubmit, users }: GrowthGroupFormPro
               Supervisores <span className="text-red-500">*</span>
             </Label>
             <MultiSelect
-              options={userOptions}
+              options={peopleOptions}
               selected={supervisorIds || []}
               onChange={(selected) => setValue('supervisorIds', selected)}
               placeholder="Selecione os supervisores"

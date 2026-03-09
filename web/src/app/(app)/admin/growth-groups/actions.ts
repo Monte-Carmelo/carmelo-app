@@ -15,21 +15,6 @@ export async function createGrowthGroupAction(data: GrowthGroupFormData) {
 
     const supabase = await createSupabaseServerClient();
 
-    // 0. Fetch person_ids for all user_ids
-    const allUserIds = [...data.leaderIds, ...data.supervisorIds, ...(data.memberIds || [])];
-
-    const { data: usersData, error: usersError } = await supabase
-      .from('users')
-      .select('id, person_id')
-      .in('id', allUserIds);
-
-    if (usersError || !usersData) {
-      console.error('Error fetching users:', usersError);
-      return { error: 'Erro ao buscar dados dos usuários.' };
-    }
-
-    const userIdToPersonId = new Map(usersData.map((u) => [u.id, u.person_id]));
-
     // 1. Create the GC
     const { data: gc, error: gcError } = await supabase
       .from('growth_groups')
@@ -54,14 +39,9 @@ export async function createGrowthGroupAction(data: GrowthGroupFormData) {
 
     // Leaders (all leaders have equal authority)
     for (const leaderId of data.leaderIds) {
-      const leaderPersonId = userIdToPersonId.get(leaderId);
-      if (!leaderPersonId) {
-        await supabase.from('growth_groups').delete().eq('id', gc.id);
-        return { error: 'Líder inválido.' };
-      }
       participants.push({
         gc_id: gc.id,
-        person_id: leaderPersonId,
+        person_id: leaderId,
         role: 'leader',
         status: 'active',
         joined_at: new Date().toISOString(),
@@ -70,31 +50,25 @@ export async function createGrowthGroupAction(data: GrowthGroupFormData) {
 
     // Supervisors
     for (const supervisorId of data.supervisorIds) {
-      const supervisorPersonId = userIdToPersonId.get(supervisorId);
-      if (supervisorPersonId) {
-        participants.push({
-          gc_id: gc.id,
-          person_id: supervisorPersonId,
-          role: 'supervisor',
-          status: 'active',
-          joined_at: new Date().toISOString(),
-        });
-      }
+      participants.push({
+        gc_id: gc.id,
+        person_id: supervisorId,
+        role: 'supervisor',
+        status: 'active',
+        joined_at: new Date().toISOString(),
+      });
     }
 
     // Members (if provided)
     if (data.memberIds && data.memberIds.length > 0) {
       for (const memberId of data.memberIds) {
-        const memberPersonId = userIdToPersonId.get(memberId);
-        if (memberPersonId) {
-          participants.push({
-            gc_id: gc.id,
-            person_id: memberPersonId,
-            role: 'member',
-            status: 'active',
-            joined_at: new Date().toISOString(),
-          });
-        }
+        participants.push({
+          gc_id: gc.id,
+          person_id: memberId,
+          role: 'member',
+          status: 'active',
+          joined_at: new Date().toISOString(),
+        });
       }
     }
 
@@ -126,21 +100,6 @@ export async function updateGrowthGroupAction(gcId: string, data: GrowthGroupFor
     }
 
     const supabase = await createSupabaseServerClient();
-
-    // 0. Fetch person_ids for all user_ids
-    const allUserIds = [...data.leaderIds, ...data.supervisorIds];
-
-    const { data: usersData, error: usersError } = await supabase
-      .from('users')
-      .select('id, person_id')
-      .in('id', allUserIds);
-
-    if (usersError || !usersData) {
-      console.error('Error fetching users:', usersError);
-      return { error: 'Erro ao buscar dados dos usuários.' };
-    }
-
-    const userIdToPersonId = new Map(usersData.map((u) => [u.id, u.person_id]));
 
     // 1. Update the GC basic info
     const { error: gcError } = await supabase
@@ -177,13 +136,9 @@ export async function updateGrowthGroupAction(gcId: string, data: GrowthGroupFor
 
     // Leaders (all leaders have equal authority)
     for (const leaderId of data.leaderIds) {
-      const leaderPersonId = userIdToPersonId.get(leaderId);
-      if (!leaderPersonId) {
-        return { error: 'Líder inválido.' };
-      }
       participants.push({
         gc_id: gcId,
-        person_id: leaderPersonId,
+        person_id: leaderId,
         role: 'leader',
         status: 'active',
         joined_at: new Date().toISOString(),
@@ -192,16 +147,13 @@ export async function updateGrowthGroupAction(gcId: string, data: GrowthGroupFor
 
     // Supervisors
     for (const supervisorId of data.supervisorIds) {
-      const supervisorPersonId = userIdToPersonId.get(supervisorId);
-      if (supervisorPersonId) {
-        participants.push({
-          gc_id: gcId,
-          person_id: supervisorPersonId,
-          role: 'supervisor',
-          status: 'active',
-          joined_at: new Date().toISOString(),
-        });
-      }
+      participants.push({
+        gc_id: gcId,
+        person_id: supervisorId,
+        role: 'supervisor',
+        status: 'active',
+        joined_at: new Date().toISOString(),
+      });
     }
 
     const { error: participantsError } = await supabase

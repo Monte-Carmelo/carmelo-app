@@ -9,10 +9,10 @@ import {
 import { createGrowthGroupAction } from '../actions';
 
 interface AdminGrowthGroupFormClientProps {
-  users: Array<{ id: string; name: string }>;
+  people: Array<{ id: string; name: string }>;
 }
 
-export function AdminGrowthGroupFormClient({ users }: AdminGrowthGroupFormClientProps) {
+export function AdminGrowthGroupFormClient({ people }: AdminGrowthGroupFormClientProps) {
   const router = useRouter();
 
   const handleSubmit = async (data: GrowthGroupFormData) => {
@@ -33,5 +33,5 @@ export function AdminGrowthGroupFormClient({ users }: AdminGrowthGroupFormClient
     }
   };
 
-  return <AdminGrowthGroupForm onSubmit={handleSubmit} users={users} />;
+  return <AdminGrowthGroupForm onSubmit={handleSubmit} people={people} />;
 }

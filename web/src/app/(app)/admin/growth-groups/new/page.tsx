@@ -7,28 +7,18 @@ import { Loading } from '@/components/ui/spinner';
 async function AdminGrowthGroupNewContent() {
   const supabase = await createSupabaseServerClient();
 
-  // Fetch users for selects
-  const { data: usersData, error } = await supabase
-    .from('users')
-    .select(`
-      id,
-      people:person_id (
-        name
-      )
-    `)
+  // Fetch people for leadership selects. GC roles belong to people, not only app users.
+  const { data: peopleData, error } = await supabase
+    .from('people')
+    .select('id, name')
     .is('deleted_at', null)
-    .order('people(name)', { ascending: true });
+    .order('name', { ascending: true });
 
   if (error) {
     throw error;
   }
 
-  const users = (usersData || [])
-    .filter((u) => u.people)
-    .map((u) => ({
-      id: u.id,
-      name: u.people!.name,
-    }));
+  const people = peopleData || [];
 
   return (
     <div className="space-y-6">
@@ -39,7 +29,7 @@ async function AdminGrowthGroupNewContent() {
         <p className="text-slate-600 mt-1">Preencha os dados para criar um novo GC</p>
       </div>
 
-      <AdminGrowthGroupFormClient users={users} />
+      <AdminGrowthGroupFormClient people={people} />
     </div>
   );
 }

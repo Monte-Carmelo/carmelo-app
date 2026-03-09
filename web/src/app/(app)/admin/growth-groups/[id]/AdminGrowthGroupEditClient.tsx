@@ -10,10 +10,10 @@ import { updateGrowthGroupAction } from '../actions';
 
 interface AdminGrowthGroupEditClientProps {
   gc: Partial<GrowthGroupFormData> & { id: string };
-  users: Array<{ id: string; name: string }>;
+  people: Array<{ id: string; name: string }>;
 }
 
-export function AdminGrowthGroupEditClient({ gc, users }: AdminGrowthGroupEditClientProps) {
+export function AdminGrowthGroupEditClient({ gc, people }: AdminGrowthGroupEditClientProps) {
   const router = useRouter();
 
   const handleSubmit = async (data: GrowthGroupFormData) => {
@@ -34,5 +34,5 @@ export function AdminGrowthGroupEditClient({ gc, users }: AdminGrowthGroupEditCl
     }
   };
 
-  return <AdminGrowthGroupForm gc={gc} onSubmit={handleSubmit} users={users} />;
+  return <AdminGrowthGroupForm gc={gc} onSubmit={handleSubmit} people={people} />;
 }

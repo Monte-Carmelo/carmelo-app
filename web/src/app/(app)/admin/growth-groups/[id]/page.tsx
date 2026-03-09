@@ -38,45 +38,27 @@ async function AdminGrowthGroupEditContent({ params }: PageProps) {
     notFound();
   }
 
-  // Fetch all users for selects (with person_id mapping)
-  const { data: usersData, error: usersError } = await supabase
-    .from('users')
-    .select(`
-      id,
-      person_id,
-      people:person_id (
-        name
-      )
-    `)
+  // Fetch all people for selects. GC leadership is stored directly by person_id.
+  const { data: peopleData, error: peopleError } = await supabase
+    .from('people')
+    .select('id, name')
     .is('deleted_at', null)
-    .order('people(name)', { ascending: true });
+    .order('name', { ascending: true });
 
-  if (usersError) {
-    throw usersError;
+  if (peopleError) {
+    throw peopleError;
   }
 
-  const users = (usersData || [])
-    .filter((u) => u.people)
-    .map((u) => ({
-      id: u.id,
-      name: u.people!.name,
-    }));
+  const people = peopleData || [];
 
-  // Create person_id to user_id mapping
-  const personIdToUserId = new Map(
-    (usersData || []).map((u) => [u.person_id, u.id])
-  );
-
-  // Extract leader and supervisor IDs from participants
+  // Extract leader and supervisor person_ids from participants
   const participants = gc.growth_group_participants || [];
   const leaderIds = participants
     .filter((p) => p.role === 'leader')
-    .map((p) => personIdToUserId.get(p.person_id))
-    .filter((id): id is string => !!id);
+    .map((p) => p.person_id);
   const supervisorIds = participants
     .filter((p) => p.role === 'supervisor')
-    .map((p) => personIdToUserId.get(p.person_id))
-    .filter((id): id is string => !!id);
+    .map((p) => p.person_id);
 
   const gcData = {
     id: gc.id,
@@ -98,7 +80,7 @@ async function AdminGrowthGroupEditContent({ params }: PageProps) {
         <p className="text-slate-600 mt-1">Atualize as informações do GC</p>
       </div>
 
-      <AdminGrowthGroupEditClient gc={gcData} users={users} />
+      <AdminGrowthGroupEditClient gc={gcData} people={people} />
     </div>
   );
 }
