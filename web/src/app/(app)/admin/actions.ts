@@ -123,7 +123,7 @@ export async function createUser(input: CreateUserInput) {
   const { data: authResult, error: authError } = await serviceClient.auth.admin.createUser({
     email: parsed.email.trim().toLowerCase(),
     password: parsed.password,
-    email_confirm: true,
+    email_confirm: false,
     user_metadata: {
       name: parsed.name,
       phone: normalizedPhone,
