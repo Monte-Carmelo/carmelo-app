@@ -11,6 +11,8 @@ beforeAll(() => {
   }
 
   vi.stubGlobal('ResizeObserver', ResizeObserverMock);
+  vi.stubGlobal('HTMLElement', HTMLElement);
+  HTMLElement.prototype.scrollIntoView = vi.fn();
 });
 
 describe('MultiSelect', () => {
