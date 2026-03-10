@@ -1,6 +1,6 @@
 'use client';
 
-import { useForm } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
@@ -59,6 +59,7 @@ const weekdayOptions = [
 
 export function AdminGrowthGroupForm({ gc, onSubmit, people }: GrowthGroupFormProps) {
   const {
+    control,
     register,
     handleSubmit,
     watch,
@@ -79,8 +80,6 @@ export function AdminGrowthGroupForm({ gc, onSubmit, people }: GrowthGroupFormPr
   });
 
   const mode = watch('mode');
-  const leaderIds = watch('leaderIds');
-  const supervisorIds = watch('supervisorIds');
   const showAddress = mode === 'in_person' || mode === 'hybrid';
 
   const peopleOptions = people.map((person) => ({ label: person.name, value: person.id }));
@@ -183,15 +182,23 @@ export function AdminGrowthGroupForm({ gc, onSubmit, people }: GrowthGroupFormPr
             <Label htmlFor="leaderIds">
               Líderes <span className="text-red-500">*</span>
             </Label>
-            <MultiSelect
-              options={peopleOptions}
-              selected={leaderIds || []}
-              onChange={(selected) => setValue('leaderIds', selected)}
-              placeholder="Selecione os líderes"
+            <Controller
+              name="leaderIds"
+              control={control}
+              render={({ field, fieldState }) => (
+                <>
+                  <MultiSelect
+                    options={peopleOptions}
+                    selected={field.value || []}
+                    onChange={(selected) => field.onChange(selected)}
+                    placeholder="Selecione os líderes"
+                  />
+                  {fieldState.error?.message ? (
+                    <p className="text-sm text-red-500">{fieldState.error.message}</p>
+                  ) : null}
+                </>
+              )}
             />
-            {errors.leaderIds && (
-              <p className="text-sm text-red-500">{errors.leaderIds.message}</p>
-            )}
             <p className="text-xs text-slate-500">
               Selecione um ou mais líderes para o GC. Todos têm autoridade igual.
             </p>
@@ -202,15 +209,23 @@ export function AdminGrowthGroupForm({ gc, onSubmit, people }: GrowthGroupFormPr
             <Label htmlFor="supervisorIds">
               Supervisores <span className="text-red-500">*</span>
             </Label>
-            <MultiSelect
-              options={peopleOptions}
-              selected={supervisorIds || []}
-              onChange={(selected) => setValue('supervisorIds', selected)}
-              placeholder="Selecione os supervisores"
+            <Controller
+              name="supervisorIds"
+              control={control}
+              render={({ field, fieldState }) => (
+                <>
+                  <MultiSelect
+                    options={peopleOptions}
+                    selected={field.value || []}
+                    onChange={(selected) => field.onChange(selected)}
+                    placeholder="Selecione os supervisores"
+                  />
+                  {fieldState.error?.message ? (
+                    <p className="text-sm text-red-500">{fieldState.error.message}</p>
+                  ) : null}
+                </>
+              )}
             />
-            {errors.supervisorIds && (
-              <p className="text-sm text-red-500">{errors.supervisorIds.message}</p>
-            )}
             <p className="text-xs text-slate-500">
               Selecione um ou mais supervisores responsáveis pelo GC.
             </p>
