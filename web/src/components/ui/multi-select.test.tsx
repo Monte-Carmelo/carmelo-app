@@ -14,11 +14,11 @@ beforeAll(() => {
 });
 
 describe('MultiSelect', () => {
-  it('renders available options when the input receives focus', async () => {
+  it('renders available options when the field is clicked', async () => {
     const user = userEvent.setup();
     const onChange = vi.fn();
 
-    render(
+    const { container } = render(
       <MultiSelect
         options={[
           { value: '1', label: 'Lider 1' },
@@ -30,7 +30,12 @@ describe('MultiSelect', () => {
       />,
     );
 
-    await user.click(screen.getByPlaceholderText('Selecione'));
+    const field = container.querySelector('.group');
+    if (!field) {
+      throw new Error('MultiSelect root field not found');
+    }
+
+    await user.click(field);
 
     expect(await screen.findByText('Lider 1')).toBeInTheDocument();
     expect(screen.getByText('Supervisor 1')).toBeInTheDocument();

@@ -76,7 +76,24 @@ export function MultiSelect({
 
   return (
     <Command onKeyDown={handleKeyDown} className={className}>
-      <div className="group rounded-md border border-input px-3 py-2 text-sm ring-offset-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
+      <div
+        className="group rounded-md border border-input px-3 py-2 text-sm ring-offset-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2"
+        onMouseDown={(event) => {
+          if (disabled) {
+            return;
+          }
+
+          // Keep the input focused even when the user clicks empty space inside the field.
+          if (event.target instanceof HTMLElement && event.target.closest('button')) {
+            return;
+          }
+
+          event.preventDefault();
+          clearBlurTimeout();
+          setOpen(true);
+          inputRef.current?.focus();
+        }}
+      >
         <div className="flex flex-wrap gap-1">
           {selected.map((value) => {
             const option = options.find((o) => o.value === value);
