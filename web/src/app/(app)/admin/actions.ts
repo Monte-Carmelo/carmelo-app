@@ -325,6 +325,23 @@ interface RemoveAssignmentInput {
   assignmentId: string;
 }
 
+function getAssignmentRemovalErrorMessage(
+  rawMessage: string | null | undefined,
+  assignment: { role: 'leader' | 'supervisor' | 'member'; gcName: string | null },
+) {
+  const message = rawMessage?.toLowerCase() ?? '';
+
+  if (assignment.role === 'leader' && message.includes('deve manter pelo menos um leader ativo')) {
+    return `Não é possível remover este vínculo porque o GC ${assignment.gcName ? `"${assignment.gcName}" ` : ''}precisa manter pelo menos um líder ativo.`;
+  }
+
+  if (assignment.role === 'supervisor' && message.includes('deve manter pelo menos um supervisor ativo')) {
+    return `Não é possível remover este vínculo porque o GC ${assignment.gcName ? `"${assignment.gcName}" ` : ''}precisa manter pelo menos um supervisor ativo.`;
+  }
+
+  return rawMessage ?? 'Não foi possível remover o vínculo.';
+}
+
 export async function removeUserAssignment(input: RemoveAssignmentInput) {
   const parsed = removeAssignmentSchema.parse(input);
 
@@ -349,6 +366,21 @@ export async function removeUserAssignment(input: RemoveAssignmentInput) {
     } as const;
   }
 
+  const { data: assignmentRecord, error: assignmentFetchError } = await supabase
+    .from('growth_group_participants')
+    .select('id, role, growth_groups:gc_id ( name )')
+    .eq('id', parsed.assignmentId)
+    .eq('person_id', userRecord.person_id)
+    .is('deleted_at', null)
+    .maybeSingle();
+
+  if (assignmentFetchError || !assignmentRecord) {
+    return {
+      success: false,
+      error: assignmentFetchError?.message ?? 'Vínculo não encontrado.',
+    } as const;
+  }
+
   const now = new Date().toISOString();
 
   const { error: updateError } = await supabase
@@ -365,7 +397,10 @@ export async function removeUserAssignment(input: RemoveAssignmentInput) {
   if (updateError) {
     return {
       success: false,
-      error: updateError.message ?? 'Não foi possível remover o vínculo.',
+      error: getAssignmentRemovalErrorMessage(updateError.message, {
+        role: assignmentRecord.role as 'leader' | 'supervisor' | 'member',
+        gcName: (assignmentRecord.growth_groups as { name?: string | null } | null)?.name ?? null,
+      }),
     } as const;
   }
 
