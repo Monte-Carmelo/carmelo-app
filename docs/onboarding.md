@@ -7,17 +7,20 @@ Objetivo: dar contexto suficiente para trabalhar com seguranca em poucos minutos
 ## Quando ler
 
 Leitura obrigatoria:
+
 - no inicio de toda sessao nova
 - quando o agente perdeu contexto, recebeu contexto compactado ou entrou no projeto pela primeira vez
 - antes de propor arquitetura, mudar fluxos criticos, mexer em RLS, seeds, auth ou testes
 
 Leitura recomendada:
+
 - antes de revisar PRs grandes
 - antes de atualizar documentacao estrutural
 
 ## Contrato de uso
 
 Se voce e um agente ou dev entrando sem contexto:
+
 1. Leia este arquivo inteiro.
 2. Leia `AGENTS.md`.
 3. Leia apenas a documentacao especializada necessaria para a tarefa.
@@ -32,11 +35,13 @@ Este arquivo nao substitui a documentacao detalhada. Ele define o mapa, os invar
 - Fluxos criticos de escrita no web usam rotas internas autenticadas, nao escrita direta do Supabase no browser.
 - O setup local valido e: `supabase start`, `cd web && npm run db:reset`, `cd web && npm run db:seed-users`, `cd web && npm run dev`.
 - A regressao minima antes de concluir trabalho no web e: `npm run lint`, `npm run type-check`, `npm test`. Para fluxos maiores, inclua `npm run build` e `npm run test:e2e:full`.
+- Push em `main` executa CI no GitHub Actions e faz deploy automatico na Vercel quando `VERCEL_TOKEN`, `VERCEL_ORG_ID` e `VERCEL_PROJECT_ID` estiverem configurados como secrets.
 - A documentacao antiga sobre Flutter e historica/referencial. Para trabalho do dia a dia, trate `web/` + `supabase/` como o sistema ativo.
 
 ## O que e este projeto
 
 Carmelo App e uma plataforma de gestao de igreja com foco em:
+
 - grupos de crescimento (GCs)
 - pessoas, membros, lideres e supervisores
 - reunioes e presenca
@@ -46,6 +51,7 @@ Carmelo App e uma plataforma de gestao de igreja com foco em:
 - area administrativa
 
 Arquitetura ativa:
+
 - frontend web em Next.js App Router
 - banco e auth em Supabase
 - testes unitarios e de contrato com Vitest
@@ -54,13 +60,16 @@ Arquitetura ativa:
 ## Estado atual em 2026-03-08
 
 O que esta consolidado:
+
 - ambiente local com Supabase local
 - validacao web estabilizada
 - formularios criticos de reunioes e visitantes via API routes autenticadas
 - suite unit, contract e e2e desktop passando
 - lint via ESLint CLI, sem depender de `next lint`
+- deploy automatico de producao na Vercel acoplado ao workflow `CI` em push para `main`
 
 O que ainda exige cuidado:
+
 - parte da documentacao mais antiga ainda mistura contexto Flutter e web
 - existe conhecimento historico no `memory-bank/`, mas ele nao deve competir com este onboarding como ponto de entrada
 - RLS e seeds de teste precisam ser tratados com atencao ao mexer em migrations
@@ -68,6 +77,7 @@ O que ainda exige cuidado:
 ## Mapa do repositorio
 
 Pastas que importam no trabalho atual:
+
 - `web/`: app Next.js, testes, scripts e configuracao de frontend
 - `supabase/`: migrations, seeds e definicoes do banco
 - `docs/`: documentacao operacional e arquitetural
@@ -75,15 +85,18 @@ Pastas que importam no trabalho atual:
 - `memory-bank/`: memoria persistente resumida do projeto
 
 Pastas de contexto historico:
+
 - `app/`: estrutura Flutter descrita no `AGENTS.md`; util como contexto de origem, nao como runtime principal atual
 
 ## Ordem de leitura recomendada
 
 Leitura minima:
+
 1. `docs/onboarding.md`
 2. `AGENTS.md`
 
 Leitura por tipo de tarefa:
+
 - tarefa web: `docs/web.md` e `web/README.md`
 - tarefa de teste: `docs/testing.md`
 - tarefa de banco ou auth: `docs/supabase.md`
@@ -132,6 +145,7 @@ npm run dev
 ```
 
 Variaveis minimas em `web/.env.local`:
+
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY` para scripts e alguns testes locais
@@ -155,9 +169,16 @@ npm run build
 npm run test:e2e:full
 ```
 
+Deploy de producao:
+
+- push/merge para `main` executa a workflow `CI`
+- a job `Deploy Production` so roda depois da job `web` passar
+- os secrets necessarios no GitHub sao `VERCEL_TOKEN`, `VERCEL_ORG_ID` e `VERCEL_PROJECT_ID`
+
 ## Onde ficam as verdades principais
 
 Use esta prioridade quando houver conflito:
+
 1. Codigo atual
 2. Migrations e testes
 3. Este onboarding
@@ -170,17 +191,20 @@ Se um documento contradiz o codigo, o documento esta desatualizado e deve ser co
 ## Way of work esperado
 
 Antes de mudar codigo:
+
 - descubra qual e a fonte de verdade da area
 - confirme o fluxo real do usuario afetado
 - identifique se o impacto e web, banco, auth, seed, teste ou documentacao
 
 Durante a mudanca:
+
 - mantenha a correcao local ao escopo
 - preserve invariantes de dominio
 - prefira ajustes verificaveis em vez de explicacoes abstratas
 - se mudar comportamento de setup, fluxo ou arquitetura, atualize este onboarding
 
 Antes de encerrar:
+
 - rode validacao proporcional ao risco
 - atualize docs tocadas pelo novo comportamento
 - registre decisao relevante no `memory-bank/decisionLog.md` se ela afetar futuras sessoes
@@ -190,6 +214,7 @@ Antes de encerrar:
 ## Politica de manutencao desta doc
 
 Atualize este arquivo quando mudar qualquer um destes pontos:
+
 - fluxo oficial de setup local
 - comandos oficiais de validacao
 - arquitetura principal ativa

@@ -69,3 +69,17 @@ O deploy atual precisa de continuidade e o rename agora aumentaria o escopo sem 
 ### Lasting Impact
 
 Existe um debito tecnico documentado no inventario central do projeto: `TD-001` em `docs/technical-debt.md`. O nome da env publica de Supabase esta desatualizado e deve ser migrado no futuro para `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, idealmente com periodo de compatibilidade entre os dois nomes.
+
+## 2026-03-12 - Padronizar deploy automatico de producao via GitHub Actions + Vercel
+
+### Decision
+
+Acoplar o deploy de producao ao workflow `CI`, com publicacao automatica na Vercel apenas em push para `main` e somente apos lint, type-check, testes e build passarem.
+
+### Rationale
+
+Com o repositorio publico, o caminho de release precisava ficar reproduzivel, auditavel e dependente de secrets gerenciados fora do codigo versionado.
+
+### Lasting Impact
+
+O fluxo oficial de publicacao passa a depender dos secrets `VERCEL_TOKEN`, `VERCEL_ORG_ID` e `VERCEL_PROJECT_ID` no GitHub. Releases de producao deixam de depender de deploy manual como caminho principal.
