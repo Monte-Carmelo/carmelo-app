@@ -119,50 +119,91 @@ export async function updateGrowthGroupAction(gcId: string, data: GrowthGroupFor
       return { error: 'Erro ao atualizar GC. Verifique os dados e tente novamente.' };
     }
 
-    // 2. Remove old leadership participants (leader, supervisor)
-    const { error: deleteError } = await supabase
+    // 2. Load current active leadership so we can update by diff.
+    // This avoids temporarily leaving the GC without leaders/supervisors,
+    // which would violate the database triggers.
+    const { data: existingLeadership, error: leadershipFetchError } = await supabase
       .from('growth_group_participants')
-      .delete()
+      .select('id, person_id, role')
       .eq('gc_id', gcId)
-      .in('role', ['leader', 'supervisor']);
+      .in('role', ['leader', 'supervisor'])
+      .eq('status', 'active')
+      .is('deleted_at', null);
 
-    if (deleteError) {
-      console.error('Error deleting old participants:', deleteError);
+    if (leadershipFetchError) {
+      console.error('Error fetching current leadership:', leadershipFetchError);
       return { error: 'Erro ao atualizar liderança.' };
     }
 
-    // 3. Insert new leadership participants
-    const participants = [];
+    const activeLeadership = existingLeadership ?? [];
+    const existingLeaderIds = new Set(
+      activeLeadership.filter((participant) => participant.role === 'leader').map((participant) => participant.person_id),
+    );
+    const existingSupervisorIds = new Set(
+      activeLeadership.filter((participant) => participant.role === 'supervisor').map((participant) => participant.person_id),
+    );
+
+    const participantIdsToDelete = activeLeadership
+      .filter((participant) => {
+        if (participant.role === 'leader') {
+          return !data.leaderIds.includes(participant.person_id);
+        }
+
+        return !data.supervisorIds.includes(participant.person_id);
+      })
+      .map((participant) => participant.id);
+
+    // 3. Insert only missing leadership participants first.
+    const participantsToInsert = [];
 
     // Leaders (all leaders have equal authority)
     for (const leaderId of data.leaderIds) {
-      participants.push({
-        gc_id: gcId,
-        person_id: leaderId,
-        role: 'leader',
-        status: 'active',
-        joined_at: new Date().toISOString(),
-      });
+      if (!existingLeaderIds.has(leaderId)) {
+        participantsToInsert.push({
+          gc_id: gcId,
+          person_id: leaderId,
+          role: 'leader',
+          status: 'active',
+          joined_at: new Date().toISOString(),
+        });
+      }
     }
 
     // Supervisors
     for (const supervisorId of data.supervisorIds) {
-      participants.push({
-        gc_id: gcId,
-        person_id: supervisorId,
-        role: 'supervisor',
-        status: 'active',
-        joined_at: new Date().toISOString(),
-      });
+      if (!existingSupervisorIds.has(supervisorId)) {
+        participantsToInsert.push({
+          gc_id: gcId,
+          person_id: supervisorId,
+          role: 'supervisor',
+          status: 'active',
+          joined_at: new Date().toISOString(),
+        });
+      }
     }
 
-    const { error: participantsError } = await supabase
-      .from('growth_group_participants')
-      .insert(participants);
+    if (participantsToInsert.length > 0) {
+      const { error: participantsError } = await supabase
+        .from('growth_group_participants')
+        .insert(participantsToInsert);
 
-    if (participantsError) {
-      console.error('Error inserting participants:', participantsError);
-      return { error: 'Erro ao atualizar liderança.' };
+      if (participantsError) {
+        console.error('Error inserting participants:', participantsError);
+        return { error: 'Erro ao atualizar liderança.' };
+      }
+    }
+
+    // 4. Remove only obsolete leadership records after new ones exist.
+    if (participantIdsToDelete.length > 0) {
+      const { error: deleteError } = await supabase
+        .from('growth_group_participants')
+        .delete()
+        .in('id', participantIdsToDelete);
+
+      if (deleteError) {
+        console.error('Error deleting old participants:', deleteError);
+        return { error: 'Erro ao atualizar liderança.' };
+      }
     }
 
     revalidatePath('/admin/growth-groups');
