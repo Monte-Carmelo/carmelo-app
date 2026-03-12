@@ -5,6 +5,7 @@ import { cookies } from 'next/headers';
 import { z } from 'zod';
 import { createSupabaseServerClient, getSupabaseServiceClient } from '@/lib/supabase';
 import { getAuthenticatedUser } from '@/lib/supabase/server-auth';
+import { postgresUuid } from '@/lib/validation/postgres-uuid';
 
 const createUserSchema = z.object({
   name: z.string().min(3, 'Informe um nome com pelo menos 3 caracteres.'),
@@ -161,7 +162,7 @@ export async function createUser(input: CreateUserInput) {
 }
 
 const updateUserSchema = z.object({
-  userId: z.string().uuid(),
+  userId: postgresUuid('Usuário inválido.'),
   name: z.string().min(3, 'Informe o nome completo.'),
   email: z.string().email('E-mail inválido.'),
   phone: z.string().optional().nullable(),
@@ -248,8 +249,8 @@ export async function updateUserProfile(input: UpdateUserInput) {
 const assignmentRoleSchema = z.enum(['member', 'leader', 'supervisor']);
 
 const addAssignmentSchema = z.object({
-  userId: z.string().uuid(),
-  gcId: z.string().uuid(),
+  userId: postgresUuid('Usuário inválido.'),
+  gcId: postgresUuid('GC inválido.'),
   role: assignmentRoleSchema,
 });
 
@@ -316,8 +317,8 @@ export async function addUserAssignment(input: AddAssignmentInput) {
 }
 
 const removeAssignmentSchema = z.object({
-  userId: z.string().uuid(),
-  assignmentId: z.string().uuid(),
+  userId: postgresUuid('Usuário inválido.'),
+  assignmentId: postgresUuid('Vínculo inválido.'),
 });
 
 interface RemoveAssignmentInput {
@@ -412,7 +413,7 @@ export async function removeUserAssignment(input: RemoveAssignmentInput) {
 }
 
 const deleteUserSchema = z.object({
-  userId: z.string().uuid(),
+  userId: postgresUuid('Usuário inválido.'),
 });
 
 export async function deleteUser(userId: string) {

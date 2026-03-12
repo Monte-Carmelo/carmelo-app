@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { MultiSelect } from '@/components/ui/multi-select';
+import { postgresUuid } from '@/lib/validation/postgres-uuid';
 
 // Zod Schema
 const createGCSchema = z
@@ -24,9 +25,9 @@ const createGCSchema = z
     address: z.string().optional(),
     weekday: z.number().int().min(0).max(6).nullable(),
     time: z.string().nullable(),
-    leaderIds: z.array(z.string().uuid()).min(1, 'Selecione pelo menos 1 líder'),
-    supervisorIds: z.array(z.string().uuid()).min(1, 'Selecione pelo menos 1 supervisor'),
-    memberIds: z.array(z.string().uuid()).optional(),
+    leaderIds: z.array(postgresUuid('Líder inválido.')).min(1, 'Selecione pelo menos 1 líder'),
+    supervisorIds: z.array(postgresUuid('Supervisor inválido.')).min(1, 'Selecione pelo menos 1 supervisor'),
+    memberIds: z.array(postgresUuid('Membro inválido.')).optional(),
   })
   .refine((data) => data.mode !== 'in_person' || (data.address && data.address.trim() !== ''), {
     message: 'Endereço obrigatório para modo presencial',

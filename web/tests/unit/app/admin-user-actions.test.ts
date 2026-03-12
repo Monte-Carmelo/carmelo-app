@@ -52,7 +52,7 @@ describe('removeUserAssignment', () => {
                   is: vi.fn(() => ({
                     maybeSingle: vi.fn(async () => ({
                       data: {
-                        id: '11111111-1111-4111-8111-111111111111',
+                        id: '50000000-0000-0000-0000-000000000102',
                         role: 'leader',
                         growth_groups: { name: 'GC Esperança' },
                       },
@@ -81,8 +81,8 @@ describe('removeUserAssignment', () => {
     createSupabaseServerClient.mockResolvedValue(supabaseMock);
 
     const result = await removeUserAssignment({
-      userId: '22222222-2222-4222-8222-222222222222',
-      assignmentId: '11111111-1111-4111-8111-111111111111',
+      userId: '10000000-0000-0000-0000-000000000002',
+      assignmentId: '50000000-0000-0000-0000-000000000102',
     });
 
     expect(result).toEqual({

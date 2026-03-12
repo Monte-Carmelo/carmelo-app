@@ -7,9 +7,10 @@ import { useRouter } from 'next/navigation';
 import { z } from 'zod';
 import clsx from 'clsx';
 import { addUserAssignment, removeUserAssignment } from '@/app/(app)/admin/actions';
+import { postgresUuid } from '@/lib/validation/postgres-uuid';
 
 const addAssignmentSchema = z.object({
-  gcId: z.string({ message: 'Selecione um GC.' }).uuid('GC inválido.'),
+  gcId: postgresUuid('GC inválido.'),
   role: z.enum(['leader', 'supervisor', 'member'], {
     message: 'Selecione um papel.',
   }),
