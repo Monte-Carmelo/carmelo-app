@@ -22,6 +22,17 @@ export async function getAuthenticatedUser() {
     return null;
   }
 
+  const { data: activeUserRow, error: userRowError } = await supabase
+    .from('users')
+    .select('id')
+    .eq('id', user.id)
+    .is('deleted_at', null)
+    .maybeSingle();
+
+  if (userRowError || !activeUserRow) {
+    return null;
+  }
+
   return user;
 }
 

@@ -215,6 +215,53 @@ export async function updateGrowthGroupAction(gcId: string, data: GrowthGroupFor
   }
 }
 
+export async function inactivateGrowthGroupAction(gcId: string) {
+  try {
+    const user = await getAuthenticatedUser();
+    if (!user) {
+      return { error: 'Não autenticado.' };
+    }
+
+    const supabase = await createSupabaseServerClient();
+    const { data: gc, error: fetchError } = await supabase
+      .from('growth_groups')
+      .select('id, status')
+      .eq('id', gcId)
+      .is('deleted_at', null)
+      .maybeSingle();
+
+    if (fetchError || !gc) {
+      return { error: fetchError?.message ?? 'GC não encontrado.' };
+    }
+
+    if (gc.status !== 'active') {
+      return { error: 'Apenas GCs ativos podem ser inativados.' };
+    }
+
+    const { error: updateError } = await supabase
+      .from('growth_groups')
+      .update({
+        status: 'inactive',
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', gcId);
+
+    if (updateError) {
+      console.error('Error inactivating GC:', updateError);
+      return { error: updateError.message ?? 'Erro ao inativar GC.' };
+    }
+
+    revalidatePath('/admin/growth-groups');
+    revalidatePath(`/admin/growth-groups/${gcId}`);
+    revalidatePath('/gc');
+
+    return { success: true };
+  } catch (error) {
+    console.error('Unexpected error in inactivateGrowthGroupAction:', error);
+    return { error: 'Erro inesperado ao inativar GC.' };
+  }
+}
+
 export async function multiplyGrowthGroupAction(
   originalGcId: string,
   multiplicationState: {

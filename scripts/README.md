@@ -12,7 +12,7 @@ Script completo que executa o reset do banco e criação de usuários em um úni
 ```
 
 **O que faz:**
-- Executa `supabase db reset` (roda migrações + seed.sql)
+- Executa `cd web && npm run db:reset` (roda migrações + seed.sql + patch local de compatibilidade do storage, se necessário)
 - Executa `npx tsx scripts/seed-auth-users.ts` (cria usuários de autenticação)
 - Exibe credenciais de teste disponíveis
 
@@ -35,9 +35,10 @@ npm run db:seed-users
 
 ### Por que precisamos de duas etapas?
 
-1. **`supabase db reset`**
+1. **`npm run db:reset`**
    - Executa migrações SQL
    - Roda `supabase/seed.sql` (dados básicos: people, growth_groups, visitors)
+   - Corrige automaticamente o bug local de `storage.buckets_analytics` quando o Supabase CLI falha ao listar buckets
    - **NÃO** pode criar usuários em `auth.users` (tabela especial do Supabase)
 
 2. **`seed-auth-users.ts`**

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Script completo para reset do banco com usuários
-# Executa: supabase db reset + criação de usuários de autenticação
+# Executa: wrapper local de reset + criação de usuários de autenticação
 
 set -e
 
@@ -12,15 +12,10 @@ PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 echo "🔄 Iniciando reset completo do banco de dados..."
 echo "📁 Diretório do projeto: $PROJECT_ROOT"
 
-# 1. Reset do banco Supabase (executa migrações e seed.sql)
-echo "📦 Executando supabase db reset..."
-cd "$PROJECT_ROOT"
-supabase db reset
-
-if [ $? -ne 0 ]; then
-    echo "❌ Erro ao executar supabase db reset"
-    exit 1
-fi
+# 1. Reset do banco Supabase (executa migrações, seed.sql e patch local de compatibilidade se necessário)
+echo "📦 Executando reset oficial do projeto..."
+cd "$PROJECT_ROOT/web"
+npm run db:reset
 
 echo "✅ Banco resetado com sucesso"
 

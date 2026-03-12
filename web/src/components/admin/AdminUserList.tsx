@@ -3,8 +3,8 @@
 import { useMemo, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Pencil, Trash2 } from 'lucide-react';
-import { deleteUser } from '@/app/(app)/admin/actions';
+import { Pencil, UserX } from 'lucide-react';
+import { inactivateUser } from '@/app/(app)/admin/actions';
 import {
   Table,
   TableBody,
@@ -110,7 +110,7 @@ export function AdminUserList({ currentUserId, users }: AdminUserListProps) {
     return result;
   }, [users, searchTerm, roleFilter, sortBy]);
 
-  const handleDelete = (userId: string, userName: string) => {
+  const handleInactivate = (userId: string, userName: string) => {
     if (processingId || isPending) {
       return;
     }
@@ -118,17 +118,17 @@ export function AdminUserList({ currentUserId, users }: AdminUserListProps) {
     setProcessingId(userId);
 
     startTransition(() => {
-      deleteUser(userId)
+      inactivateUser(userId)
         .then((result) => {
           if (result.success) {
-            toast.success(`Usuário "${userName}" removido com sucesso!`);
+            toast.success(`Usuário "${userName}" inativado com sucesso.`);
             router.refresh();
           } else {
-            toast.error(result.error ?? 'Não foi possível remover o usuário.');
+            toast.error(result.error ?? 'Não foi possível inativar o usuário.');
           }
         })
         .catch(() => {
-          toast.error('Não foi possível remover o usuário.');
+          toast.error('Não foi possível inativar o usuário.');
         })
         .finally(() => {
           setProcessingId(null);
@@ -246,26 +246,25 @@ export function AdminUserList({ currentUserId, users }: AdminUserListProps) {
                             <Button
                               variant="ghost"
                               size="sm"
-                              disabled={user.id === currentUserId || processingId === user.id}
+                              disabled={user.id === currentUserId || processingId === user.id || isPending}
                             >
-                              <Trash2 className="h-4 w-4 text-red-600" />
+                              <UserX className="h-4 w-4 text-amber-700" />
                             </Button>
                           </AlertDialogTrigger>
                           <AlertDialogContent>
                             <AlertDialogHeader>
-                              <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+                              <AlertDialogTitle>Inativar usuário?</AlertDialogTitle>
                               <AlertDialogDescription>
-                                Tem certeza que deseja remover o usuário <strong>{user.name}</strong>?
-                                Esta ação não pode ser desfeita.
+                                O usuário <strong>{user.name}</strong> perderá acesso ao sistema e seus vínculos ativos com GCs serão encerrados.
                               </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
                               <AlertDialogCancel>Cancelar</AlertDialogCancel>
                               <AlertDialogAction
-                                onClick={() => handleDelete(user.id, user.name)}
-                                className="bg-red-600 hover:bg-red-700"
+                                onClick={() => handleInactivate(user.id, user.name)}
+                                className="bg-amber-700 hover:bg-amber-800"
                               >
-                                {processingId === user.id ? 'Removendo...' : 'Remover'}
+                                {processingId === user.id ? 'Inativando...' : 'Inativar'}
                               </AlertDialogAction>
                             </AlertDialogFooter>
                           </AlertDialogContent>

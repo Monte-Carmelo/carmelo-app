@@ -1,5 +1,5 @@
-import { vi } from 'vitest';
-import { updateGrowthGroupAction } from '@/app/(app)/admin/growth-groups/actions';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { inactivateGrowthGroupAction, updateGrowthGroupAction } from '@/app/(app)/admin/growth-groups/actions';
 
 const { revalidatePathMock, getAuthenticatedUser, createSupabaseServerClient } = vi.hoisted(() => ({
   revalidatePathMock: vi.fn(),
@@ -19,7 +19,7 @@ vi.mock('@/lib/supabase/server-client', () => ({
   createSupabaseServerClient,
 }));
 
-describe('updateGrowthGroupAction', () => {
+describe('admin growth group actions', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     getAuthenticatedUser.mockResolvedValue({ id: 'user-1' });
@@ -96,5 +96,46 @@ describe('updateGrowthGroupAction', () => {
     ]);
     expect(revalidatePathMock).toHaveBeenCalledWith('/admin/growth-groups');
     expect(revalidatePathMock).toHaveBeenCalledWith('/admin/growth-groups/gc-1');
+  });
+
+  it('inativa um GC ativo preservando o histórico', async () => {
+    const operationLog: string[] = [];
+
+    const supabaseMock = {
+      from: vi.fn((table: string) => {
+        if (table !== 'growth_groups') {
+          throw new Error(`Unexpected table: ${table}`);
+        }
+
+        return {
+          select: vi.fn(() => ({
+            eq: vi.fn(() => ({
+              is: vi.fn(() => ({
+                maybeSingle: vi.fn(async () => ({
+                  data: { id: 'gc-1', status: 'active' },
+                  error: null,
+                })),
+              })),
+            })),
+          })),
+          update: vi.fn(() => ({
+            eq: vi.fn(async () => {
+              operationLog.push('update:inactive');
+              return { error: null };
+            }),
+          })),
+        };
+      }),
+    };
+
+    createSupabaseServerClient.mockResolvedValue(supabaseMock);
+
+    const result = await inactivateGrowthGroupAction('gc-1');
+
+    expect(result).toEqual({ success: true });
+    expect(operationLog).toEqual(['update:inactive']);
+    expect(revalidatePathMock).toHaveBeenCalledWith('/admin/growth-groups');
+    expect(revalidatePathMock).toHaveBeenCalledWith('/admin/growth-groups/gc-1');
+    expect(revalidatePathMock).toHaveBeenCalledWith('/gc');
   });
 });

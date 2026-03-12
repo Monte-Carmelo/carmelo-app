@@ -20,7 +20,7 @@ Leituras rápidas:
 ## Como levantar o ambiente local (Supabase + Web)
 1) **Supabase**
    - `supabase start`
-   - `supabase db reset --local` ou `cd web && npm run db:reset` (aplica migrations e seed.sql)
+   - `cd web && npm run db:reset` (aplica migrations, `seed.sql` e o patch de compatibilidade do storage local)
    - `cd web && npm run db:seed-users` (cria usuários no Auth + vínculos)
    - Anote `SUPABASE_URL` e `SUPABASE_ANON_KEY` do output
 2) **Web (Next)**

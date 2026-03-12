@@ -284,6 +284,21 @@ export async function addUserAssignment(input: AddAssignmentInput) {
     } as const;
   }
 
+  const { data: growthGroupRecord, error: growthGroupFetchError } = await supabase
+    .from('growth_groups')
+    .select('id')
+    .eq('id', parsed.gcId)
+    .eq('status', 'active')
+    .is('deleted_at', null)
+    .maybeSingle();
+
+  if (growthGroupFetchError || !growthGroupRecord) {
+    return {
+      success: false,
+      error: growthGroupFetchError?.message ?? 'GC não encontrado ou inativo.',
+    } as const;
+  }
+
   const now = new Date().toISOString();
 
   const { error: upsertError } = await supabase
@@ -416,7 +431,28 @@ const deleteUserSchema = z.object({
   userId: postgresUuid('Usuário inválido.'),
 });
 
-export async function deleteUser(userId: string) {
+function getUserInactivationErrorMessage(
+  rawMessage: string | null | undefined,
+  assignments: Array<{ gcId: string; role: 'leader' | 'supervisor'; gcName: string | null }>,
+) {
+  const message = rawMessage?.toLowerCase() ?? '';
+  const gcIdMatch = rawMessage?.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
+  const blockingAssignment = gcIdMatch
+    ? assignments.find((assignment) => assignment.gcId === gcIdMatch[0])
+    : null;
+
+  if (message.includes('deve manter pelo menos um leader ativo')) {
+    return `Não é possível inativar este usuário porque o GC ${blockingAssignment?.gcName ? `"${blockingAssignment.gcName}" ` : ''}precisa manter pelo menos um líder ativo.`;
+  }
+
+  if (message.includes('deve manter pelo menos um supervisor ativo')) {
+    return `Não é possível inativar este usuário porque o GC ${blockingAssignment?.gcName ? `"${blockingAssignment.gcName}" ` : ''}precisa manter pelo menos um supervisor ativo.`;
+  }
+
+  return rawMessage ?? 'Não foi possível inativar o usuário.';
+}
+
+export async function inactivateUser(userId: string) {
   const { userId: targetUserId } = deleteUserSchema.parse({ userId });
 
   const user = await getAuthenticatedUser();
@@ -425,7 +461,7 @@ export async function deleteUser(userId: string) {
   }
 
   if (user.id === targetUserId) {
-    return { success: false, error: 'Você não pode excluir seu próprio usuário.' } as const;
+    return { success: false, error: 'Você não pode inativar seu próprio usuário.' } as const;
   }
 
   const supabase = await createSupabaseServerClient();
@@ -438,38 +474,57 @@ export async function deleteUser(userId: string) {
     .maybeSingle();
 
   if (fetchError || !userRecord) {
-    return { success: false, error: 'Usuário não encontrado ou já removido.' } as const;
-  }
-
-  const serviceClient = getSupabaseServiceClient();
-  const { error: authDeleteError } = await serviceClient.auth.admin.deleteUser(targetUserId);
-
-  if (authDeleteError) {
-    return { success: false, error: authDeleteError.message ?? 'Falha ao remover usuário na autenticação.' } as const;
+    return { success: false, error: 'Usuário não encontrado ou já inativado.' } as const;
   }
 
   const now = new Date().toISOString();
+  const { data: blockingAssignments, error: blockingAssignmentsError } = await supabase
+    .from('growth_group_participants')
+    .select('gc_id, role, growth_groups:gc_id ( name )')
+    .eq('person_id', userRecord.person_id)
+    .in('role', ['leader', 'supervisor'])
+    .eq('status', 'active')
+    .is('deleted_at', null);
+
+  if (blockingAssignmentsError) {
+    return {
+      success: false,
+      error: blockingAssignmentsError.message ?? 'Falha ao validar vínculos de liderança.',
+    } as const;
+  }
 
   const { error: participantError } = await supabase
     .from('growth_group_participants')
-    .update({ status: 'inactive', deleted_at: now })
+    .update({ status: 'inactive', deleted_at: now, left_at: now })
     .eq('person_id', userRecord.person_id)
     .is('deleted_at', null);
 
   if (participantError) {
-    return { success: false, error: participantError.message ?? 'Falha ao atualizar vínculos de GC.' } as const;
+    return {
+      success: false,
+      error: getUserInactivationErrorMessage(
+        participantError.message,
+        (blockingAssignments ?? []).map((assignment) => ({
+          gcId: assignment.gc_id,
+          role: assignment.role as 'leader' | 'supervisor',
+          gcName: (assignment.growth_groups as { name?: string | null } | null)?.name ?? null,
+        })),
+      ),
+    } as const;
   }
 
   const { error: deleteError } = await supabase
     .from('users')
-    .update({ deleted_at: now })
+    .update({ deleted_at: now, updated_at: now })
     .eq('id', targetUserId);
 
   if (deleteError) {
-    return { success: false, error: deleteError.message ?? 'Erro ao marcar usuário como removido.' } as const;
+    return { success: false, error: deleteError.message ?? 'Erro ao marcar usuário como inativo.' } as const;
   }
 
   revalidatePath('/admin');
+  revalidatePath('/admin/users');
+  revalidatePath(`/admin/users/${targetUserId}`);
   revalidatePath('/supervision');
 
   return { success: true } as const;

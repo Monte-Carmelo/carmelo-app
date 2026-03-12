@@ -83,3 +83,31 @@ Com o repositorio publico, o caminho de release precisava ficar reproduzivel, au
 ### Lasting Impact
 
 O fluxo oficial de publicacao passa a depender dos secrets `VERCEL_TOKEN`, `VERCEL_ORG_ID` e `VERCEL_PROJECT_ID` no GitHub. Releases de producao deixam de depender de deploy manual como caminho principal.
+
+## 2026-03-12 - Tratar retirada de usuarios e GCs como inativacao
+
+### Decision
+
+Padronizar a area administrativa para inativar usuarios e GCs, em vez de exclui-los fisicamente como fluxo normal.
+
+### Rationale
+
+Os registros precisam preservar historico, e a exclusao fisica de usuario conflita com integridade de relacoes e auditoria. Alem disso, GCs inativos nao podem continuar contando para papeis derivados ou RLS.
+
+### Lasting Impact
+
+Usuarios inativos passam a perder acesso logico ao app mesmo que a conta ainda exista no Supabase Auth. GCs inativos deixam de participar da derivacao de papeis e das funcoes auxiliares de auth/RLS. Acoes admin e UX devem usar o termo e o comportamento de inativacao como padrao.
+
+## 2026-03-12 - Padronizar reset local do Supabase via wrapper do projeto
+
+### Decision
+
+Tratar `cd web && npm run db:reset` como comando oficial de reset local, em vez de depender diretamente de `supabase db reset --local`.
+
+### Rationale
+
+O Supabase CLI 2.75.0 falha localmente ao listar buckets de storage por incompatibilidade de tipos entre `storage.buckets.id` e `storage.buckets_analytics.id`. O wrapper do projeto detecta esse caso, aplica um patch local de compatibilidade e valida o endpoint de storage antes de concluir.
+
+### Lasting Impact
+
+Setup local e scripts de reset passam a depender do wrapper versionado no repositório. A documentação operacional deve apontar para esse comando como caminho padrão enquanto o bug do stack local existir.

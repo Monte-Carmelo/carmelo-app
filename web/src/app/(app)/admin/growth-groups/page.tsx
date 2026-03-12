@@ -26,6 +26,7 @@ async function AdminGrowthGroupsContent() {
         id,
         role,
         status,
+        deleted_at,
         people (
           id,
           name,
@@ -50,11 +51,11 @@ async function AdminGrowthGroupsContent() {
 
     // Extract leaders and supervisors
     const leaders = participants
-      .filter((p) => p.role === 'leader' && p.people)
+      .filter((p) => p.role === 'leader' && p.status === 'active' && p.deleted_at === null && p.people)
       .map((p) => p.people!.name);
 
     const supervisors = participants
-      .filter((p) => p.role === 'supervisor' && p.people)
+      .filter((p) => p.role === 'supervisor' && p.status === 'active' && p.deleted_at === null && p.people)
       .map((p) => p.people!.name);
 
     // Count active members
@@ -76,7 +77,7 @@ async function AdminGrowthGroupsContent() {
       id: gc.id,
       name: gc.name,
       mode: gc.mode as 'in_person' | 'online' | 'hybrid',
-      status: gc.status as 'active' | 'inactive' | 'multiplied',
+      status: gc.status as 'active' | 'inactive' | 'multiplying' | 'multiplied',
       leaders,
       supervisors,
       memberCount,

@@ -36,6 +36,7 @@ Este arquivo nao substitui a documentacao detalhada. Ele define o mapa, os invar
 - O setup local valido e: `supabase start`, `cd web && npm run db:reset`, `cd web && npm run db:seed-users`, `cd web && npm run dev`.
 - A regressao minima antes de concluir trabalho no web e: `npm run lint`, `npm run type-check`, `npm test`. Para fluxos maiores, inclua `npm run build` e `npm run test:e2e:full`.
 - Push em `main` executa CI no GitHub Actions e faz deploy automatico na Vercel quando `VERCEL_TOKEN`, `VERCEL_ORG_ID` e `VERCEL_PROJECT_ID` estiverem configurados como secrets.
+- Inativacao e o fluxo canonico para retirada de usuarios e GCs na area admin. Nao faca exclusao fisica como caminho normal.
 - A documentacao antiga sobre Flutter e historica/referencial. Para trabalho do dia a dia, trate `web/` + `supabase/` como o sistema ativo.
 
 ## O que e este projeto
@@ -67,6 +68,8 @@ O que esta consolidado:
 - suite unit, contract e e2e desktop passando
 - lint via ESLint CLI, sem depender de `next lint`
 - deploy automatico de producao na Vercel acoplado ao workflow `CI` em push para `main`
+- usuarios inativos perdem acesso logico ao app mesmo que ainda exista conta no Supabase Auth
+- GCs inativos deixam de contar para papeis derivados e RLS
 
 O que ainda exige cuidado:
 
@@ -118,6 +121,8 @@ Estes pontos quebram funcionalidades quando ignorados:
 - Papeis sao derivados de relacionamentos, nao de um campo estatico unico.
 - Visitantes e pessoas compartilham a entidade base `people`.
 - Em deduplicacao de visitante, e-mail tem prioridade; telefone so entra como fallback quando e-mail nao existe.
+- Inativar usuario encerra seus vinculos ativos com GCs e remove seu acesso no app sem apagar historico.
+- Inativar GC preserva historico, mas ele sai dos fluxos ativos e nao conta mais para papeis derivados.
 
 ## Invariantes de arquitetura
 
@@ -149,6 +154,10 @@ Variaveis minimas em `web/.env.local`:
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY` para scripts e alguns testes locais
+
+Observacao operacional:
+
+- prefira `cd web && npm run db:reset` ao comando cru `supabase db reset --local`; o wrapper do projeto aplica automaticamente o patch de compatibilidade do storage local quando o Supabase CLI falha ao listar buckets.
 
 ## Sequencia de validacao
 

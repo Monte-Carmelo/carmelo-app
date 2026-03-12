@@ -1,8 +1,11 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useMemo, useState, useTransition } from 'react';
 import Link from 'next/link';
-import { Pencil, Users } from 'lucide-react';
+import { Ban, Pencil, Users } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
+import { inactivateGrowthGroupAction } from '@/app/(app)/admin/growth-groups/actions';
 import {
   Table,
   TableBody,
@@ -20,12 +23,23 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 export interface AdminGrowthGroupSummary {
   id: string;
   name: string;
   mode: 'in_person' | 'online' | 'hybrid';
-  status: 'active' | 'inactive' | 'multiplied';
+  status: 'active' | 'inactive' | 'multiplying' | 'multiplied';
   leaders: string[];
   supervisors: string[];
   memberCount: number;
@@ -45,14 +59,18 @@ const modeLabels: Record<string, string> = {
 const statusLabels: Record<string, string> = {
   active: 'Ativo',
   inactive: 'Inativo',
+  multiplying: 'Multiplicando',
   multiplied: 'Multiplicado',
 };
 
 export function AdminGrowthGroupList({ gcs }: AdminGrowthGroupListProps) {
+  const router = useRouter();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [modeFilter, setModeFilter] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'name' | 'created' | 'members'>('name');
+  const [processingId, setProcessingId] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
 
   const filteredAndSortedGcs = useMemo(() => {
     let result = [...gcs];
@@ -88,6 +106,32 @@ export function AdminGrowthGroupList({ gcs }: AdminGrowthGroupListProps) {
     return result;
   }, [gcs, searchTerm, statusFilter, modeFilter, sortBy]);
 
+  const handleInactivate = (gcId: string, gcName: string) => {
+    if (processingId || isPending) {
+      return;
+    }
+
+    setProcessingId(gcId);
+
+    startTransition(() => {
+      inactivateGrowthGroupAction(gcId)
+        .then((result) => {
+          if (result.success) {
+            toast.success(`GC "${gcName}" inativado com sucesso.`);
+            router.refresh();
+          } else {
+            toast.error(result.error ?? 'Não foi possível inativar o GC.');
+          }
+        })
+        .catch(() => {
+          toast.error('Não foi possível inativar o GC.');
+        })
+        .finally(() => {
+          setProcessingId(null);
+        });
+    });
+  };
+
   return (
     <div className="space-y-4">
       {/* Filters */}
@@ -107,6 +151,7 @@ export function AdminGrowthGroupList({ gcs }: AdminGrowthGroupListProps) {
               <SelectItem value="all">Todos</SelectItem>
               <SelectItem value="active">Ativo</SelectItem>
               <SelectItem value="inactive">Inativo</SelectItem>
+              <SelectItem value="multiplying">Multiplicando</SelectItem>
               <SelectItem value="multiplied">Multiplicado</SelectItem>
             </SelectContent>
           </Select>
@@ -174,7 +219,7 @@ export function AdminGrowthGroupList({ gcs }: AdminGrowthGroupListProps) {
                       className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
                         gc.status === 'active'
                           ? 'bg-green-100 text-green-800'
-                          : gc.status === 'multiplied'
+                          : gc.status === 'multiplying' || gc.status === 'multiplied'
                             ? 'bg-blue-100 text-blue-800'
                             : 'bg-slate-100 text-slate-800'
                       }`}
@@ -196,12 +241,48 @@ export function AdminGrowthGroupList({ gcs }: AdminGrowthGroupListProps) {
                           <span className="sr-only">Editar</span>
                         </Button>
                       </Link>
-                      <Link href={`/admin/growth-groups/${gc.id}/multiply`}>
-                        <Button variant="ghost" size="icon">
+                      {gc.status === 'active' ? (
+                        <Link href={`/admin/growth-groups/${gc.id}/multiply`}>
+                          <Button variant="ghost" size="icon">
+                            <Users className="h-4 w-4" />
+                            <span className="sr-only">Multiplicar</span>
+                          </Button>
+                        </Link>
+                      ) : (
+                        <Button variant="ghost" size="icon" disabled>
                           <Users className="h-4 w-4" />
                           <span className="sr-only">Multiplicar</span>
                         </Button>
-                      </Link>
+                      )}
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            disabled={gc.status !== 'active' || processingId === gc.id || isPending}
+                          >
+                            <Ban className="h-4 w-4 text-amber-700" />
+                            <span className="sr-only">Inativar</span>
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Inativar GC?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              O GC <strong>{gc.name}</strong> sairá dos fluxos ativos do sistema, mas seu histórico será preservado.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => handleInactivate(gc.id, gc.name)}
+                              className="bg-amber-700 hover:bg-amber-800"
+                            >
+                              {processingId === gc.id ? 'Inativando...' : 'Inativar'}
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </div>
                   </TableCell>
                 </TableRow>

@@ -4,7 +4,7 @@ Banco Postgres gerenciado pelo Supabase, com RLS e triggers para hierarquia e co
 
 ## Passo a passo para ambiente local
 1. `supabase start`
-2. `supabase db reset` (aplica todas as migrations e o `seed.sql`)
+2. `cd web && npm run db:reset` (aplica todas as migrations, o `seed.sql` e corrige automaticamente um bug conhecido do storage local)
 3. `cd web && npx tsx scripts/seed-auth-users.ts` (cria usuários no Supabase Auth + sincroniza tabela `users` e relacionamentos)
 4. Anote `API URL` e `anon key` exibidos; use em `.env.local` (web).
 

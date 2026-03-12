@@ -19,6 +19,9 @@
 - fluxos criticos de reunioes e visitantes passaram a usar API routes autenticadas
 - lint oficial do web migrado para ESLint CLI
 - `docs/onboarding.md` foi criado como primeira leitura obrigatoria
+- usuarios e GCs agora usam inativacao como fluxo canonico no admin
+- funcoes de auth/RLS e a view `user_gc_roles` ignoram usuarios e GCs inativos
+- `web/scripts/reset-db.ts` virou o caminho oficial para reset local do Supabase por causa de um bug do storage local no CLI
 
 ## Open Questions
 

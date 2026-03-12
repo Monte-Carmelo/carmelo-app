@@ -31,6 +31,7 @@ type UserRow = {
     growth_groups: {
       id: string;
       name: string;
+      status: Database['public']['Tables']['growth_groups']['Row']['status'];
     } | null;
   }[];
 };
@@ -81,13 +82,14 @@ async function AdminUserDetailContent({ userId, searchParams }: { userId: string
       .from('growth_group_participants')
       .select(
         `id, gc_id, role, status, deleted_at,
-         growth_groups ( id, name )`
+         growth_groups ( id, name, status )`
       )
       .eq('person_id', person.id)
       .is('deleted_at', null),
     supabase
       .from('growth_groups')
       .select('id, name, status')
+      .eq('status', 'active')
       .is('deleted_at', null)
       .order('name', { ascending: true }),
     supabase
@@ -110,7 +112,12 @@ async function AdminUserDetailContent({ userId, searchParams }: { userId: string
   }
 
   const activeAssignments = (user.assignments ?? [])
-    .filter((assignment) => assignment.status === 'active' && assignment.deleted_at === null)
+    .filter(
+      (assignment) =>
+        assignment.status === 'active' &&
+        assignment.deleted_at === null &&
+        assignment.growth_groups?.status === 'active',
+    )
     .map((assignment) => ({
       assignmentId: assignment.id,
       gcId: assignment.gc_id,

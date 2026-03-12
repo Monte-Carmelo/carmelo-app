@@ -52,7 +52,7 @@ export function LoginForm() {
     setErrorMessage(null);
     setIsSubmitting(true);
 
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email: values.email,
       password: values.password,
     });
@@ -61,6 +61,23 @@ export function LoginForm() {
       setErrorMessage(error.message ?? 'Não foi possível entrar.');
       setIsSubmitting(false);
       return;
+    }
+
+    const userId = data.user?.id;
+    if (userId) {
+      const { data: activeUser, error: activeUserError } = await supabase
+        .from('users')
+        .select('id')
+        .eq('id', userId)
+        .is('deleted_at', null)
+        .maybeSingle();
+
+      if (activeUserError || !activeUser) {
+        await supabase.auth.signOut();
+        setErrorMessage('Este usuário está inativo. Procure um administrador.');
+        setIsSubmitting(false);
+        return;
+      }
     }
 
     router.replace(safeRedirectTo);
