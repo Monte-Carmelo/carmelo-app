@@ -9,7 +9,7 @@ import { getAuthenticatedUser } from '@/lib/supabase/server-auth';
 const createUserSchema = z.object({
   name: z.string().min(3, 'Informe um nome com pelo menos 3 caracteres.'),
   email: z.string().email('E-mail inválido.'),
-  phone: z.string().optional(),
+  phone: z.string().optional().nullable(),
   password: z.string().min(8, 'Senha deve ter ao menos 8 caracteres.'),
   isAdmin: z.boolean().default(false),
 });
@@ -164,7 +164,7 @@ const updateUserSchema = z.object({
   userId: z.string().uuid(),
   name: z.string().min(3, 'Informe o nome completo.'),
   email: z.string().email('E-mail inválido.'),
-  phone: z.string().optional(),
+  phone: z.string().optional().nullable(),
   isAdmin: z.boolean(),
 });
 

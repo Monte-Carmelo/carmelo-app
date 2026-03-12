@@ -211,6 +211,29 @@ test.describe('Área Administrativa - Testes Completos', () => {
       await expect(page.getByText(/usuário criado com sucesso/i)).toBeVisible({ timeout: 15000 });
     });
 
+    test('deve criar novo usuário sem telefone', async ({ page }) => {
+      await navigateToAdmin(page, '/users/new');
+      await expect(page.getByRole('heading', { name: 'Novo usuário' })).toBeVisible();
+
+      const testUser = {
+        name: 'Usuário Sem Telefone',
+        email: `test.no-phone.${Date.now()}@test.com`,
+        password: 'senha123456',
+      };
+
+      await page.getByLabel('Nome completo').fill(testUser.name);
+      await page.getByLabel('E-mail').fill(testUser.email);
+      await page.getByLabel('Senha temporária').fill(testUser.password);
+      await page.getByLabel('Confirmar senha').fill(testUser.password);
+
+      await page.getByRole('button', { name: 'Criar usuário' }).click();
+
+      await page.waitForURL(/\/admin\/users\/.+\?created=true$/, { timeout: 15000 });
+      await expect(page.getByRole('heading', { name: testUser.name })).toBeVisible({ timeout: 15000 });
+      await expect(page.getByText(`${testUser.email} • Sem telefone`)).toBeVisible();
+      await expect(page.getByText(/usuário criado com sucesso/i)).toBeVisible();
+    });
+
     test('deve validar formulário de usuário', async ({ page }) => {
       await navigateToAdmin(page, '/users/new');
 
