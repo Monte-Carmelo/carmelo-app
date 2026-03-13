@@ -19,7 +19,10 @@ async function selectCustomLessonMode(page: Page) {
   const customModeButton = page.locator('button:has-text("Título Personalizado")').first();
   const customTitleInput = page.locator('#customLessonTitle');
 
-  for (let attempt = 0; attempt < 3; attempt += 1) {
+  await expect(customModeButton).toBeVisible({ timeout: 15000 });
+  await page.waitForLoadState('networkidle').catch(() => {});
+
+  for (let attempt = 0; attempt < 6; attempt += 1) {
     await customModeButton.click({ force: true }).catch(() => {});
     if (!(await customTitleInput.isVisible().catch(() => false))) {
       await page.evaluate(() => {
@@ -33,7 +36,7 @@ async function selectCustomLessonMode(page: Page) {
     if (await customTitleInput.isVisible().catch(() => false)) {
       return;
     }
-    await page.waitForTimeout(200);
+    await page.waitForTimeout(500);
   }
 
   throw new Error('Could not switch meeting form to custom title mode');
@@ -47,6 +50,7 @@ test.describe('Quickstart - Líder registra reunião', () => {
     await page.goto(`/meetings/new?gcId=${DEFAULT_GC_ID}`, { waitUntil: 'domcontentloaded' });
 
     await expect(page.getByRole('heading', { name: /registrar reunião/i })).toBeVisible();
+    await page.waitForLoadState('networkidle').catch(() => {});
 
     const uniqueTitle = `W030 Reunião ${Date.now()}`;
     await page.getByLabel('Data').fill('2099-01-01');

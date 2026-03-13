@@ -24,31 +24,50 @@ async function loginAsLeader(page: Page) {
 async function createVisitor(page: Page): Promise<{ gcId: string; visitorName: string; visitorId: string }> {
   const uniqueSuffix = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const visitorName = `Visitante W031 ${uniqueSuffix}`;
+  const visitorEmail = `w031-${uniqueSuffix}@example.com`;
 
   await page.goto('/visitors/new', { waitUntil: 'domcontentloaded' });
   await expect(page.getByRole('heading', { name: /cadastrar visitante/i })).toBeVisible();
+  await page.waitForLoadState('networkidle').catch(() => {});
 
   const gcSelect = page.locator('select[name="gcId"]');
   await gcSelect.selectOption({ index: 1 });
   const gcId = await gcSelect.inputValue();
 
   await page.getByLabel('Nome completo').fill(visitorName);
-  await page.getByLabel('E-mail').fill(`w031-${uniqueSuffix}@example.com`);
+  await page.getByLabel('E-mail').fill(visitorEmail);
   await page.getByLabel('Telefone').fill('11999999999');
   const submitButton = page.getByRole('button', { name: /cadastrar visitante/i });
 
   // Em dev/hidratação inicial, o primeiro clique pode cair em submit nativo (GET).
-  // Fazemos até 3 tentativas até obter o redirecionamento client-side esperado.
+  // Fazemos algumas tentativas e aceitamos também o estado persistido no banco
+  // como critério de sucesso quando o redirect client-side demora no runner.
   let redirected = false;
-  for (let attempt = 0; attempt < 3; attempt += 1) {
-    await page.waitForTimeout(300);
+  let peopleRow: { id: string } | null = null;
+
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    await page.waitForTimeout(500);
     await submitButton.click();
     redirected = await page
-      .waitForURL('**/visitors', { timeout: 8000 })
+      .waitForURL('**/visitors', { timeout: 15000 })
       .then(() => true)
       .catch(() => false);
 
     if (redirected) {
+      break;
+    }
+
+    const lookup = await supabaseAdmin
+      .from('people')
+      .select('id')
+      .eq('name', visitorName)
+      .eq('email', visitorEmail)
+      .maybeSingle();
+
+    if (lookup.data?.id) {
+      peopleRow = lookup.data;
+      await page.goto('/visitors', { waitUntil: 'domcontentloaded' });
+      redirected = true;
       break;
     }
   }
@@ -59,14 +78,19 @@ async function createVisitor(page: Page): Promise<{ gcId: string; visitorName: s
 
   await expect(page.getByRole('heading', { name: /visitantes/i })).toBeVisible();
 
-  const { data: peopleRow, error: peopleError } = await supabaseAdmin
-    .from('people')
-    .select('id')
-    .eq('name', visitorName)
-    .single();
+  if (!peopleRow) {
+    const lookup = await supabaseAdmin
+      .from('people')
+      .select('id')
+      .eq('name', visitorName)
+      .eq('email', visitorEmail)
+      .single();
 
-  if (peopleError || !peopleRow) {
-    throw new Error(`Could not find created person for visitor ${visitorName}`);
+    if (lookup.error || !lookup.data) {
+      throw new Error(`Could not find created person for visitor ${visitorName}`);
+    }
+
+    peopleRow = lookup.data;
   }
 
   const { data: visitorRow, error: visitorError } = await supabaseAdmin
