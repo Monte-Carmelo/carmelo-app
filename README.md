@@ -81,6 +81,7 @@ Acesse `http://localhost:3000` (Next.js em modo desenvolvimento).
 
 - O workflow `CI` em `.github/workflows/ci.yml` roda lint, type-check, testes unitários, contract tests e build.
 - Em push para `main`, a mesma workflow executa deploy automático de produção na Vercel.
+- O workflow agendado `E2E Full` usa Supabase local efêmero no GitHub Actions, com reset do banco e seed de usuários antes da suíte Playwright.
 - Secrets necessários no GitHub Actions:
   - `VERCEL_TOKEN`
   - `VERCEL_ORG_ID`

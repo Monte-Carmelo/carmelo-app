@@ -36,6 +36,7 @@ Este arquivo nao substitui a documentacao detalhada. Ele define o mapa, os invar
 - O setup local valido e: `supabase start`, `cd web && npm run db:reset`, `cd web && npm run db:seed-users`, `cd web && npm run dev`.
 - A regressao minima antes de concluir trabalho no web e: `npm run lint`, `npm run type-check`, `npm test`. Para fluxos maiores, inclua `npm run build` e `npm run test:e2e:full`.
 - Push em `main` executa CI no GitHub Actions e faz deploy automatico na Vercel quando `VERCEL_TOKEN`, `VERCEL_ORG_ID` e `VERCEL_PROJECT_ID` estiverem configurados como secrets.
+- A workflow agendada `E2E Full` roda contra Supabase local efemero no GitHub Actions; ela nao depende de um ambiente Supabase externo nem de secrets `E2E_*`.
 - Inativacao e o fluxo canonico para retirada de usuarios e GCs na area admin. Nao faca exclusao fisica como caminho normal.
 - A documentacao antiga sobre Flutter e historica/referencial. Para trabalho do dia a dia, trate `web/` + `supabase/` como o sistema ativo.
 
@@ -68,6 +69,7 @@ O que esta consolidado:
 - suite unit, contract e e2e desktop passando
 - lint via ESLint CLI, sem depender de `next lint`
 - deploy automatico de producao na Vercel acoplado ao workflow `CI` em push para `main`
+- workflow `E2E Full` alinhada ao mesmo setup local do CI/PR, com `supabase start`, `npm run db:reset` e `npm run db:seed-users`
 - usuarios inativos perdem acesso logico ao app mesmo que ainda exista conta no Supabase Auth
 - GCs inativos deixam de contar para papeis derivados e RLS
 
@@ -183,6 +185,7 @@ Deploy de producao:
 - push/merge para `main` executa a workflow `CI`
 - a job `Deploy Production` so roda depois da job `web` passar
 - os secrets necessarios no GitHub sao `VERCEL_TOKEN`, `VERCEL_ORG_ID` e `VERCEL_PROJECT_ID`
+- a workflow `E2E Full` agendada nao exige secrets extras; ela sobe Supabase local, reseta o banco e semeia os usuarios de auth antes da suite Playwright
 
 ## Onde ficam as verdades principais
 

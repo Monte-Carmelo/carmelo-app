@@ -111,3 +111,17 @@ O Supabase CLI 2.75.0 falha localmente ao listar buckets de storage por incompat
 ### Lasting Impact
 
 Setup local e scripts de reset passam a depender do wrapper versionado no repositório. A documentação operacional deve apontar para esse comando como caminho padrão enquanto o bug do stack local existir.
+
+## 2026-03-13 - Alinhar a workflow `E2E Full` ao Supabase local do projeto
+
+### Decision
+
+Remover a dependencia de secrets `E2E_*` e de um ambiente Supabase externo na workflow agendada `E2E Full`, fazendo-a subir Supabase local, resetar o banco e semear usuarios de auth como as validacoes de CI e PR.
+
+### Rationale
+
+O repositório já tem seeds, credenciais locais estáveis e um fluxo oficial de validação baseado em Supabase local. Manter a workflow agendada apontando para um ambiente externo inexistente só produzia falhas de configuração e escondia regressões reais da suíte Playwright.
+
+### Lasting Impact
+
+O caminho oficial de E2E no GitHub Actions passa a ser autossuficiente e reproduzível sem infraestrutura adicional. Secrets de Actions ficam restritos ao deploy da Vercel, e a diferença entre PR, CI e E2E agendado deixa de ser uma fonte de inconsistência.

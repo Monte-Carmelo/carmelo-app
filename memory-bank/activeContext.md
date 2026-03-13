@@ -22,6 +22,7 @@
 - usuarios e GCs agora usam inativacao como fluxo canonico no admin
 - funcoes de auth/RLS e a view `user_gc_roles` ignoram usuarios e GCs inativos
 - `web/scripts/reset-db.ts` virou o caminho oficial para reset local do Supabase por causa de um bug do storage local no CLI
+- a workflow agendada `E2E Full` agora usa o mesmo setup local do CI/PR, sem depender de Supabase externo
 
 ## Open Questions
 
