@@ -32,15 +32,15 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Install Supabase CLI
-        run: npm install --global supabase@latest
-
       - name: Start local Supabase
-        run: supabase start
+        run: npx --yes supabase start
         working-directory: .
 
       - name: Reset local Supabase database
         run: npm run db:reset
+        env:
+          SUPABASE_CLI_PATH: npx
+          SUPABASE_CLI_ARGS: --yes supabase
 
       - name: Seed auth users
         run: npm run db:seed-users

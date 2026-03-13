@@ -130,12 +130,12 @@ O caminho oficial de E2E no GitHub Actions passa a ser autossuficiente e reprodu
 
 ### Decision
 
-Atualizar os workflows para `actions/checkout@v6`, `actions/setup-node@v6` e `actions/upload-artifact@v6`, e substituir `supabase/setup-cli@v1` pela instalacao do Supabase CLI via `npm install --global supabase@latest`.
+Atualizar os workflows para `actions/checkout@v6`, `actions/setup-node@v6` e `actions/upload-artifact@v6`, e substituir `supabase/setup-cli@v1` pela execucao suportada do Supabase CLI via `npx --yes supabase`.
 
 ### Rationale
 
-Os warnings de deprecacao do GitHub Actions vinham de actions ainda executadas em Node 20. Para eliminar o ruido e evitar quebra futura no runner hospedado, o caminho mais seguro era migrar para as majors atuais compativeis com Node 24 e remover a dependencia de um action de terceiro que ainda emitia o warning.
+Os warnings de deprecacao do GitHub Actions vinham de actions ainda executadas em Node 20. Para eliminar o ruido e evitar quebra futura no runner hospedado, o caminho mais seguro era migrar para as majors atuais compativeis com Node 24 e remover a dependencia de um action de terceiro que ainda emitia o warning. A tentativa de instalar o Supabase CLI globalmente via npm falhou porque o proprio CLI nao suporta esse modo; o fluxo oficial suportado e via `npx` ou dependencia local.
 
 ### Lasting Impact
 
-Os workflows deixam de depender de runtimes JavaScript deprecated e passam a instalar o Supabase CLI de forma explicita. O CI continua com o mesmo comportamento funcional, mas sem os warnings de Node 20 que estavam poluindo os runs.
+Os workflows deixam de depender de runtimes JavaScript deprecated e passam a invocar o Supabase CLI pelo caminho suportado pelo fornecedor. O CI continua com o mesmo comportamento funcional, mas sem os warnings de Node 20 que estavam poluindo os runs.

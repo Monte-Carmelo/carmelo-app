@@ -6,12 +6,18 @@ const repoRoot = resolve(__dirname, '..', '..');
 const supabaseDir = resolve(repoRoot, 'supabase');
 const defaultConfigPath = resolve(supabaseDir, 'config.toml');
 const cliExecutable = process.env.SUPABASE_CLI_PATH ?? 'supabase';
+const cliExecutableArgs =
+  process.env.SUPABASE_CLI_ARGS?.split(/\s+/).filter(Boolean) ?? [];
 const configPath = process.env.SUPABASE_CONFIG_PATH ?? defaultConfigPath;
-const args = ['db', 'reset', '--local'];
+const args = [...cliExecutableArgs, 'db', 'reset', '--local'];
 const projectSlug = basename(repoRoot);
-const dbContainer = process.env.SUPABASE_DB_CONTAINER ?? `supabase_db_${projectSlug}`;
-const storageContainer = process.env.SUPABASE_STORAGE_CONTAINER ?? `supabase_storage_${projectSlug}`;
-const storageApiUrl = process.env.SUPABASE_LOCAL_STORAGE_URL ?? 'http://127.0.0.1:54321/storage/v1/bucket';
+const dbContainer =
+  process.env.SUPABASE_DB_CONTAINER ?? `supabase_db_${projectSlug}`;
+const storageContainer =
+  process.env.SUPABASE_STORAGE_CONTAINER ?? `supabase_storage_${projectSlug}`;
+const storageApiUrl =
+  process.env.SUPABASE_LOCAL_STORAGE_URL ??
+  'http://127.0.0.1:54321/storage/v1/bucket';
 const storageCompatErrorMarker = 'UNION types text and uuid cannot be matched';
 const storageAdminDatabaseUrl =
   process.env.SUPABASE_STORAGE_ADMIN_DATABASE_URL ??
@@ -27,46 +33,56 @@ function runCommand(
   context: string,
   options?: { silent?: boolean },
 ) {
-  return new Promise<{ code: number | null; output: string }>((resolvePromise, rejectPromise) => {
-    const child = spawn(command, commandArgs, {
-      cwd: repoRoot,
-      env: process.env,
-      stdio: ['ignore', 'pipe', 'pipe'],
-    });
+  return new Promise<{ code: number | null; output: string }>(
+    (resolvePromise, rejectPromise) => {
+      const child = spawn(command, commandArgs, {
+        cwd: repoRoot,
+        env: process.env,
+        stdio: ['ignore', 'pipe', 'pipe'],
+      });
 
-    let output = '';
+      let output = '';
 
-    child.stdout.on('data', (chunk) => {
-      const text = chunk.toString();
-      output += text;
-      if (!options?.silent) {
-        process.stdout.write(text);
-      }
-    });
+      child.stdout.on('data', (chunk) => {
+        const text = chunk.toString();
+        output += text;
+        if (!options?.silent) {
+          process.stdout.write(text);
+        }
+      });
 
-    child.stderr.on('data', (chunk) => {
-      const text = chunk.toString();
-      output += text;
-      if (!options?.silent) {
-        process.stderr.write(text);
-      }
-    });
+      child.stderr.on('data', (chunk) => {
+        const text = chunk.toString();
+        output += text;
+        if (!options?.silent) {
+          process.stderr.write(text);
+        }
+      });
 
-    child.on('error', (error) => {
-      rejectPromise(new Error(`${context}: ${error.message}`));
-    });
+      child.on('error', (error) => {
+        rejectPromise(new Error(`${context}: ${error.message}`));
+      });
 
-    child.on('close', (code) => {
-      resolvePromise({ code, output });
-    });
-  });
+      child.on('close', (code) => {
+        resolvePromise({ code, output });
+      });
+    },
+  );
 }
 
 function execPsql(sql: string) {
   return new Promise<number | null>((resolvePromise, rejectPromise) => {
     const child = spawn(
       'docker',
-      ['exec', '-i', dbContainer, 'psql', storageAdminDatabaseUrl, '-v', 'ON_ERROR_STOP=1'],
+      [
+        'exec',
+        '-i',
+        dbContainer,
+        'psql',
+        storageAdminDatabaseUrl,
+        '-v',
+        'ON_ERROR_STOP=1',
+      ],
       {
         cwd: repoRoot,
         env: process.env,
@@ -90,7 +106,9 @@ async function getStorageServiceKey() {
   );
 
   if (code !== 0) {
-    throw new Error(`Falha ao obter SERVICE_KEY do storage local (código ${code ?? 'desconhecido'}).`);
+    throw new Error(
+      `Falha ao obter SERVICE_KEY do storage local (código ${code ?? 'desconhecido'}).`,
+    );
   }
 
   const serviceKey = output.trim();
@@ -127,7 +145,9 @@ COMMIT;
 
   const code = await execPsql(sql);
   if (code !== 0) {
-    throw new Error(`Falha ao aplicar patch de compatibilidade do storage local (código ${code ?? 'desconhecido'}).`);
+    throw new Error(
+      `Falha ao aplicar patch de compatibilidade do storage local (código ${code ?? 'desconhecido'}).`,
+    );
   }
 }
 
@@ -148,11 +168,13 @@ async function verifyStorageBucketListing() {
 if (existsSync(configPath)) {
   args.push('--config', configPath);
 } else if (process.env.SUPABASE_CONFIG_PATH) {
-  console.warn(`⚠️  Arquivo de configuração Supabase não encontrado em ${configPath}. Prosseguindo com defaults do CLI.`);
+  console.warn(
+    `⚠️  Arquivo de configuração Supabase não encontrado em ${configPath}. Prosseguindo com defaults do CLI.`,
+  );
 }
 
 console.log('📦 Resetando banco local do Supabase...');
-console.log(`→ CLI: ${cliExecutable}`);
+console.log(`→ CLI: ${[cliExecutable, ...cliExecutableArgs].join(' ')}`);
 console.log(`→ Diretório: ${repoRoot}`);
 if (existsSync(configPath)) {
   console.log(`→ Config: ${configPath}`);
@@ -162,27 +184,42 @@ if (existsSync(configPath)) {
 
 async function main() {
   try {
-    const { code, output } = await runCommand(cliExecutable, args, 'Erro ao executar Supabase CLI');
+    const { code, output } = await runCommand(
+      cliExecutable,
+      args,
+      'Erro ao executar Supabase CLI',
+    );
 
     if (code === 0) {
       console.log('✅ Banco resetado com sucesso.');
       return;
     }
 
-    if (output.includes(storageCompatErrorMarker) && output.includes('buckets_analytics')) {
-      console.warn('⚠️  Detectado bug conhecido do storage local ao listar buckets. Aplicando patch de compatibilidade...');
+    if (
+      output.includes(storageCompatErrorMarker) &&
+      output.includes('buckets_analytics')
+    ) {
+      console.warn(
+        '⚠️  Detectado bug conhecido do storage local ao listar buckets. Aplicando patch de compatibilidade...',
+      );
       await applyStorageCompatibilityPatch();
       await verifyStorageBucketListing();
-      console.log('✅ Banco resetado com patch de compatibilidade do storage local.');
+      console.log(
+        '✅ Banco resetado com patch de compatibilidade do storage local.',
+      );
       return;
     }
 
-    console.error(`❌ Supabase CLI finalizou com código ${code}. Verifique os logs acima.`);
+    console.error(
+      `❌ Supabase CLI finalizou com código ${code}. Verifique os logs acima.`,
+    );
     process.exit(code ?? 1);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.error('❌ Erro ao executar reset do banco:', message);
-    console.error('Certifique-se de ter o Supabase CLI instalado (`npm install -g supabase` ou `brew install supabase/tap/supabase`).');
+    console.error(
+      'Certifique-se de ter o Supabase CLI instalado (`npm install -g supabase` ou `brew install supabase/tap/supabase`).',
+    );
     process.exit(1);
   }
 }
