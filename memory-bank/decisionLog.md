@@ -125,3 +125,17 @@ O repositório já tem seeds, credenciais locais estáveis e um fluxo oficial de
 ### Lasting Impact
 
 O caminho oficial de E2E no GitHub Actions passa a ser autossuficiente e reproduzível sem infraestrutura adicional. Secrets de Actions ficam restritos ao deploy da Vercel, e a diferença entre PR, CI e E2E agendado deixa de ser uma fonte de inconsistência.
+
+## 2026-03-13 - Atualizar workflows para actions compativeis com Node 24
+
+### Decision
+
+Atualizar os workflows para `actions/checkout@v6`, `actions/setup-node@v6` e `actions/upload-artifact@v6`, e substituir `supabase/setup-cli@v1` pela instalacao do Supabase CLI via `npm install --global supabase@latest`.
+
+### Rationale
+
+Os warnings de deprecacao do GitHub Actions vinham de actions ainda executadas em Node 20. Para eliminar o ruido e evitar quebra futura no runner hospedado, o caminho mais seguro era migrar para as majors atuais compativeis com Node 24 e remover a dependencia de um action de terceiro que ainda emitia o warning.
+
+### Lasting Impact
+
+Os workflows deixam de depender de runtimes JavaScript deprecated e passam a instalar o Supabase CLI de forma explicita. O CI continua com o mesmo comportamento funcional, mas sem os warnings de Node 20 que estavam poluindo os runs.
