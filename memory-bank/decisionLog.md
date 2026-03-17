@@ -139,3 +139,17 @@ Os warnings de deprecacao do GitHub Actions vinham de actions ainda executadas e
 ### Lasting Impact
 
 Os workflows deixam de depender de runtimes JavaScript deprecated e passam a invocar o Supabase CLI pelo caminho suportado pelo fornecedor. O CI continua com o mesmo comportamento funcional, mas sem os warnings de Node 20 que estavam poluindo os runs.
+
+## 2026-03-17 - Endurecer o admin de series e licoes no web
+
+### Decision
+
+Padronizar criacao e edicao de series/licoes com carregamento server-side, server actions para escrita critica e hidratacao completa antes de liberar interacao de formulario. Na exclusao de serie, as licoes vinculadas devem ser preservadas como licoes avulsas.
+
+### Rationale
+
+O fluxo antigo misturava leitura/escrita client-side, ficava sujeito a travamentos de loading e aceitava digitacao antes da hidratacao do React, o que fazia campos perderem valor no submit. Alem disso, excluir uma serie escondia suas licoes em vez de preserva-las como o produto prometia.
+
+### Lasting Impact
+
+As telas administrativas de licoes e series passam a seguir o padrao seguro ja adotado em outros fluxos criticos do web. Exclusao de serie deixa de gerar licoes "orfãs invisiveis", e a suite E2E cobre criacao, edicao, reordenacao, exclusao e preservacao das licoes apos remover uma serie.

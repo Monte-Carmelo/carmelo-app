@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { GripVertical, Pencil, Trash2, ExternalLink } from 'lucide-react';
 import {
@@ -52,10 +52,11 @@ interface AdminLessonListProps {
 interface SortableItemProps {
   lesson: Lesson;
   index: number;
-  onDeleteClick: (lessonId: string) => void;
+  onDeleteClick?: (lessonId: string) => void;
+  reorderable: boolean;
 }
 
-function SortableItem({ lesson, index, onDeleteClick }: SortableItemProps) {
+function SortableItem({ lesson, index, onDeleteClick, reorderable }: SortableItemProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: lesson.id,
   });
@@ -72,13 +73,17 @@ function SortableItem({ lesson, index, onDeleteClick }: SortableItemProps) {
       style={style}
       className="flex items-center gap-3 p-4 bg-white border border-slate-200 rounded-lg hover:border-slate-300 transition-colors"
     >
-      <div
-        {...attributes}
-        {...listeners}
-        className="cursor-grab active:cursor-grabbing text-slate-400 hover:text-slate-600"
-      >
-        <GripVertical className="h-5 w-5" />
-      </div>
+      {reorderable ? (
+        <div
+          {...attributes}
+          {...listeners}
+          className="cursor-grab active:cursor-grabbing text-slate-400 hover:text-slate-600"
+        >
+          <GripVertical className="h-5 w-5" />
+        </div>
+      ) : (
+        <div className="w-5 h-5 flex-shrink-0" />
+      )}
 
       <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-100 text-blue-700 font-semibold flex items-center justify-center">
         {index + 1}
@@ -109,15 +114,17 @@ function SortableItem({ lesson, index, onDeleteClick }: SortableItemProps) {
             Editar
           </Link>
         </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => onDeleteClick(lesson.id)}
-          className="text-red-600 hover:text-red-700"
-        >
-          <Trash2 className="h-4 w-4 mr-1" />
-          Excluir
-        </Button>
+        {onDeleteClick ? (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onDeleteClick(lesson.id)}
+            className="text-red-600 hover:text-red-700"
+          >
+            <Trash2 className="h-4 w-4 mr-1" />
+            Excluir
+          </Button>
+        ) : null}
       </div>
     </div>
   );
@@ -128,6 +135,11 @@ export function AdminLessonList({ lessons, onReorder, onDelete, seriesId }: Admi
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [lessonIdToDelete, setLessonIdToDelete] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const reorderable = Boolean(onReorder);
+
+  useEffect(() => {
+    setItems(lessons);
+  }, [lessons]);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -191,7 +203,7 @@ export function AdminLessonList({ lessons, onReorder, onDelete, seriesId }: Admi
             : 'Nenhuma lição avulsa criada ainda.'}
         </p>
         <Button asChild>
-          <Link href={seriesId ? `/admin/lessons/new?seriesId=${seriesId}` : '/admin/lessons/new'}>
+          <Link href={seriesId ? `/admin/lessons/new?series=${seriesId}` : '/admin/lessons/new'}>
             Nova Lição
           </Link>
         </Button>
@@ -209,7 +221,8 @@ export function AdminLessonList({ lessons, onReorder, onDelete, seriesId }: Admi
                 key={lesson.id}
                 lesson={lesson}
                 index={index}
-                onDeleteClick={handleDeleteClick}
+                reorderable={reorderable}
+                onDeleteClick={onDelete ? handleDeleteClick : undefined}
               />
             ))}
           </div>

@@ -27,7 +27,7 @@ import {
 const lessonSchema = z.object({
   title: z.string().min(3, 'Título deve ter pelo menos 3 caracteres').max(255),
   description: z.string().optional(),
-  link: z.string().optional(),
+  link: z.string().url('Link inválido').optional().or(z.literal('')),
   series_id: z.string().optional(),
   order_in_series: z.union([
     z.number().int().min(1),
@@ -97,41 +97,25 @@ export function AdminLessonForm({
   const handleFormSubmit = async (data: LessonFormData) => {
     setIsSubmitting(true);
     try {
-      // Validate UUID format for series_id if provided
-      let seriesId = data.series_id || null;
-      if (seriesId && seriesId !== '') {
-        // Debug logging
-        console.log('Series ID being validated:', seriesId, typeof seriesId);
+      const seriesId =
+        data.series_id && data.series_id !== 'none'
+          ? data.series_id
+          : null;
+      const normalizedOrder =
+        seriesId && data.order_in_series !== '' && data.order_in_series !== undefined
+          ? typeof data.order_in_series === 'string'
+            ? Number(data.order_in_series)
+            : data.order_in_series
+          : null;
 
-        // Simple UUID validation (just check basic format)
-        if (!seriesId || seriesId === 'none' || seriesId === '') {
-          seriesId = null;
-        } else {
-          // Basic format check - just ensure it looks like a UUID
-          const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-          if (!uuidPattern.test(seriesId)) {
-            console.error('Invalid UUID format:', seriesId);
-            // Instead of throwing error, just set to null for safety
-            seriesId = null;
-          }
-        }
-      } else {
-        seriesId = null;
-      }
-
-      // Convert empty string to null for optional fields
       const processedData = {
         ...data,
         series_id: seriesId,
         link: data.link || null,
         description: data.description || null,
-        order_in_series: data.order_in_series === '' || data.order_in_series === undefined ? null :
-                          (typeof data.order_in_series === 'string' ? Number(data.order_in_series) : data.order_in_series),
+        order_in_series: normalizedOrder,
       };
       await onSubmit(processedData as LessonFormData);
-    } catch (error) {
-      console.error('Error submitting form:', error);
-      // You might want to show a toast notification here
     } finally {
       setIsSubmitting(false);
     }
@@ -139,122 +123,124 @@ export function AdminLessonForm({
 
   return (
     <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Informações da Lição</CardTitle>
-          <CardDescription>
-            {isEditing ? 'Edite as informações da lição' : 'Preencha os dados da nova lição'}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Título */}
-          <div>
-            <Label htmlFor="title">
-              Título <span className="text-red-500">*</span>
-            </Label>
-            <Input
-              id="title"
-              {...register('title')}
-              placeholder="Ex: Introdução à Bíblia"
-              className={errors.title ? 'border-red-500' : ''}
-            />
-            {errors.title && <p className="text-sm text-red-600 mt-1">{errors.title.message}</p>}
-          </div>
-
-          {/* Descrição */}
-          <div>
-            <Label htmlFor="description">Descrição</Label>
-            <Textarea
-              id="description"
-              {...register('description')}
-              placeholder="Descreva o conteúdo da lição..."
-              rows={4}
-              className={errors.description ? 'border-red-500' : ''}
-            />
-            {errors.description && (
-              <p className="text-sm text-red-600 mt-1">{errors.description.message}</p>
-            )}
-          </div>
-
-          {/* Link */}
-          <div>
-            <Label htmlFor="link">Link para Recurso (opcional)</Label>
-            <Input
-              id="link"
-              {...register('link')}
-              placeholder="https://..."
-              className={errors.link ? 'border-red-500' : ''}
-            />
-            {errors.link && <p className="text-sm text-red-600 mt-1">{errors.link.message}</p>}
-            <p className="text-sm text-slate-500 mt-1">
-              Link para vídeo, PDF, artigo ou outro material relacionado
-            </p>
-          </div>
-
-          {/* Série */}
-          <div>
-            <Label htmlFor="series_id">Série (opcional)</Label>
-            <Select
-              value={selectedSeriesId || 'none'}
-              onValueChange={handleSeriesChange}
-            >
-              <SelectTrigger className={errors.series_id ? 'border-red-500' : ''}>
-                <SelectValue placeholder="Selecione uma série ou deixe como lição avulsa" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">Sem série (lição avulsa)</SelectItem>
-                {series.map((s) => (
-                  <SelectItem key={s.id} value={s.id}>
-                    {s.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {errors.series_id && (
-              <p className="text-sm text-red-600 mt-1">{errors.series_id.message}</p>
-            )}
-          </div>
-
-          {/* Ordem na Série (condicional) */}
-          {selectedSeriesId && selectedSeriesId !== 'none' && (
+      <fieldset disabled={!isClientReady || isSubmitting} className="contents">
+        <Card>
+          <CardHeader>
+            <CardTitle>Informações da Lição</CardTitle>
+            <CardDescription>
+              {isEditing ? 'Edite as informações da lição' : 'Preencha os dados da nova lição'}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Título */}
             <div>
-              <Label htmlFor="order_in_series">Ordem na Série</Label>
+              <Label htmlFor="title">
+                Título <span className="text-red-500">*</span>
+              </Label>
               <Input
-                id="order_in_series"
-                type="number"
-                min="1"
-                {...register('order_in_series', { valueAsNumber: true })}
-                placeholder="Ex: 1"
-                className={errors.order_in_series ? 'border-red-500' : ''}
+                id="title"
+                {...register('title')}
+                placeholder="Ex: Introdução à Bíblia"
+                className={errors.title ? 'border-red-500' : ''}
               />
-              {errors.order_in_series && (
-                <p className="text-sm text-red-600 mt-1">{errors.order_in_series.message}</p>
+              {errors.title && <p className="text-sm text-red-600 mt-1">{errors.title.message}</p>}
+            </div>
+
+            {/* Descrição */}
+            <div>
+              <Label htmlFor="description">Descrição</Label>
+              <Textarea
+                id="description"
+                {...register('description')}
+                placeholder="Descreva o conteúdo da lição..."
+                rows={4}
+                className={errors.description ? 'border-red-500' : ''}
+              />
+              {errors.description && (
+                <p className="text-sm text-red-600 mt-1">{errors.description.message}</p>
               )}
+            </div>
+
+            {/* Link */}
+            <div>
+              <Label htmlFor="link">Link para Recurso (opcional)</Label>
+              <Input
+                id="link"
+                {...register('link')}
+                placeholder="https://..."
+                className={errors.link ? 'border-red-500' : ''}
+              />
+              {errors.link && <p className="text-sm text-red-600 mt-1">{errors.link.message}</p>}
               <p className="text-sm text-slate-500 mt-1">
-                Posição desta lição dentro da série (pode ser ajustada depois via drag-and-drop)
+                Link para vídeo, PDF, artigo ou outro material relacionado
               </p>
             </div>
-          )}
-        </CardContent>
-      </Card>
 
-      {/* Ações */}
-      <div className="flex gap-3 justify-end">
-        {onCancel && (
-          <Button
-            type="button"
-            variant="outline"
-            onClick={onCancel}
-            disabled={!isClientReady || isSubmitting}
-            className="h-10"
-          >
-            Cancelar
+            {/* Série */}
+            <div>
+              <Label htmlFor="series_id">Série (opcional)</Label>
+              <Select
+                value={selectedSeriesId || 'none'}
+                onValueChange={handleSeriesChange}
+              >
+                <SelectTrigger className={errors.series_id ? 'border-red-500' : ''}>
+                  <SelectValue placeholder="Selecione uma série ou deixe como lição avulsa" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Sem série (lição avulsa)</SelectItem>
+                  {series.map((s) => (
+                    <SelectItem key={s.id} value={s.id}>
+                      {s.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {errors.series_id && (
+                <p className="text-sm text-red-600 mt-1">{errors.series_id.message}</p>
+              )}
+            </div>
+
+            {/* Ordem na Série (condicional) */}
+            {selectedSeriesId && selectedSeriesId !== 'none' && (
+              <div>
+                <Label htmlFor="order_in_series">Ordem na Série</Label>
+                <Input
+                  id="order_in_series"
+                  type="number"
+                  min="1"
+                  {...register('order_in_series', { valueAsNumber: true })}
+                  placeholder="Ex: 1"
+                  className={errors.order_in_series ? 'border-red-500' : ''}
+                />
+                {errors.order_in_series && (
+                  <p className="text-sm text-red-600 mt-1">{errors.order_in_series.message}</p>
+                )}
+                <p className="text-sm text-slate-500 mt-1">
+                  Posição desta lição dentro da série (pode ser ajustada depois via drag-and-drop)
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Ações */}
+        <div className="flex gap-3 justify-end">
+          {onCancel && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onCancel}
+              disabled={!isClientReady || isSubmitting}
+              className="h-10"
+            >
+              Cancelar
+            </Button>
+          )}
+          <Button type="submit" disabled={!isClientReady || isSubmitting} className="h-10">
+            {isSubmitting ? 'Salvando...' : isEditing ? 'Salvar Alterações' : 'Criar Lição'}
           </Button>
-        )}
-        <Button type="submit" disabled={!isClientReady || isSubmitting} className="h-10">
-          {isSubmitting ? 'Salvando...' : isEditing ? 'Salvar Alterações' : 'Criar Lição'}
-        </Button>
-      </div>
+        </div>
+      </fieldset>
     </form>
   );
 }

@@ -15,6 +15,7 @@ test.describe('T027: Lesson Management', () => {
     await page.waitForTimeout(1000);
     await page.getByLabel('E-mail').fill(adminEmail);
     await page.getByLabel('Senha').fill(adminPassword);
+    await expect(page.getByRole('button', { name: /entrar/i })).toBeEnabled({ timeout: 15000 });
     await page.getByRole('button', { name: /entrar/i }).click();
     await page.waitForURL('**/dashboard', { timeout: 30000 }).catch(() => {});
     if (!page.url().includes('/dashboard')) {
@@ -22,6 +23,7 @@ test.describe('T027: Lesson Management', () => {
       await page.waitForTimeout(1000);
       await page.getByLabel('E-mail').fill(adminEmail);
       await page.getByLabel('Senha').fill(adminPassword);
+      await expect(page.getByRole('button', { name: /entrar/i })).toBeEnabled({ timeout: 15000 });
       await page.getByRole('button', { name: /entrar/i }).click();
       await page.waitForURL('**/dashboard', { timeout: 30000 });
     }
@@ -31,6 +33,7 @@ test.describe('T027: Lesson Management', () => {
     if (page.url().includes('/login')) {
       await page.getByLabel('E-mail').fill(adminEmail);
       await page.getByLabel('Senha').fill(adminPassword);
+      await expect(page.getByRole('button', { name: /entrar/i })).toBeEnabled({ timeout: 15000 });
       await page.getByRole('button', { name: /entrar/i }).click();
       await page.waitForURL('**/dashboard', { timeout: 30000 });
       await expect(page.getByRole('heading', { name: /bem-vindo/i })).toBeVisible({ timeout: 15000 });
@@ -77,7 +80,9 @@ test.describe('T027: Lesson Management', () => {
 
     // Fill series information
     const seriesName = `Fundamentos da Fé - Test ${Date.now()}`;
+    await expect(page.getByLabel('Nome da Série')).toBeEnabled({ timeout: 15000 });
     await page.getByLabel('Nome da Série').fill(seriesName);
+    await expect(page.getByLabel('Descrição')).toBeEnabled({ timeout: 15000 });
     await page.getByLabel('Descrição').fill('Série introdutória sobre princípios cristãos');
 
     // Add initial lessons if the form supports it
@@ -87,6 +92,7 @@ test.describe('T027: Lesson Management', () => {
       const lessonTitleInput = page.locator('input#initialLessons\\.0\\.title');
       await lessonTitleInput.waitFor({ state: 'visible', timeout: 5000 }).catch(() => {});
       if (await lessonTitleInput.isVisible().catch(() => false)) {
+        await expect(lessonTitleInput).toBeEnabled({ timeout: 15000 });
         await lessonTitleInput.fill('Quem é Deus?');
         await page.locator('textarea#initialLessons\\.0\\.description').fill('Introdução aos atributos de Deus');
       } else {
@@ -131,6 +137,7 @@ test.describe('T027: Lesson Management', () => {
     const updatedDescription = 'Descrição atualizada - teste automatizado';
     const descriptionField = page.getByLabel('Descrição');
     await expect(descriptionField).toBeVisible({ timeout: 15000 });
+    await expect(descriptionField).toBeEnabled({ timeout: 15000 });
     await descriptionField.fill(updatedDescription);
 
     // Save changes
@@ -147,20 +154,85 @@ test.describe('T027: Lesson Management', () => {
 
     // Fill lesson form
     const lessonTitle = `Lição Avulsa - Teste ${Date.now()}`;
+    await expect(page.getByLabel('Título')).toBeEnabled({ timeout: 15000 });
     await page.getByLabel('Título').fill(lessonTitle);
+    await expect(page.getByLabel('Descrição')).toBeEnabled({ timeout: 15000 });
     await page.getByLabel('Descrição').fill('Esta é uma lição de teste');
-
-    // Select "No series" option if series select exists
-    const seriesSelect = page.getByRole('combobox').first();
-    if (await seriesSelect.count()) {
-      await seriesSelect.click();
-      await page.getByRole('option', { name: /sem série/i }).click();
-    }
 
     // Submit form
     await page.getByRole('button', { name: 'Criar Lição' }).click();
     await expect(page).toHaveURL(/\/admin\/lessons/);
     await expect(page.getByText(lessonTitle)).toBeVisible({ timeout: 5000 });
+  });
+
+  test('should create a lesson inside a series and return to the series page', async ({ page }) => {
+    const seriesSection = page.locator('section', { hasText: 'Séries de Lições' });
+    const seriesLink = seriesSection.getByRole('link', { name: 'Editar' }).first();
+    const hasSeries = (await seriesLink.count()) > 0;
+
+    if (!hasSeries) {
+      console.log('No series found to add a lesson, skipping test');
+      test.skip();
+    }
+
+    const seriesHref = await seriesLink.getAttribute('href');
+    const seriesId = seriesHref?.split('/').pop();
+
+    if (!seriesId) {
+      test.skip();
+    }
+
+    await navigateToAdminPath(page, `/lessons/new?series=${seriesId}`);
+    await expect(page).toHaveURL(new RegExp(`/admin/lessons/new\\?series=${seriesId}`));
+
+    const lessonTitle = `Lição da Série - Teste ${Date.now()}`;
+    await expect(page.getByLabel('Título')).toBeEnabled({ timeout: 15000 });
+    await page.getByLabel('Título').fill(lessonTitle);
+    await expect(page.getByLabel('Descrição')).toBeEnabled({ timeout: 15000 });
+    await page.getByLabel('Descrição').fill('Lição vinculada a uma série existente');
+    await page.getByRole('button', { name: 'Criar Lição' }).click();
+
+    await expect(page).toHaveURL(new RegExp(`/admin/lessons/series/${seriesId}`));
+    await expect(page.getByText(lessonTitle)).toBeVisible({ timeout: 15000 });
+  });
+
+  test('should delete a series and keep its lessons as standalone lessons', async ({ page }) => {
+    await navigateToAdminPath(page, '/lessons/series/new');
+    await expect(page).toHaveURL(/\/admin\/lessons\/series\/new/);
+
+    const seriesName = `Série para excluir - Teste ${Date.now()}`;
+    const lessonTitle = `Lição órfã preservada - ${Date.now()}`;
+
+    await expect(page.getByLabel('Nome da Série')).toBeEnabled({ timeout: 15000 });
+    await page.getByLabel('Nome da Série').fill(seriesName);
+    await expect(page.getByLabel('Descrição')).toBeEnabled({ timeout: 15000 });
+    await page.getByLabel('Descrição').fill('Série criada para validar exclusão segura');
+
+    await page.getByRole('button', { name: 'Adicionar Lição' }).click();
+    const lessonTitleInput = page.locator('input#initialLessons\\.0\\.title');
+    await expect(lessonTitleInput).toBeEnabled({ timeout: 15000 });
+    await lessonTitleInput.fill(lessonTitle);
+    await page
+      .locator('textarea#initialLessons\\.0\\.description')
+      .fill('Lição que deve continuar acessível após excluir a série');
+
+    await page.getByRole('button', { name: 'Criar Série' }).click();
+    await expect(page).toHaveURL(/\/admin\/lessons/);
+
+    const seriesRow = page.locator('[data-testid="series-card"]', { hasText: seriesName });
+    await expect(seriesRow).toBeVisible({ timeout: 15000 });
+    await seriesRow.getByRole('button', { name: 'Excluir' }).click();
+    await expect(page.getByRole('button', { name: 'Confirmar Exclusão' })).toBeVisible({
+      timeout: 5000,
+    });
+    await page.getByRole('button', { name: 'Confirmar Exclusão' }).click();
+
+    await expect(seriesRow).not.toBeVisible({ timeout: 15000 });
+
+    const standaloneLessonsSection = page.locator('section', { hasText: 'Lições Avulsas' });
+    await expect(standaloneLessonsSection.getByText(lessonTitle)).toBeVisible({
+      timeout: 15000,
+    });
   });
 
   test('should edit a lesson', async ({ page }) => {

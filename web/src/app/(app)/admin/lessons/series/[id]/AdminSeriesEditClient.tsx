@@ -7,6 +7,7 @@ import { toast } from 'sonner'
 import { AdminSeriesForm, type SeriesFormData } from '@/components/admin/AdminSeriesForm'
 import { AdminLessonList } from '@/components/admin/AdminLessonList'
 import { Button } from '@/components/ui/button'
+import { deleteLessonAction } from '../../actions'
 import { reorderLessonsAction, updateSeriesAction } from '../actions'
 
 interface Series {
@@ -70,6 +71,18 @@ export function AdminSeriesEditClient({
     }
   }
 
+  const handleDeleteLesson = async (lessonId: string) => {
+    try {
+      await deleteLessonAction(lessonId)
+      toast.success('Lição excluída com sucesso!')
+      router.refresh()
+    } catch (error) {
+      toast.error('Erro ao excluir lição')
+      console.error('Error deleting lesson:', error)
+      throw error
+    }
+  }
+
   return (
     <div className="container mx-auto py-8">
       <div className="mb-6">
@@ -106,7 +119,12 @@ export function AdminSeriesEditClient({
           </div>
 
           {initialLessons.length > 0 ? (
-            <AdminLessonList lessons={initialLessons} onReorder={handleReorder} />
+            <AdminLessonList
+              lessons={initialLessons}
+              onDelete={handleDeleteLesson}
+              onReorder={handleReorder}
+              seriesId={series.id}
+            />
           ) : (
             <div className="text-center py-8 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
               <p className="text-gray-500 mb-4">Nenhuma lição nesta série ainda</p>

@@ -2,7 +2,6 @@
 
 import { revalidatePath } from 'next/cache';
 import { createSupabaseServerClient } from '@/lib/supabase/server-client';
-import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { SeriesFormData } from '@/components/admin/AdminSeriesForm';
 
@@ -65,7 +64,7 @@ export async function createSeriesAction(data: SeriesFormData) {
     }
 
     revalidatePath('/admin/lessons');
-    redirect('/admin/lessons');
+    return { redirectTo: '/admin/lessons' };
   } catch (error) {
     console.error('Error creating series:', error);
     throw error;
@@ -95,28 +94,6 @@ export async function updateSeriesAction(id: string, data: SeriesFormData) {
     revalidatePath(`/admin/lessons/series/${id}`);
   } catch (error) {
     console.error('Error updating series:', error);
-    throw error;
-  }
-}
-
-export async function deleteSeriesAction(id: string) {
-  const supabase = await createSupabaseServerClient();
-
-  try {
-    // Soft delete series
-    const { error } = await supabase
-      .from('lesson_series')
-      .update({
-        deleted_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', id);
-
-    if (error) throw error;
-
-    revalidatePath('/admin/lessons');
-  } catch (error) {
-    console.error('Error deleting series:', error);
     throw error;
   }
 }

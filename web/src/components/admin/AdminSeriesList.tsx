@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Pencil, Trash2, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -40,9 +41,15 @@ interface AdminSeriesListProps {
 }
 
 export function AdminSeriesList({ series, onDelete }: AdminSeriesListProps) {
+  const router = useRouter();
+  const [items, setItems] = useState(series);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [seriesIdToDelete, setSeriesIdToDelete] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  useEffect(() => {
+    setItems(series);
+  }, [series]);
 
   const handleDeleteClick = (seriesId: string) => {
     setSeriesIdToDelete(seriesId);
@@ -55,8 +62,10 @@ export function AdminSeriesList({ series, onDelete }: AdminSeriesListProps) {
     setIsDeleting(true);
     try {
       await onDelete(seriesIdToDelete);
+      setItems((currentItems) => currentItems.filter((item) => item.id !== seriesIdToDelete));
       setDeleteDialogOpen(false);
       setSeriesIdToDelete(null);
+      router.refresh();
     } catch (error) {
       console.error('Error deleting series:', error);
     } finally {
@@ -64,7 +73,7 @@ export function AdminSeriesList({ series, onDelete }: AdminSeriesListProps) {
     }
   };
 
-  if (series.length === 0) {
+  if (items.length === 0) {
     return (
       <div className="text-center py-12 bg-slate-50 rounded-lg border border-slate-200">
         <p className="text-slate-600 mb-4">Nenhuma série de lições criada ainda.</p>
@@ -93,7 +102,7 @@ export function AdminSeriesList({ series, onDelete }: AdminSeriesListProps) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {series.map((serie) => (
+            {items.map((serie) => (
               <TableRow key={serie.id} data-testid="series-card">
                 <TableCell className="font-medium">{serie.name}</TableCell>
                 <TableCell className="max-w-md">
@@ -130,7 +139,7 @@ export function AdminSeriesList({ series, onDelete }: AdminSeriesListProps) {
                       asChild
                       className="text-blue-600 hover:text-blue-700"
                     >
-                      <Link href={`/admin/lessons/new?seriesId=${serie.id}`}>
+                      <Link href={`/admin/lessons/new?series=${serie.id}`}>
                         <Plus className="h-4 w-4 mr-1" />
                         Lição
                       </Link>

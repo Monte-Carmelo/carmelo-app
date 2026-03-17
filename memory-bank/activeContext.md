@@ -23,6 +23,7 @@
 - funcoes de auth/RLS e a view `user_gc_roles` ignoram usuarios e GCs inativos
 - `web/scripts/reset-db.ts` virou o caminho oficial para reset local do Supabase por causa de um bug do storage local no CLI
 - a workflow agendada `E2E Full` agora usa o mesmo setup local do CI/PR, sem depender de Supabase externo
+- admin de series/licoes no `web` foi endurecido em 2026-03-17 com leitura server-side, submit liberado so apos hidratacao e exclusao de serie preservando licoes como avulsas
 
 ## Open Questions
 
