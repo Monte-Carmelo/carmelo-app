@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useRouter } from 'next/navigation';
 import { z } from 'zod';
+import { useClientReady } from '@/lib/hooks/use-client-ready';
 import { getSupabaseBrowserClient } from '@/lib/supabase/browser-client';
 import type { Database } from '@/lib/supabase/types';
 
@@ -44,6 +45,7 @@ interface ParticipantEditFormProps {
 
 export function ParticipantEditForm({ participant, groups }: ParticipantEditFormProps) {
   const router = useRouter();
+  const isClientReady = useClientReady();
   const supabase = getSupabaseBrowserClient();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -201,7 +203,7 @@ export function ParticipantEditForm({ participant, groups }: ParticipantEditForm
         </button>
         <button
           type="submit"
-          disabled={isSubmitting}
+          disabled={!isClientReady || isSubmitting}
           className="inline-flex items-center rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-70"
         >
           {isSubmitting ? 'Salvando...' : 'Salvar alterações'}

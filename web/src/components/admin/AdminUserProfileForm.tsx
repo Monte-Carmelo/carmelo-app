@@ -6,6 +6,7 @@ import { useForm } from 'react-hook-form';
 import { useRouter } from 'next/navigation';
 import { z } from 'zod';
 import { updateUserProfile } from '@/app/(app)/admin/actions';
+import { useClientReady } from '@/lib/hooks/use-client-ready';
 
 const schema = z.object({
   name: z.string({ message: 'Informe o nome completo.' }).min(3, 'Nome muito curto.'),
@@ -28,6 +29,7 @@ interface AdminUserProfileFormProps {
 
 export function AdminUserProfileForm({ userId, initialValues }: AdminUserProfileFormProps) {
   const router = useRouter();
+  const isClientReady = useClientReady();
   const [feedback, setFeedback] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -125,7 +127,7 @@ export function AdminUserProfileForm({ userId, initialValues }: AdminUserProfile
      <div className="flex items-center justify-end">
         <button
           type="submit"
-          disabled={isPending}
+          disabled={!isClientReady || isPending}
           className="inline-flex items-center rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-sm transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-70"
         >
           {isPending ? 'Salvando...' : 'Salvar alterações'}

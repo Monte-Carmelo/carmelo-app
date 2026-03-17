@@ -123,10 +123,14 @@ test.describe('T027: Lesson Management', () => {
 
     await navigateToAdminPath(page, seriesHref?.replace('/admin', '') ?? '/lessons');
     await page.waitForLoadState('domcontentloaded');
+    await expect(page.getByRole('heading', { name: /editar série/i })).toBeVisible({
+      timeout: 15000,
+    });
 
     // Update series description
     const updatedDescription = 'Descrição atualizada - teste automatizado';
     const descriptionField = page.getByLabel('Descrição');
+    await expect(descriptionField).toBeVisible({ timeout: 15000 });
     await descriptionField.fill(updatedDescription);
 
     // Save changes
@@ -177,6 +181,9 @@ test.describe('T027: Lesson Management', () => {
 
     await navigateToAdminPath(page, lessonHref?.replace('/admin', '') ?? '/lessons');
     await page.waitForLoadState('networkidle');
+    await expect(page.getByRole('heading', { name: /editar lição/i })).toBeVisible({
+      timeout: 15000,
+    });
 
     // Update lesson title
     const titleField = page.getByLabel('Título');

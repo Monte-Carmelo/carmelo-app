@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { UserPlus, Mail, Phone, Users } from 'lucide-react';
+import { useClientReady } from '@/lib/hooks/use-client-ready';
 import type { AddVisitorInput } from '@/lib/supabase/mutations/visitors';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -42,6 +43,7 @@ export interface AddVisitorFormProps {
 
 export function AddVisitorForm({ growthGroups, preselectedGcId, onSubmit }: AddVisitorFormProps) {
   const router = useRouter();
+  const isClientReady = useClientReady();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -197,7 +199,7 @@ export function AddVisitorForm({ growthGroups, preselectedGcId, onSubmit }: AddV
         >
           Cancelar
         </Button>
-        <Button type="submit" disabled={isSubmitting}>
+        <Button type="submit" disabled={!isClientReady || isSubmitting}>
           <UserPlus className="mr-2 h-4 w-4" />
           {isSubmitting ? 'Salvando...' : 'Cadastrar visitante'}
         </Button>

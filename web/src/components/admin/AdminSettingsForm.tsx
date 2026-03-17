@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
+import { useClientReady } from '@/lib/hooks/use-client-ready';
 import { getSupabaseBrowserClient } from '@/lib/supabase/browser-client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -59,6 +60,7 @@ interface AdminSettingsFormProps {
 }
 
 export function AdminSettingsForm({ className }: AdminSettingsFormProps) {
+  const isClientReady = useClientReady();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const supabase = getSupabaseBrowserClient();
@@ -375,7 +377,7 @@ export function AdminSettingsForm({ className }: AdminSettingsFormProps) {
       <div className="flex justify-end">
         <Button
           type="submit"
-          disabled={saving || !isDirty}
+          disabled={!isClientReady || saving || !isDirty}
           className="min-w-32"
         >
           {saving ? (

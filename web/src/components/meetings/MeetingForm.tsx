@@ -7,6 +7,7 @@ import { useState, useEffect } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { z } from 'zod';
 import { Calendar, FileText, UserCheck } from 'lucide-react';
+import { useClientReady } from '@/lib/hooks/use-client-ready';
 import type { LessonTemplate } from '@/lib/api/lessons';
 import type {
   AttendanceMemberOption,
@@ -79,6 +80,7 @@ export function MeetingForm({
   initialVisitors = [],
 }: MeetingFormProps) {
   const router = useRouter();
+  const isClientReady = useClientReady();
   const queryClient = useQueryClient();
 
   const [participants, setParticipants] = useState<AttendanceMemberOption[]>(initialParticipants);
@@ -406,7 +408,7 @@ export function MeetingForm({
         >
           Cancelar
         </Button>
-        <Button type="submit" disabled={isSubmitting || isFetchingAttendance}>
+        <Button type="submit" disabled={!isClientReady || isSubmitting || isFetchingAttendance}>
           <Calendar className="mr-2 h-4 w-4" />
           {isSubmitting ? 'Salvando...' : 'Registrar reunião'}
         </Button>

@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { z } from 'zod';
 import { Calendar, FileText, Users, UserCheck, Trash2 } from 'lucide-react';
+import { useClientReady } from '@/lib/hooks/use-client-ready';
 import { getSupabaseBrowserClient } from '@/lib/supabase/browser-client';
 import type { Database } from '@/lib/supabase/types';
 import type { MeetingDetails } from '@/lib/supabase/queries/meetings';
@@ -67,6 +68,7 @@ interface EditMeetingFormProps {
 
 export function EditMeetingForm({ meeting, lessonTemplates }: EditMeetingFormProps) {
   const router = useRouter();
+  const isClientReady = useClientReady();
   const supabase = getSupabaseBrowserClient();
 
   const [participants, setParticipants] = useState<Participant[]>([]);
@@ -570,7 +572,7 @@ export function EditMeetingForm({ meeting, lessonTemplates }: EditMeetingFormPro
           <Button type="button" variant="outline" onClick={() => router.back()} disabled={isLoading}>
             Cancelar
           </Button>
-          <Button type="submit" disabled={isLoading}>
+          <Button type="submit" disabled={!isClientReady || isLoading}>
             <Calendar className="mr-2 h-4 w-4" />
             {isLoading ? 'Salvando...' : 'Salvar alterações'}
           </Button>

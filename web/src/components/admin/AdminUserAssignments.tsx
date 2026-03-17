@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { z } from 'zod';
 import clsx from 'clsx';
 import { addUserAssignment, removeUserAssignment } from '@/app/(app)/admin/actions';
+import { useClientReady } from '@/lib/hooks/use-client-ready';
 import { postgresUuid } from '@/lib/validation/postgres-uuid';
 
 const addAssignmentSchema = z.object({
@@ -38,6 +39,7 @@ interface AdminUserAssignmentsProps {
 
 export function AdminUserAssignments({ userId, assignments, availableGroups }: AdminUserAssignmentsProps) {
   const router = useRouter();
+  const isClientReady = useClientReady();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [pendingAssignmentId, setPendingAssignmentId] = useState<string | null>(null);
@@ -183,7 +185,7 @@ export function AdminUserAssignments({ userId, assignments, availableGroups }: A
         <div className="flex items-center justify-end">
           <button
             type="submit"
-            disabled={isAdding}
+            disabled={!isClientReady || isAdding}
             className="inline-flex items-center rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-sm transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-70"
           >
             {isAdding ? 'Adicionando...' : 'Adicionar vínculo'}

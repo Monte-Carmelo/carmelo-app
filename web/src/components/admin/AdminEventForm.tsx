@@ -4,6 +4,7 @@ import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Upload, X } from 'lucide-react';
+import { useClientReady } from '@/lib/hooks/use-client-ready';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -37,6 +38,7 @@ interface AdminEventFormProps {
 
 export function AdminEventForm({ event, mode }: AdminEventFormProps) {
   const router = useRouter();
+  const isClientReady = useClientReady();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [formData, setFormData] = useState<EventFormData>({
@@ -336,7 +338,7 @@ export function AdminEventForm({ event, mode }: AdminEventFormProps) {
             </Button>
             <Button
               type="submit"
-              disabled={isSubmitting}
+              disabled={!isClientReady || isSubmitting}
             >
               {isSubmitting 
                 ? 'Salvando...' 

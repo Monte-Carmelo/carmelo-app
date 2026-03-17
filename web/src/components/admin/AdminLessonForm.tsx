@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { useClientReady } from '@/lib/hooks/use-client-ready';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -65,6 +66,7 @@ export function AdminLessonForm({
   onCancel,
 }: AdminLessonFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const isClientReady = useClientReady();
   const isEditing = !!lesson;
 
   const {
@@ -239,11 +241,17 @@ export function AdminLessonForm({
       {/* Ações */}
       <div className="flex gap-3 justify-end">
         {onCancel && (
-          <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting} className="h-10">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onCancel}
+            disabled={!isClientReady || isSubmitting}
+            className="h-10"
+          >
             Cancelar
           </Button>
         )}
-        <Button type="submit" disabled={isSubmitting} className="h-10">
+        <Button type="submit" disabled={!isClientReady || isSubmitting} className="h-10">
           {isSubmitting ? 'Salvando...' : isEditing ? 'Salvar Alterações' : 'Criar Lição'}
         </Button>
       </div>

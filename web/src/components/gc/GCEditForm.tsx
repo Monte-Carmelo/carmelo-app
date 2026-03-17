@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { ArrowLeft, Save } from 'lucide-react';
+import { useClientReady } from '@/lib/hooks/use-client-ready';
 import { getSupabaseBrowserClient } from '@/lib/supabase/browser-client';
 import type { Database } from '@/lib/supabase/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -45,6 +46,7 @@ interface GCEditFormProps {
 
 export function GCEditForm({ gc }: GCEditFormProps) {
   const router = useRouter();
+  const isClientReady = useClientReady();
   const supabase = getSupabaseBrowserClient();
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -263,7 +265,7 @@ export function GCEditForm({ gc }: GCEditFormProps) {
         >
           Cancelar
         </Button>
-        <Button type="submit" disabled={isLoading}>
+        <Button type="submit" disabled={!isClientReady || isLoading}>
           <Save className="mr-2 h-4 w-4" />
           {isLoading ? 'Salvando...' : 'Salvar alterações'}
         </Button>

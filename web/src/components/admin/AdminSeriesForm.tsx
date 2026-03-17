@@ -5,6 +5,7 @@ import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Plus, Trash2 } from 'lucide-react';
+import { useClientReady } from '@/lib/hooks/use-client-ready';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -45,6 +46,7 @@ interface AdminSeriesFormProps {
 
 export function AdminSeriesForm({ series, onSubmit, onCancel }: AdminSeriesFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const isClientReady = useClientReady();
   const isEditing = !!series;
 
   const {
@@ -214,11 +216,11 @@ export function AdminSeriesForm({ series, onSubmit, onCancel }: AdminSeriesFormP
       {/* Ações */}
       <div className="flex gap-3 justify-end">
         {onCancel && (
-          <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
+          <Button type="button" variant="outline" onClick={onCancel} disabled={!isClientReady || isSubmitting}>
             Cancelar
           </Button>
         )}
-        <Button type="submit" disabled={isSubmitting}>
+        <Button type="submit" disabled={!isClientReady || isSubmitting}>
           {isSubmitting ? 'Salvando...' : isEditing ? 'Salvar Alterações' : 'Criar Série'}
         </Button>
       </div>

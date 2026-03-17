@@ -7,6 +7,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { z } from 'zod';
 import { getSupabaseBrowserClient } from '@/lib/supabase/browser-client';
 import { getMissingSupabaseEnvMessage, isEnvReady } from '@/lib/env';
+import { useClientReady } from '@/lib/hooks/use-client-ready';
 import { Spinner } from '@/components/ui/spinner';
 
 const schema = z.object({
@@ -18,6 +19,7 @@ type FormValues = z.infer<typeof schema>;
 
 export function LoginForm() {
   const router = useRouter();
+  const isClientReady = useClientReady();
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get('redirect');
   const safeRedirectTo =
@@ -118,7 +120,7 @@ export function LoginForm() {
 
       <button
         type="submit"
-        disabled={isSubmitting}
+        disabled={!isClientReady || isSubmitting}
         className="inline-flex items-center justify-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-70"
       >
         {isSubmitting && <Spinner size="sm" className="border-white border-t-transparent" />}

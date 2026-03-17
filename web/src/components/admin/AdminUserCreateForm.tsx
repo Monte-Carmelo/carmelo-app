@@ -6,6 +6,7 @@ import { Controller, useForm } from 'react-hook-form';
 import { useRouter } from 'next/navigation';
 import { z } from 'zod';
 import { createUser } from '@/app/(app)/admin/actions';
+import { useClientReady } from '@/lib/hooks/use-client-ready';
 
 const schema = z
   .object({
@@ -35,6 +36,7 @@ function formatPhone(value: string): string {
 
 export function AdminUserCreateForm() {
   const router = useRouter();
+  const isClientReady = useClientReady();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -188,7 +190,7 @@ export function AdminUserCreateForm() {
         </button>
         <button
           type="submit"
-          disabled={isPending}
+          disabled={!isClientReady || isPending}
           className="inline-flex items-center rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-sm transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-70"
         >
           {isPending ? 'Criando usuário...' : 'Criar usuário'}
