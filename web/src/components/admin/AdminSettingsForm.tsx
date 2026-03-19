@@ -1,73 +1,29 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import { toast } from 'sonner';
-import { useClientReady } from '@/lib/hooks/use-client-ready';
-import { getSupabaseBrowserClient } from '@/lib/supabase/browser-client';
+import { ClientFormShell } from '@/components/forms/ClientFormShell';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Loader2, Settings, Users, Building, BookOpen, TrendingUp } from 'lucide-react';
-
-// Configuration schema
-const settingsSchema = z.object({
-  // Gerais
-  organization_name: z.string().min(1, 'Nome da organização é obrigatório'),
-
-  // GCs
-  gc_min_members: z.number().min(1, 'Mínimo deve ser maior que 0').max(50, 'Máximo 50 membros'),
-  gc_max_members: z.number().min(1, 'Máximo deve ser maior que 0').max(200, 'Máximo 200 membros'),
-  gc_min_meeting_frequency_weeks: z.number().min(1, 'Mínimo 1 semana').max(4, 'Máximo 4 semanas'),
-
-  // Visitantes
-  visitor_conversion_threshold: z.number().min(1, 'Mínimo 1 visita').max(20, 'Máximo 20 visitas'),
-  visitor_conversion_days: z.number().min(1, 'Mínimo 1 dia').max(365, 'Máximo 365 dias'),
-  auto_convert_visitors: z.boolean(),
-
-  // Relatórios
-  dashboard_cache_ttl_minutes: z.number().min(1, 'Mínimo 1 minuto').max(1440, 'Máximo 1 dia (1440 min)'),
-  reports_default_period_days: z.number().min(7, 'Mínimo 7 dias').max(365, 'Máximo 365 dias'),
-
-  // Notificações
-  email_notifications_enabled: z.boolean(),
-  weekly_report_enabled: z.boolean(),
-});
-
-type SettingsFormData = z.infer<typeof settingsSchema>;
-
-// Default values
-const defaultValues: SettingsFormData = {
-  organization_name: '',
-  gc_min_members: 5,
-  gc_max_members: 25,
-  gc_min_meeting_frequency_weeks: 1,
-  visitor_conversion_threshold: 3,
-  visitor_conversion_days: 30,
-  auto_convert_visitors: false,
-  dashboard_cache_ttl_minutes: 5,
-  reports_default_period_days: 90,
-  email_notifications_enabled: true,
-  weekly_report_enabled: false,
-};
+import { settingsSchema, type SettingsFormData } from '@/lib/validations/settings';
 
 interface AdminSettingsFormProps {
   className?: string;
+  initialValues: SettingsFormData;
 }
 
-export function AdminSettingsForm({ className }: AdminSettingsFormProps) {
-  const isClientReady = useClientReady();
-  const [loading, setLoading] = useState(true);
+export function AdminSettingsForm({ className, initialValues }: AdminSettingsFormProps) {
   const [saving, setSaving] = useState(false);
-  const supabase = getSupabaseBrowserClient();
 
   const form = useForm<SettingsFormData>({
     resolver: zodResolver(settingsSchema),
-    defaultValues,
+    defaultValues: initialValues,
     mode: 'onChange',
   });
 
@@ -78,75 +34,25 @@ export function AdminSettingsForm({ className }: AdminSettingsFormProps) {
     formState: { errors, isDirty },
   } = form;
 
-  // Load settings from database
-  useEffect(() => {
-    const loadSettings = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('config')
-          .select('key, value')
-          .in('key', [
-            'organization_name',
-            'gc_min_members',
-            'gc_max_members',
-            'gc_min_meeting_frequency_weeks',
-            'visitor_conversion_threshold',
-            'visitor_conversion_days',
-            'auto_convert_visitors',
-            'dashboard_cache_ttl_minutes',
-            'reports_default_period_days',
-            'email_notifications_enabled',
-            'weekly_report_enabled',
-          ]);
-
-        if (error) throw error;
-
-        // Convert array of key-value pairs to form values
-        const settings = data?.reduce((acc, item) => {
-          acc[item.key] = item.value;
-          return acc;
-        }, {} as Record<string, unknown>) || {};
-
-        // Apply default values for missing keys
-        const formValues = {
-          ...defaultValues,
-          ...settings,
-        };
-
-        reset(formValues);
-      } catch (error) {
-        console.error('Erro ao carregar configurações:', error);
-        toast.error('Erro ao carregar configurações');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadSettings();
-  }, [reset, supabase]);
-
   const onSubmit = async (data: SettingsFormData) => {
     setSaving(true);
 
     try {
-      // Convert form data to key-value pairs for database
-      const configEntries = Object.entries(data).map(([key, value]) => ({
-        key,
-        value,
-        description: getConfigDescription(key),
-      }));
+      const response = await fetch('/api/admin/settings', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+      const result = await response.json();
 
-      // Upsert all configurations
-      const { error } = await supabase
-        .from('config')
-        .upsert(configEntries, {
-          onConflict: 'key',
-        });
-
-      if (error) throw error;
+      if (!response.ok || !result.success) {
+        throw new Error(result.error ?? 'Erro ao salvar configurações');
+      }
 
       toast.success('Configurações salvas com sucesso!');
-      reset(data); // Mark form as clean
+      reset(data);
     } catch (error) {
       console.error('Erro ao salvar configurações:', error);
       toast.error('Erro ao salvar configurações');
@@ -155,17 +61,8 @@ export function AdminSettingsForm({ className }: AdminSettingsFormProps) {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center p-8">
-        <Loader2 className="h-6 w-6 animate-spin" />
-        <span className="ml-2">Carregando configurações...</span>
-      </div>
-    );
-  }
-
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className={className}>
+    <ClientFormShell onSubmit={handleSubmit(onSubmit)} className={className} pending={saving}>
       {/* Gerais */}
       <Card className="mb-6">
         <CardHeader>
@@ -377,7 +274,7 @@ export function AdminSettingsForm({ className }: AdminSettingsFormProps) {
       <div className="flex justify-end">
         <Button
           type="submit"
-          disabled={!isClientReady || saving || !isDirty}
+          disabled={saving || !isDirty}
           className="min-w-32"
         >
           {saving ? (
@@ -390,25 +287,6 @@ export function AdminSettingsForm({ className }: AdminSettingsFormProps) {
           )}
         </Button>
       </div>
-    </form>
+    </ClientFormShell>
   );
-}
-
-// Helper function to get configuration descriptions
-function getConfigDescription(key: string): string {
-  const descriptions: Record<string, string> = {
-    organization_name: 'Nome da organização/igreja',
-    gc_min_members: 'Número mínimo de membros para um GC ser considerado saudável',
-    gc_max_members: 'Número máximo de membros recomendado por GC',
-    gc_min_meeting_frequency_weeks: 'Frequência mínima recomendada de reuniões',
-    visitor_conversion_threshold: 'Número de visitas antes de sugerir conversão',
-    visitor_conversion_days: 'Período máximo em dias para considerar conversão',
-    auto_convert_visitors: 'Converter automaticamente visitantes em membros',
-    dashboard_cache_ttl_minutes: 'Tempo de cache do dashboard em minutos',
-    reports_default_period_days: 'Período padrão para relatórios em dias',
-    email_notifications_enabled: 'Habilitar notificações por e-mail',
-    weekly_report_enabled: 'Enviar relatório semanal automático',
-  };
-
-  return descriptions[key] || '';
 }

@@ -3,9 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Users, Mail, Calendar, TrendingUp } from 'lucide-react';
-import { getSupabaseBrowserClient } from '@/lib/supabase/browser-client';
-import { convertVisitorToParticipant, type VisitorView } from '@/lib/api/visitors';
-import { useSession } from '@/lib/auth/session-context';
+import type { VisitorView } from '@/lib/api/visitors';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ConvertDialog } from '@/components/visitors/convert-dialog';
@@ -18,18 +16,25 @@ interface VisitorsListProps {
 
 export function VisitorsList({ visitors }: VisitorsListProps) {
   const router = useRouter();
-  const { user } = useSession();
-  const supabase = getSupabaseBrowserClient();
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const handleConvert = async (visitor: VisitorView) => {
     setProcessingId(visitor.id);
     setErrorMessage(null);
+    const endpoint = new URL(`/api/visitors/${visitor.id}/convert`, window.location.origin).toString();
 
-    const result = await convertVisitorToParticipant(supabase, visitor, user.id);
-    if (!result.success) {
-      setErrorMessage(result.error ?? 'Não foi possível converter visitante.');
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ gcId: visitor.gcId }),
+    });
+    const result = await response.json().catch(() => null);
+
+    if (!response.ok || !result?.success) {
+      setErrorMessage(result?.error ?? 'Não foi possível converter visitante.');
       setProcessingId(null);
       return;
     }

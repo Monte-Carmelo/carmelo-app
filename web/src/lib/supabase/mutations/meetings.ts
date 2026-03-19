@@ -88,6 +88,7 @@ export async function createMeeting(
 
 export type UpdateMeetingInput = {
   meetingId: string;
+  lessonTemplateId?: string | null;
   lessonTitle?: string;
   datetime?: string;
   comments?: string | null;
@@ -109,6 +110,9 @@ export async function updateMeeting(
 
   if (input.lessonTitle !== undefined) {
     updateData.lesson_title = input.lessonTitle;
+  }
+  if (input.lessonTemplateId !== undefined) {
+    updateData.lesson_template_id = input.lessonTemplateId;
   }
   if (input.datetime !== undefined) {
     updateData.datetime = input.datetime;
@@ -132,6 +136,96 @@ export async function updateMeeting(
   return {
     success: true,
   };
+}
+
+export type ReplaceMeetingAttendanceInput = {
+  meetingId: string;
+  memberAttendance?: string[];
+  visitorAttendance?: string[];
+};
+
+export async function replaceMeetingAttendance(
+  supabase: SupabaseClient<Database>,
+  input: ReplaceMeetingAttendanceInput,
+): Promise<UpdateMeetingResult> {
+  const { error: deleteMembersError } = await supabase
+    .from('meeting_member_attendance')
+    .delete()
+    .eq('meeting_id', input.meetingId);
+
+  if (deleteMembersError) {
+    return {
+      success: false,
+      error: deleteMembersError.message,
+    };
+  }
+
+  if (input.memberAttendance && input.memberAttendance.length > 0) {
+    const { error: memberAttendanceError } = await supabase
+      .from('meeting_member_attendance')
+      .insert(
+        input.memberAttendance.map((participantId) => ({
+          meeting_id: input.meetingId,
+          participant_id: participantId,
+        })),
+      );
+
+    if (memberAttendanceError) {
+      return {
+        success: false,
+        error: 'Reunião atualizada, mas faltou registrar presença de membros.',
+      };
+    }
+  }
+
+  const { error: deleteVisitorsError } = await supabase
+    .from('meeting_visitor_attendance')
+    .delete()
+    .eq('meeting_id', input.meetingId);
+
+  if (deleteVisitorsError) {
+    return {
+      success: false,
+      error: deleteVisitorsError.message,
+    };
+  }
+
+  if (input.visitorAttendance && input.visitorAttendance.length > 0) {
+    const { error: visitorAttendanceError } = await supabase
+      .from('meeting_visitor_attendance')
+      .insert(
+        input.visitorAttendance.map((visitorId) => ({
+          meeting_id: input.meetingId,
+          visitor_id: visitorId,
+        })),
+      );
+
+    if (visitorAttendanceError) {
+      return {
+        success: false,
+        error: 'Reunião atualizada, mas faltou registrar presença de visitantes.',
+      };
+    }
+  }
+
+  return {
+    success: true,
+  };
+}
+
+export type UpdateMeetingWithAttendanceInput = UpdateMeetingInput & ReplaceMeetingAttendanceInput;
+
+export async function updateMeetingWithAttendance(
+  supabase: SupabaseClient<Database>,
+  input: UpdateMeetingWithAttendanceInput,
+): Promise<UpdateMeetingResult> {
+  const updateResult = await updateMeeting(supabase, input);
+
+  if (!updateResult.success) {
+    return updateResult;
+  }
+
+  return replaceMeetingAttendance(supabase, input);
 }
 
 export type DeleteMeetingResult = {

@@ -4,47 +4,10 @@ import { vi } from 'vitest';
 import { VisitorsList, type VisitorView } from '@/components/visitors/VisitorsList';
 
 const refreshMock = vi.fn();
-
-const supabaseMock = {
-  from: vi.fn((table: string) => {
-    if (table === 'growth_group_participants') {
-      return {
-        upsert: vi.fn(() => ({
-          select: () => ({
-            single: () => Promise.resolve({ data: { id: 'participant-1' }, error: null }),
-          }),
-        })),
-      };
-    }
-
-    if (table === 'visitors') {
-      return {
-        update: vi.fn(() => ({
-          eq: vi.fn(() => Promise.resolve({ error: null })),
-        })),
-      };
-    }
-
-    if (table === 'visitor_conversion_events') {
-      return {
-        insert: vi.fn(() => Promise.resolve({ error: null })),
-      };
-    }
-
-    return { upsert: vi.fn(), update: vi.fn(), insert: vi.fn() };
-  }),
-};
+const fetchMock = vi.fn();
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ refresh: refreshMock }),
-}));
-
-vi.mock('@/lib/auth/session-context', () => ({
-  useSession: () => ({ user: { id: 'user-1' }, roles: null }),
-}));
-
-vi.mock('@/lib/supabase/browser-client', () => ({
-  getSupabaseBrowserClient: () => supabaseMock,
 }));
 
 const visitor: VisitorView = {
@@ -62,6 +25,17 @@ const visitor: VisitorView = {
 describe('VisitorsList', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.stubGlobal(
+      'fetch',
+      fetchMock.mockResolvedValue({
+        ok: true,
+        json: async () => ({ success: true }),
+      }),
+    );
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
   it('converte visitante em membro e atualiza a lista', async () => {
@@ -71,10 +45,15 @@ describe('VisitorsList', () => {
     await userEvent.click(screen.getByRole('button', { name: /confirmar conversão/i }));
 
     await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        `${window.location.origin}/api/visitors/visitor-1/convert`,
+        expect.objectContaining({
+          method: 'POST',
+        }),
+      );
       expect(refreshMock).toHaveBeenCalled();
     });
 
-    expect(supabaseMock.from).toHaveBeenCalledWith('visitor_conversion_events');
     expect(screen.queryByText(/não foi possível converter visitante/i)).not.toBeInTheDocument();
   });
 });

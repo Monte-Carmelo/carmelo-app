@@ -11,32 +11,28 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 
-interface DataPoint {
-  [key: string]: string | number;
-}
-
-interface LineChartProps {
-  data: DataPoint[];
+interface LineChartProps<T extends object> {
+  data: T[];
   lines: Array<{
-    dataKey: string;
+    dataKey: Extract<keyof T, string>;
     stroke: string;
     name: string;
     strokeWidth?: number;
   }>;
-  xAxisDataKey: string;
+  xAxisDataKey: Extract<keyof T, string>;
   height?: number;
   width?: string | number;
   title?: string;
 }
 
-export function LineChart({
+export function LineChart<T extends object>({
   data,
   lines,
   xAxisDataKey,
   height = 300,
   width = '100%',
   title,
-}: LineChartProps) {
+}: LineChartProps<T>) {
   return (
     <div style={{ width }}>
       {title && (

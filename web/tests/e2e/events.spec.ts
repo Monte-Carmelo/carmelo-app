@@ -71,9 +71,10 @@ test.describe('Eventos - E2E', () => {
 
     await updatedRow.locator('button').first().click();
     await page.getByRole('button', { name: /^Excluir$/ }).click();
+    await expect(page.getByText(/evento excluído com sucesso/i)).toBeVisible({ timeout: 10000 });
 
     // Deleção é lógica; valida que evento não aparece na listagem pública
-    await page.goto('/events?year=2099&filter=all');
+    await page.goto('/events?year=2099');
     await expect(page.getByRole('link', { name: updatedTitle })).toHaveCount(0);
   });
 

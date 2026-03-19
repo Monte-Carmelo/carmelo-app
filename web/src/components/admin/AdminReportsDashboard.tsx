@@ -1,16 +1,9 @@
 'use client';
 
-import { useState } from 'react';
 import { LineChart, PieChart, BarChart } from './charts';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AdminMetricsCard } from './AdminMetricsCard';
+import { AdminReportPeriodSelect } from './AdminReportPeriodSelect';
 import { Users, Building, TrendingUp } from 'lucide-react';
 
 interface ReportsMetrics {
@@ -44,7 +37,6 @@ interface AdminReportsDashboardProps {
   distributionData: DistributionData[];
   topGCsData: TopGCData[];
   period: string;
-  onPeriodChange: (period: string) => void;
 }
 
 export function AdminReportsDashboard({
@@ -53,19 +45,7 @@ export function AdminReportsDashboard({
   distributionData,
   topGCsData,
   period,
-  onPeriodChange,
 }: AdminReportsDashboardProps) {
-  const [loading, setLoading] = useState(false);
-
-  const handlePeriodChange = async (newPeriod: string) => {
-    setLoading(true);
-    try {
-      await onPeriodChange(newPeriod);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
     <div className="space-y-6">
       {/* Header with Period Filter */}
@@ -81,18 +61,16 @@ export function AdminReportsDashboard({
           <label htmlFor="period-filter" className="text-sm font-medium text-gray-700">
             Período:
           </label>
-          <Select value={period} onValueChange={handlePeriodChange} disabled={loading}>
-            <SelectTrigger id="period-filter" className="w-48">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="30">Últimos 30 dias</SelectItem>
-              <SelectItem value="90">Últimos 90 dias</SelectItem>
-              <SelectItem value="180">Últimos 6 meses</SelectItem>
-              <SelectItem value="365">Último ano</SelectItem>
-              <SelectItem value="all">Todo o período</SelectItem>
-            </SelectContent>
-          </Select>
+          <AdminReportPeriodSelect
+            period={period}
+            options={[
+              { value: '30', label: 'Últimos 30 dias' },
+              { value: '90', label: 'Últimos 90 dias' },
+              { value: '180', label: 'Últimos 6 meses' },
+              { value: '365', label: 'Último ano' },
+              { value: 'all', label: 'Todo o período' },
+            ]}
+          />
         </div>
       </div>
 

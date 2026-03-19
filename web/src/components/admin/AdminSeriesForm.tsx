@@ -5,7 +5,7 @@ import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Plus, Trash2 } from 'lucide-react';
-import { useClientReady } from '@/lib/hooks/use-client-ready';
+import { ClientFormShell } from '@/components/forms/ClientFormShell';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -46,7 +46,6 @@ interface AdminSeriesFormProps {
 
 export function AdminSeriesForm({ series, onSubmit, onCancel }: AdminSeriesFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const isClientReady = useClientReady();
   const isEditing = !!series;
 
   const {
@@ -78,8 +77,7 @@ export function AdminSeriesForm({ series, onSubmit, onCancel }: AdminSeriesFormP
   };
 
   return (
-    <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
-      <fieldset disabled={!isClientReady || isSubmitting} className="contents">
+    <ClientFormShell onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6" pending={isSubmitting}>
         <Card>
           <CardHeader>
             <CardTitle>Informações da Série</CardTitle>
@@ -215,15 +213,14 @@ export function AdminSeriesForm({ series, onSubmit, onCancel }: AdminSeriesFormP
         {/* Ações */}
         <div className="flex gap-3 justify-end">
           {onCancel && (
-            <Button type="button" variant="outline" onClick={onCancel} disabled={!isClientReady || isSubmitting}>
+            <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
               Cancelar
             </Button>
           )}
-          <Button type="submit" disabled={!isClientReady || isSubmitting}>
+          <Button type="submit" disabled={isSubmitting}>
             {isSubmitting ? 'Salvando...' : isEditing ? 'Salvar Alterações' : 'Criar Série'}
           </Button>
         </div>
-      </fieldset>
-    </form>
+    </ClientFormShell>
   );
 }

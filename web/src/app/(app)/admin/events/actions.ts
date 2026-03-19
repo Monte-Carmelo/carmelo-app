@@ -6,6 +6,7 @@ import { createSupabaseServerClient } from '@/lib/supabase/server-client';
 import { getAuthenticatedUser } from '@/lib/supabase/server-auth';
 import { revalidatePath } from 'next/cache';
 import { EventFormSchema } from '@/lib/validations/event';
+import { getEventById, listEvents } from '@/lib/events/queries';
 
 export type CreateEventInput = {
   title: string;
@@ -214,39 +215,15 @@ export async function getEventAction(input: GetEventInput): Promise<ActionRespon
   }
 
   const supabase = await createSupabaseServerClient();
+  const event = await getEventById(supabase, input.id);
 
-  // 2. Query event with creator info
-  const { data, error } = await (supabase as any)
-    .from('events')
-    .select(`
-      id,
-      title,
-      description,
-      event_date,
-      event_time,
-      location,
-      banner_url,
-      status,
-      created_at,
-      users!created_by_user_id (
-        people (name)
-      )
-    `)
-    .eq('id', input.id)
-    .is('deleted_at', null)
-    .single();
-
-  if (error || !data) {
+  if (!event) {
     return { success: false, error: 'Evento não encontrado' };
   }
 
-  // 3. Format response
   return {
     success: true,
-    data: {
-      ...data,
-      created_by_name: data.users?.people?.name || 'Usuário desconhecido',
-    },
+    data: event,
   };
 }
 
@@ -276,44 +253,13 @@ export async function listEventsAction(input: ListEventsInput = {}): Promise<Act
     }
   }
 
-  // 2. Build query
-  let query = (supabase as any)
-    .from('events')
-    .select('*')
-    .order('event_date', { ascending: true })
-    .order('event_time', { ascending: true, nullsFirst: false });
-
-  // Filter by year
-  if (input.year) {
-    query = query.gte('event_date', `${input.year}-01-01`);
-    query = query.lte('event_date', `${input.year}-12-31`);
-  }
-
-  // Filter future only
-  if (input.futureOnly) {
-    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-    query = query.gte('event_date', today);
-  }
-
-  // Include deleted (admin only)
-  if (!input.includeDeleted) {
-    query = query.is('deleted_at', null);
-  }
-
-  // 3. Execute query
-  const { data, error } = await query;
-
-  if (error) {
+  try {
+    return {
+      success: true,
+      data: await listEvents(supabase, input),
+    };
+  } catch (error) {
     console.error('Error listing events:', error);
     return { success: false, error: 'Erro ao listar eventos' };
   }
-
-  // 4. Format response
-  return {
-    success: true,
-    data: data.map((event: any) => ({
-      ...event,
-      is_deleted: !!event.deleted_at,
-    })),
-  };
 }

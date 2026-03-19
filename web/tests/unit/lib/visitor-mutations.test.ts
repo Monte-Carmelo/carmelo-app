@@ -2,24 +2,33 @@ import { describe, expect, it, vi } from 'vitest';
 import { addVisitor } from '@/lib/supabase/mutations/visitors';
 
 function createSupabaseMock() {
-  const peopleByEmailMaybeSingle = vi.fn().mockResolvedValue({ data: null, error: null });
-  const peopleByPhoneMaybeSingle = vi.fn().mockResolvedValue({ data: { id: 'person-phone' }, error: null });
+  const peopleByEmailLimit = vi.fn().mockResolvedValue({ data: [], error: null });
+  const peopleByPhoneLimit = vi.fn().mockResolvedValue({ data: [{ id: 'person-phone', name: 'Pessoa Telefone' }], error: null });
   const insertedPersonSingle = vi.fn().mockResolvedValue({ data: { id: 'person-new' }, error: null });
   const existingVisitorMaybeSingle = vi.fn().mockResolvedValue({ data: null, error: null });
   const insertedVisitorSingle = vi.fn().mockResolvedValue({ data: { id: 'visitor-new' }, error: null });
 
   const peopleSelect = vi.fn(() => ({
-    eq: vi.fn((column: string) => {
-      if (column === 'email') {
-        return { maybeSingle: peopleByEmailMaybeSingle };
-      }
+    eq: vi.fn((column: string) => ({
+      is: vi.fn((deletedAtColumn: string, deletedAtValue: null) => {
+        expect(deletedAtColumn).toBe('deleted_at');
+        expect(deletedAtValue).toBeNull();
 
-      if (column === 'phone') {
-        return { maybeSingle: peopleByPhoneMaybeSingle };
-      }
+        return {
+          limit: vi.fn(() => {
+            if (column === 'email') {
+              return peopleByEmailLimit();
+            }
 
-      throw new Error(`Unexpected people column: ${column}`);
-    }),
+            if (column === 'phone') {
+              return peopleByPhoneLimit();
+            }
+
+            throw new Error(`Unexpected people lookup column: ${column}`);
+          }),
+        };
+      }),
+    })),
   }));
 
   const peopleInsert = vi.fn(() => ({
@@ -72,11 +81,10 @@ function createSupabaseMock() {
 
   return {
     supabase: { from } as any,
-    peopleByPhoneMaybeSingle,
+    peopleByEmailLimit,
+    peopleByPhoneLimit,
     peopleInsert,
-    insertedPersonSingle,
     visitorsInsert,
-    insertedVisitorSingle,
   };
 }
 
@@ -96,8 +104,32 @@ describe('visitor mutations', () => {
       personId: 'person-new',
       visitorId: 'visitor-new',
     });
-    expect(mock.peopleByPhoneMaybeSingle).not.toHaveBeenCalled();
+    expect(mock.peopleByPhoneLimit).not.toHaveBeenCalled();
     expect(mock.peopleInsert).toHaveBeenCalledTimes(1);
     expect(mock.visitorsInsert).toHaveBeenCalledTimes(1);
+  });
+
+  it('returns a friendly error when phone matches multiple people without email', async () => {
+    const mock = createSupabaseMock();
+    mock.peopleByPhoneLimit.mockResolvedValueOnce({
+      data: [
+        { id: 'person-1', name: 'Pessoa A' },
+        { id: 'person-2', name: 'Pessoa B' },
+      ],
+      error: null,
+    });
+
+    const result = await addVisitor(mock.supabase, {
+      gcId: 'gc-1',
+      name: 'Nova Pessoa',
+      phone: '11999999999',
+    });
+
+    expect(result).toEqual({
+      success: false,
+      error: 'Ja existem varias pessoas com este telefone. Informe um e-mail para identificar a pessoa ou edite um cadastro existente.',
+    });
+    expect(mock.peopleInsert).not.toHaveBeenCalled();
+    expect(mock.visitorsInsert).not.toHaveBeenCalled();
   });
 });

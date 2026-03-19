@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useRouter } from 'next/navigation';
 import { z } from 'zod';
-import { useClientReady } from '@/lib/hooks/use-client-ready';
+import { ClientFormShell } from '@/components/forms/ClientFormShell';
 import type { Database } from '@/lib/supabase/types';
 
 const schema = z
@@ -31,7 +31,6 @@ interface VisitorFormProps {
 
 export function VisitorForm({ groups, preselectedGcId }: VisitorFormProps) {
   const router = useRouter();
-  const isClientReady = useClientReady();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -83,7 +82,11 @@ export function VisitorForm({ groups, preselectedGcId }: VisitorFormProps) {
   });
 
   return (
-    <form onSubmit={onSubmit} className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-10">
+    <ClientFormShell
+      onSubmit={onSubmit}
+      className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-10"
+      pending={isSubmitting}
+    >
       <header className="flex flex-col gap-2">
         <h1 className="text-2xl font-semibold text-slate-900">Cadastrar visitante</h1>
         <p className="text-sm text-slate-600">Preencha os dados básicos para registrar um novo visitante em um GC.</p>
@@ -163,12 +166,12 @@ export function VisitorForm({ groups, preselectedGcId }: VisitorFormProps) {
         </button>
         <button
           type="submit"
-          disabled={!isClientReady || isSubmitting}
+          disabled={isSubmitting}
           className="inline-flex items-center rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-70"
         >
           {isSubmitting ? 'Salvando...' : 'Cadastrar visitante'}
         </button>
       </div>
-    </form>
+    </ClientFormShell>
   );
 }

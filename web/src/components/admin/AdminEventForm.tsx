@@ -4,7 +4,7 @@ import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Upload, X } from 'lucide-react';
-import { useClientReady } from '@/lib/hooks/use-client-ready';
+import { ClientFormShell } from '@/components/forms/ClientFormShell';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -38,7 +38,6 @@ interface AdminEventFormProps {
 
 export function AdminEventForm({ event, mode }: AdminEventFormProps) {
   const router = useRouter();
-  const isClientReady = useClientReady();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [formData, setFormData] = useState<EventFormData>({
@@ -179,7 +178,7 @@ export function AdminEventForm({ event, mode }: AdminEventFormProps) {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <ClientFormShell onSubmit={handleSubmit} className="space-y-6" pending={isSubmitting || isUploading}>
           {/* Título */}
           <div className="space-y-2">
             <Label htmlFor="title">Título *</Label>
@@ -338,7 +337,7 @@ export function AdminEventForm({ event, mode }: AdminEventFormProps) {
             </Button>
             <Button
               type="submit"
-              disabled={!isClientReady || isSubmitting}
+              disabled={isSubmitting || isUploading}
             >
               {isSubmitting 
                 ? 'Salvando...' 
@@ -348,7 +347,7 @@ export function AdminEventForm({ event, mode }: AdminEventFormProps) {
               }
             </Button>
           </div>
-        </form>
+        </ClientFormShell>
       </CardContent>
     </Card>
   );

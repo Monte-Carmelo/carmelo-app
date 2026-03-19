@@ -1,4 +1,3 @@
-import { getEventAction } from '@/app/(app)/admin/events/actions';
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -8,6 +7,8 @@ import { Calendar, Clock, MapPin, Edit, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { createSupabaseServerClient } from '@/lib/supabase/server-client';
+import { getEventById } from '@/lib/events/queries';
 
 interface EventDetailsPageProps {
   params: Promise<{
@@ -29,13 +30,12 @@ const statusColors = {
 
 export default async function EventDetailsPage({ params }: EventDetailsPageProps) {
   const { id } = await params;
-  const result = await getEventAction({ id });
+  const supabase = await createSupabaseServerClient();
+  const event = await getEventById(supabase, id);
 
-  if (!result.success) {
+  if (!event) {
     notFound();
   }
-
-  const event = result.data;
 
   const formatEventDate = (dateStr: string, timeStr?: string | null) => {
     const date = new Date(dateStr);

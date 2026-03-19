@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { z } from 'zod';
 import clsx from 'clsx';
 import { addUserAssignment, removeUserAssignment } from '@/app/(app)/admin/actions';
-import { useClientReady } from '@/lib/hooks/use-client-ready';
+import { ClientFormShell } from '@/components/forms/ClientFormShell';
 import { postgresUuid } from '@/lib/validation/postgres-uuid';
 
 const addAssignmentSchema = z.object({
@@ -39,7 +39,6 @@ interface AdminUserAssignmentsProps {
 
 export function AdminUserAssignments({ userId, assignments, availableGroups }: AdminUserAssignmentsProps) {
   const router = useRouter();
-  const isClientReady = useClientReady();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [pendingAssignmentId, setPendingAssignmentId] = useState<string | null>(null);
@@ -147,7 +146,11 @@ export function AdminUserAssignments({ userId, assignments, availableGroups }: A
         )}
       </div>
 
-      <form onSubmit={onAdd} className="grid gap-4 rounded-xl border border-slate-200 bg-white p-4">
+      <ClientFormShell
+        onSubmit={onAdd}
+        className="grid gap-4 rounded-xl border border-slate-200 bg-white p-4"
+        pending={isAdding || isRemoving}
+      >
         <h3 className="text-sm font-semibold text-slate-800">Adicionar vínculo</h3>
 
         <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">
@@ -185,13 +188,13 @@ export function AdminUserAssignments({ userId, assignments, availableGroups }: A
         <div className="flex items-center justify-end">
           <button
             type="submit"
-            disabled={!isClientReady || isAdding}
+            disabled={isAdding}
             className="inline-flex items-center rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-sm transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-70"
           >
             {isAdding ? 'Adicionando...' : 'Adicionar vínculo'}
           </button>
         </div>
-      </form>
+      </ClientFormShell>
     </section>
   );
 }

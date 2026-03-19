@@ -2,10 +2,23 @@ import { render, screen } from '@testing-library/react';
 import { vi } from 'vitest';
 import EventsPage from '@/app/(app)/events/page';
 
-const { listEventsAction } = vi.hoisted(() => ({ listEventsAction: vi.fn() }));
+const {
+  createSupabaseServerClient,
+  listEvents,
+  listEventYears,
+} = vi.hoisted(() => ({
+  createSupabaseServerClient: vi.fn(),
+  listEvents: vi.fn(),
+  listEventYears: vi.fn(),
+}));
 
-vi.mock('@/app/(app)/admin/events/actions', () => ({
-  listEventsAction,
+vi.mock('@/lib/supabase/server-client', () => ({
+  createSupabaseServerClient,
+}));
+
+vi.mock('@/lib/events/queries', () => ({
+  listEvents,
+  listEventYears,
 }));
 
 vi.mock('@/components/events/EventList', () => ({
@@ -28,22 +41,23 @@ const events = [
 describe('EventsPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    createSupabaseServerClient.mockResolvedValue({});
   });
 
   it('renderiza lista de eventos com ano atual', async () => {
-    listEventsAction.mockResolvedValueOnce({ success: true, data: events });
-    listEventsAction.mockResolvedValueOnce({ success: true, data: events });
+    listEvents.mockResolvedValueOnce(events);
+    listEventYears.mockResolvedValueOnce([2025]);
 
     const page = await EventsPage({ searchParams: Promise.resolve({}) });
     render(page);
 
     expect(screen.getByText(/Eventos da Igreja/)).toBeInTheDocument();
     expect(screen.getByTestId('event-list-stub').textContent).toContain('Retiro');
-    expect(listEventsAction).toHaveBeenCalled();
+    expect(listEvents).toHaveBeenCalled();
   });
 
   it('mostra erro se carregamento falha', async () => {
-    listEventsAction.mockResolvedValueOnce({ success: false, error: 'fail' });
+    listEvents.mockRejectedValueOnce(new Error('fail'));
 
     const page = await EventsPage({ searchParams: Promise.resolve({ year: '2024' }) });
     render(page);

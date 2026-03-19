@@ -6,7 +6,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { Calendar, FileText } from 'lucide-react';
-import { useClientReady } from '@/lib/hooks/use-client-ready';
+import { ClientFormShell } from '@/components/forms/ClientFormShell';
 import type { CreateMeetingInput } from '@/lib/supabase/mutations/meetings';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -46,7 +46,6 @@ export function ScheduleMeetingForm({
   onSubmit,
 }: ScheduleMeetingFormProps) {
   const router = useRouter();
-  const isClientReady = useClientReady();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -94,7 +93,11 @@ export function ScheduleMeetingForm({
   });
 
   return (
-    <form onSubmit={handleFormSubmit} className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-8">
+    <ClientFormShell
+      onSubmit={handleFormSubmit}
+      className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-8"
+      pending={isSubmitting}
+    >
       <div className="space-y-2">
         <h1 className="text-3xl font-bold tracking-tight">Agendar reunião</h1>
         <p className="text-muted-foreground">Crie uma nova reunião para o seu Grupo de Crescimento.</p>
@@ -227,11 +230,11 @@ export function ScheduleMeetingForm({
         >
           Cancelar
         </Button>
-        <Button type="submit" disabled={!isClientReady || isSubmitting}>
+        <Button type="submit" disabled={isSubmitting}>
           <Calendar className="mr-2 h-4 w-4" />
           {isSubmitting ? 'Criando...' : 'Criar reunião'}
         </Button>
       </div>
-    </form>
+    </ClientFormShell>
   );
 }

@@ -31,6 +31,7 @@ Este arquivo nao substitui a documentacao detalhada. Ele define o mapa, os invar
 ## TL;DR
 
 - O runtime principal hoje e o web app em `web/`, nao o app Flutter descrito em partes antigas da documentacao.
+- A arquitetura oficial do frontend web esta em `docs/frontend-architecture.md`; o plano de convergencia legado esta em `docs/frontend-hardening-plan.md`.
 - O backend real e Supabase local/remoto, com migrations em `supabase/migrations/`.
 - Fluxos criticos de escrita no web usam rotas internas autenticadas, nao escrita direta do Supabase no browser.
 - O setup local valido e: `supabase start`, `cd web && npm run db:reset`, `cd web && npm run db:seed-users`, `cd web && npm run dev`.
@@ -59,19 +60,24 @@ Arquitetura ativa:
 - testes unitarios e de contrato com Vitest
 - testes de fluxo com Playwright
 
-## Estado atual em 2026-03-08
+## Estado atual em 2026-03-19
 
 O que esta consolidado:
 
 - ambiente local com Supabase local
 - validacao web estabilizada
-- formularios criticos de reunioes e visitantes via API routes autenticadas
+- formularios cliente criticos padronizados com `ClientFormShell` e bloqueio completo ate a hidratacao
+- formularios criticos de participantes, visitantes, reunioes, GCs e configuracoes via API routes autenticadas ou server actions
+- logout web autenticado usa rota interna dedicada (`/api/auth/logout`) para encerrar sessao com redirect confiavel
 - suite unit, contract e e2e desktop passando
 - lint via ESLint CLI, sem depender de `next lint`
 - deploy automatico de producao na Vercel acoplado ao workflow `CI` em push para `main`
 - workflow `E2E Full` alinhada ao mesmo setup local do CI/PR, com `supabase start`, `npm run db:reset` e `npm run db:seed-users`
 - usuarios inativos perdem acesso logico ao app mesmo que ainda exista conta no Supabase Auth
 - GCs inativos deixam de contar para papeis derivados e RLS
+- admin de licoes/series, configuracoes e relatorios ja operam em leitura server-first
+- dashboard autenticado de lideranca tambem opera com leitura server-first
+- leituras reaproveitadas entre area publica e admin devem sair de modulos `app/(app)/admin/**/actions` e viver em modulos compartilhados por dominio
 
 O que ainda exige cuidado:
 
@@ -103,6 +109,8 @@ Leitura minima:
 Leitura por tipo de tarefa:
 
 - tarefa web: `docs/web.md` e `web/README.md`
+- tarefa de frontend web ou formularios/CRUD: `docs/frontend-architecture.md`
+- tarefa de hardening, padronizacao ou migracao frontend: `docs/frontend-hardening-plan.md`
 - tarefa de teste: `docs/testing.md`
 - tarefa de banco ou auth: `docs/supabase.md`
 - tarefa de débitos técnicos: `docs/technical-debt.md`
@@ -128,8 +136,16 @@ Estes pontos quebram funcionalidades quando ignorados:
 
 ## Invariantes de arquitetura
 
+- A arquitetura oficial do frontend web e: Server-First App Router + Thin Client + BFF/server actions + form shell padronizado.
 - Cliente Supabase no browser nao e a via preferencial para fluxos criticos de escrita.
+- Leitura inicial de telas administrativas e fluxos criticos deve acontecer no servidor sempre que viavel.
 - Formularios criticos da web devem usar API routes autenticadas ou server actions apropriadas.
+- Formularios cliente devem usar `ClientFormShell` quando seguirem o gate padrao de hidratacao.
+- Formularios cliente com gate de hidratacao devem bloquear todos os campos ate a hidratacao terminar, nao apenas o botao de submit.
+- Componentes cliente nao devem concentrar regra de negocio de dominio quando ela puder viver em actions, rotas internas ou modulos server-side.
+- Leitura compartilhada entre contextos do produto deve morar em `src/lib/<dominio>/queries.ts`; paginas publicas ou compartilhadas nao devem importar actions do admin para buscar dados.
+- Deduplicacao de `people` em fluxos de participantes e visitantes deve passar pelo helper compartilhado de mutacao, para evitar heuristicas divergentes entre telas.
+- Nao presuma soft delete por convencao: so aplique filtros em `deleted_at` quando a tabela realmente implementar esse campo.
 - Validacao de ambiente deve falhar cedo no build.
 - `middleware.ts` protege rotas autenticadas mesmo quando o ambiente esta mal configurado.
 - Testes de contrato devem rodar isolados do ambiente `jsdom` e sem paralelismo agressivo.
@@ -179,6 +195,11 @@ cd web
 npm run build
 npm run test:e2e:full
 ```
+
+Observacao para E2E:
+
+- em formularios cliente protegidos por hidratacao, espere os campos relevantes ficarem `enabled` antes de preencher; `visible` sozinho nao e criterio suficiente
+- ao validar contra `next start`, reinicie o servidor standalone depois de cada novo `npm run build`; ele nao recarrega automaticamente a build e pode servir chunks obsoletos
 
 Deploy de producao:
 

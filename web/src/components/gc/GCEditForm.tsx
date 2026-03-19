@@ -6,9 +6,8 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { ArrowLeft, Save } from 'lucide-react';
-import { useClientReady } from '@/lib/hooks/use-client-ready';
-import { getSupabaseBrowserClient } from '@/lib/supabase/browser-client';
 import type { Database } from '@/lib/supabase/types';
+import { ClientFormShell } from '@/components/forms/ClientFormShell';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -46,8 +45,6 @@ interface GCEditFormProps {
 
 export function GCEditForm({ gc }: GCEditFormProps) {
   const router = useRouter();
-  const isClientReady = useClientReady();
-  const supabase = getSupabaseBrowserClient();
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -68,29 +65,40 @@ export function GCEditForm({ gc }: GCEditFormProps) {
   const handleSubmit = form.handleSubmit(async (values) => {
     setErrorMessage(null);
     setIsLoading(true);
+    let isSuccess = false;
 
-    const { error } = await supabase
-      .from('growth_groups')
-      .update({
-        name: values.name.trim(),
-        mode: values.mode,
-        address: values.address?.trim() || null,
-        weekday: values.weekday ?? null,
-        time: values.time || null,
-        status: values.status,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', gc.id);
+    try {
+      const response = await fetch(`/api/growth-groups/${gc.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          gcId: gc.id,
+          name: values.name.trim(),
+          mode: values.mode,
+          address: values.address?.trim() || null,
+          weekday: values.weekday ?? null,
+          time: values.time || null,
+          status: values.status,
+        }),
+      });
+      const result = await response.json();
 
-    if (error) {
-      setErrorMessage(error.message ?? 'Falha ao atualizar GC');
-      setIsLoading(false);
-      return;
+      if (!response.ok || !result.success) {
+        setErrorMessage(result.error ?? 'Falha ao atualizar GC');
+        return;
+      }
+
+      isSuccess = true;
+      window.location.assign(`/gc/${gc.id}`);
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : 'Falha ao atualizar GC');
+    } finally {
+      if (!isSuccess) {
+        setIsLoading(false);
+      }
     }
-
-    setIsLoading(false);
-    router.push(`/gc/${gc.id}`);
-    router.refresh();
   });
 
   const modeOptions = [
@@ -116,7 +124,11 @@ export function GCEditForm({ gc }: GCEditFormProps) {
   ];
 
   return (
-    <form onSubmit={handleSubmit} className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-4 py-8">
+    <ClientFormShell
+      onSubmit={handleSubmit}
+      className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-4 py-8"
+      pending={isLoading}
+    >
       <div className="flex items-center gap-4">
         <Button type="button" variant="outline" size="icon" onClick={() => router.back()}>
           <ArrowLeft className="h-4 w-4" />
@@ -265,11 +277,11 @@ export function GCEditForm({ gc }: GCEditFormProps) {
         >
           Cancelar
         </Button>
-        <Button type="submit" disabled={!isClientReady || isLoading}>
+        <Button type="submit" disabled={isLoading}>
           <Save className="mr-2 h-4 w-4" />
           {isLoading ? 'Salvando...' : 'Salvar alterações'}
         </Button>
       </div>
-    </form>
+    </ClientFormShell>
   );
 }

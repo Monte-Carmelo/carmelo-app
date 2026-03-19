@@ -14,7 +14,9 @@ const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
 async function loginAsLeader(page: Page) {
   await page.goto('/login');
   await page.waitForTimeout(1000);
+  await expect(page.getByLabel('E-mail')).toBeEnabled({ timeout: 30000 });
   await page.getByLabel('E-mail').fill(loginEmail!);
+  await expect(page.getByLabel('Senha')).toBeEnabled({ timeout: 30000 });
   await page.getByLabel('Senha').fill(loginPassword!);
   await page.getByRole('button', { name: /entrar/i }).click();
   await page.waitForURL('**/dashboard', { timeout: 30000 });
@@ -31,11 +33,15 @@ async function createVisitor(page: Page): Promise<{ gcId: string; visitorName: s
   await page.waitForLoadState('networkidle').catch(() => {});
 
   const gcSelect = page.locator('select[name="gcId"]');
+  await expect(gcSelect).toBeEnabled({ timeout: 15000 });
   await gcSelect.selectOption({ index: 1 });
   const gcId = await gcSelect.inputValue();
 
+  await expect(page.getByLabel('Nome completo')).toBeEnabled({ timeout: 15000 });
   await page.getByLabel('Nome completo').fill(visitorName);
+  await expect(page.getByLabel('E-mail')).toBeEnabled({ timeout: 15000 });
   await page.getByLabel('E-mail').fill(visitorEmail);
+  await expect(page.getByLabel('Telefone')).toBeEnabled({ timeout: 15000 });
   await page.getByLabel('Telefone').fill('11999999999');
   const submitButton = page.getByRole('button', { name: /cadastrar visitante/i });
 

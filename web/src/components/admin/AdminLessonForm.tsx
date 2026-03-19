@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useClientReady } from '@/lib/hooks/use-client-ready';
+import { ClientFormShell } from '@/components/forms/ClientFormShell';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -66,7 +66,6 @@ export function AdminLessonForm({
   onCancel,
 }: AdminLessonFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const isClientReady = useClientReady();
   const isEditing = !!lesson;
 
   const {
@@ -122,8 +121,7 @@ export function AdminLessonForm({
   };
 
   return (
-    <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
-      <fieldset disabled={!isClientReady || isSubmitting} className="contents">
+    <ClientFormShell onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6" pending={isSubmitting}>
         <Card>
           <CardHeader>
             <CardTitle>Informações da Lição</CardTitle>
@@ -230,17 +228,16 @@ export function AdminLessonForm({
               type="button"
               variant="outline"
               onClick={onCancel}
-              disabled={!isClientReady || isSubmitting}
+              disabled={isSubmitting}
               className="h-10"
             >
               Cancelar
             </Button>
           )}
-          <Button type="submit" disabled={!isClientReady || isSubmitting} className="h-10">
+          <Button type="submit" disabled={isSubmitting} className="h-10">
             {isSubmitting ? 'Salvando...' : isEditing ? 'Salvar Alterações' : 'Criar Lição'}
           </Button>
         </div>
-      </fieldset>
-    </form>
+    </ClientFormShell>
   );
 }

@@ -5,10 +5,8 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useRouter } from 'next/navigation';
 import { z } from 'zod';
-import { useClientReady } from '@/lib/hooks/use-client-ready';
-import { getSupabaseBrowserClient } from '@/lib/supabase/browser-client';
+import { ClientFormShell } from '@/components/forms/ClientFormShell';
 import type { Database } from '@/lib/supabase/types';
-import { useSession } from '@/lib/auth/session-context';
 
 const schema = z
   .object({
@@ -34,9 +32,6 @@ interface ParticipantFormProps {
 
 export function ParticipantForm({ groups, preselectedGcId }: ParticipantFormProps) {
   const router = useRouter();
-  const isClientReady = useClientReady();
-  const supabase = getSupabaseBrowserClient();
-  const { user } = useSession();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -55,86 +50,48 @@ export function ParticipantForm({ groups, preselectedGcId }: ParticipantFormProp
   const onSubmit = handleSubmit(async (values) => {
     setErrorMessage(null);
     setIsSubmitting(true);
+    let isSuccess = false;
 
-    const trimmedEmail = values.email?.trim() || null;
-    const trimmedPhone = values.phone?.trim() || null;
-
-    let personId: string | null = null;
-
-    if (trimmedEmail) {
-      const { data: existingByEmail } = await supabase
-        .from('people')
-        .select('id')
-        .eq('email', trimmedEmail)
-        .maybeSingle();
-      personId = existingByEmail?.id ?? null;
-    }
-
-    if (!personId && trimmedPhone) {
-      const { data: existingByPhone } = await supabase
-        .from('people')
-        .select('id')
-        .eq('phone', trimmedPhone)
-        .maybeSingle();
-      personId = existingByPhone?.id ?? null;
-    }
-
-    if (!personId) {
-      const { data: personData, error: personError } = await supabase
-        .from('people')
-        .insert({
+    try {
+      const response = await fetch('/api/participants', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          gcId: values.gcId,
           name: values.name.trim(),
-          email: trimmedEmail,
-          phone: trimmedPhone,
-        })
-        .select('id')
-        .single();
+          email: values.email?.trim() || null,
+          phone: values.phone?.trim() || null,
+          role: values.role,
+        }),
+      });
+      const result = await response.json();
 
-      if (personError || !personData) {
-        setErrorMessage(personError?.message ?? 'Falha ao salvar dados pessoais.');
-        setIsSubmitting(false);
+      if (!response.ok || !result.success) {
+        setErrorMessage(result.error ?? 'Não foi possível vincular participante ao GC.');
         return;
       }
 
-      personId = personData.id;
-    }
-
-    const now = new Date().toISOString();
-
-    const { error: participantError } = await supabase
-      .from('growth_group_participants')
-      .upsert(
-        {
-          gc_id: values.gcId,
-          person_id: personId,
-          role: values.role,
-          status: 'active',
-          joined_at: now,
-          added_by_user_id: user.id,
-        },
-        {
-          onConflict: 'gc_id,person_id,role',
-          ignoreDuplicates: false,
-        },
+      isSuccess = true;
+      window.location.assign(preselectedGcId ? `/gc/${preselectedGcId}` : '/participants');
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error ? error.message : 'Não foi possível vincular participante ao GC.',
       );
-
-    if (participantError) {
-      setErrorMessage(participantError.message ?? 'Não foi possível vincular participante ao GC.');
-      setIsSubmitting(false);
-      return;
+    } finally {
+      if (!isSuccess) {
+        setIsSubmitting(false);
+      }
     }
-
-    // Se veio da página do GC, redirecionar de volta
-    if (preselectedGcId) {
-      router.push(`/gc/${preselectedGcId}`);
-    } else {
-      router.push('/participants');
-    }
-    router.refresh();
   });
 
   return (
-    <form onSubmit={onSubmit} className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-10">
+    <ClientFormShell
+      onSubmit={onSubmit}
+      className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-10"
+      pending={isSubmitting}
+    >
       <header className="flex flex-col gap-2">
         <h1 className="text-2xl font-semibold text-slate-900">Cadastrar participante</h1>
         <p className="text-sm text-slate-600">
@@ -228,12 +185,12 @@ export function ParticipantForm({ groups, preselectedGcId }: ParticipantFormProp
         </button>
         <button
           type="submit"
-          disabled={!isClientReady || isSubmitting}
+          disabled={isSubmitting}
           className="inline-flex items-center rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-70"
         >
           {isSubmitting ? 'Salvando...' : 'Cadastrar participante'}
         </button>
       </div>
-    </form>
+    </ClientFormShell>
   );
 }

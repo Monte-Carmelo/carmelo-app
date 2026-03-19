@@ -1,19 +1,21 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { getSupabaseBrowserClient } from '@/lib/supabase/browser-client';
 
 export function LogoutButton() {
-  const router = useRouter();
-  const supabase = getSupabaseBrowserClient();
   const [isLoading, setIsLoading] = useState(false);
 
   const handleLogout = async () => {
     setIsLoading(true);
-    await supabase.auth.signOut();
-    router.replace('/login');
-    router.refresh();
+
+    try {
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        cache: 'no-store',
+      });
+    } finally {
+      window.location.assign('/login');
+    }
   };
 
   return (

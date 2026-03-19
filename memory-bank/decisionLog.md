@@ -153,3 +153,73 @@ O fluxo antigo misturava leitura/escrita client-side, ficava sujeito a travament
 ### Lasting Impact
 
 As telas administrativas de licoes e series passam a seguir o padrao seguro ja adotado em outros fluxos criticos do web. Exclusao de serie deixa de gerar licoes "orfãs invisiveis", e a suite E2E cobre criacao, edicao, reordenacao, exclusao e preservacao das licoes apos remover uma serie.
+
+## 2026-03-17 - Padronizar bloqueio de formularios cliente ate a hidratacao
+
+### Decision
+
+Tratar `useClientReady` como gate de interacao em todos os formularios cliente do `web`, envolvendo os campos em `fieldset disabled` ate a hidratacao e durante submits pendentes.
+
+### Rationale
+
+Bloquear apenas o botao de submit nao impedia digitacao prematura. Em pages renderizadas no servidor, isso permitia que o usuario digitasse antes do React assumir o formulario e perdesse valores quando a hidratacao terminava.
+
+### Lasting Impact
+
+Login, admin, reunioes, visitantes, participantes e formularios de GC passam a obedecer o mesmo contrato de UX e confiabilidade. Suites E2E que preenchem formularios precisam esperar os campos ficarem habilitados, porque inputs desabilitados antes da hidratacao agora sao comportamento esperado do produto.
+
+## 2026-03-17 - Formalizar a arquitetura oficial do frontend web
+
+### Decision
+
+Documentar o frontend web com um padrao arquitetural oficial: Server-First App Router + Thin Client + BFF/server actions + form shell padronizado, acompanhado de um plano de hardening em 3 fases para convergir o legado.
+
+### Rationale
+
+O projeto acumulou fluxos implementados com modelos diferentes de leitura, escrita e hidratacao. Sem um padrao oficial escrito, cada manutencao relevante reabria decisoes basicas de arquitetura e deixava o frontend mais propenso a regressao.
+
+### Lasting Impact
+
+Novas telas e manutencoes significativas no `web` passam a ter uma referencia explicita em `docs/frontend-architecture.md`, enquanto a migracao incremental do legado fica organizada em `docs/frontend-hardening-plan.md`. Onboarding e documentacao principal agora apontam para esses dois artefatos como parte da governanca do frontend.
+
+## 2026-03-17 - Executar as fases 1 e 2 do hardening do frontend web
+
+### Decision
+
+Materializar o hardening do `web` com um shell unico de formulario cliente (`ClientFormShell`), guardrails de lint, helpers compartilhados de Playwright e migracao das mutacoes criticas para API routes autenticadas.
+
+### Rationale
+
+O projeto ja tinha a direcao arquitetural definida, mas ainda mantinha formularios com hidratacao parcialmente protegida e mutacoes importantes espalhadas em componentes cliente. Sem fechar essa execucao, o padrao oficial continuaria teorico e sujeito a regressao.
+
+### Lasting Impact
+
+Fluxos de participantes, visitantes, reunioes, settings admin, edicao de GC, series/licoes e conversao manual de visitante passam a depender do backend interno autenticado como caminho canonico de escrita. Formularios cliente endurecidos deixam de usar `useClientReady` diretamente e passam a convergir para `ClientFormShell`. Deduplicacao de `people` em participantes/visitantes fica centralizada para evitar heuristicas divergentes e erros por contato duplicado.
+
+## 2026-03-19 - Concluir a fase 3 do hardening do frontend web
+
+### Decision
+
+Fechar o hardening do `web` migrando `admin/reports` para leitura server-first, adicionando uma rota interna dedicada de logout (`/api/auth/logout`) e consolidando a validacao final com build e regressao E2E ampla.
+
+### Rationale
+
+Restava um bolsao importante de leitura client-side no admin e um fluxo de logout que dependia apenas de redirect client-side apos `supabase.auth.signOut()`, o que se mostrou instavel em E2E. A mesma rodada tambem revelou um erro recorrente de manutencao: aplicar filtro `deleted_at` por copia entre tabelas mesmo quando a entidade nao implementa soft delete.
+
+### Lasting Impact
+
+Os relatorios admin passam a seguir o mesmo padrao server-first de settings e licoes/series, e o hardening do frontend deixa de ficar em estado parcial. Logout autenticado ganha um backend interno canonico, e futuras mutacoes/leituras precisam validar explicitamente o schema real antes de assumir a existencia de `deleted_at`.
+
+## 2026-03-19 - Convergir leituras compartilhadas para modulos server-side por dominio
+
+### Decision
+
+Migrar o dashboard autenticado de lideranca para leitura server-first e extrair leituras de eventos compartilhadas para modulos server-side por dominio, em vez de depender de hooks client-side ou de imports de `app/(app)/admin/**/actions` fora do admin.
+
+### Rationale
+
+Mesmo apos o hardening principal, ainda restavam dois desvios do padrao oficial: um dashboard autenticado que carregava estado inicial no browser e paginas publicas/compartilhadas de eventos acopladas ao modulo administrativo. Esses desvios mantinham o frontend em estado hibrido e reabriam risco de loading inconsistente, fronteiras de modulo fracas e dependencias erradas entre contextos do produto.
+
+### Lasting Impact
+
+Leitura inicial do dashboard autenticado passa a viver em `web/src/lib/dashboard/queries.ts` e a chegar pronta via server component. Consultas de eventos reutilizadas entre admin e area publica passam a viver em `web/src/lib/events/queries.ts`, e `app/(app)/admin/events/actions.ts` fica restrito a acoes administrativas. O browser client do Supabase fica, na pratica, limitado a auth e sessao como caminho canonico.

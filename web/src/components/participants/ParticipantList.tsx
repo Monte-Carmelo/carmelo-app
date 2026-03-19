@@ -4,7 +4,6 @@ import { useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Users, UserPlus, Mail, Phone, Calendar } from 'lucide-react';
-import { getSupabaseBrowserClient } from '@/lib/supabase/browser-client';
 import type { ParticipantView } from '@/lib/api/participants';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -20,7 +19,6 @@ interface ParticipantListProps {
 export function ParticipantList({ participants, groups }: ParticipantListProps) {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const supabase = getSupabaseBrowserClient();
   const [isPending, startTransition] = useTransition();
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -42,14 +40,22 @@ export function ParticipantList({ participants, groups }: ParticipantListProps) 
     const newStatus = participant.status === 'active' ? 'inactive' : 'active';
     setProcessingId(participant.participantId);
     setErrorMessage(null);
+    const endpoint = new URL(
+      `/api/participants/${participant.participantId}/status`,
+      window.location.origin,
+    ).toString();
 
-    const { error } = await supabase
-      .from('growth_group_participants')
-      .update({ status: newStatus })
-      .eq('id', participant.participantId);
+    const response = await fetch(endpoint, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ status: newStatus }),
+    });
+    const result = await response.json().catch(() => null);
 
-    if (error) {
-      setErrorMessage(error.message ?? 'Não foi possível atualizar status.');
+    if (!response.ok || !result?.success) {
+      setErrorMessage(result?.error ?? 'Não foi possível atualizar status.');
       setProcessingId(null);
       return;
     }

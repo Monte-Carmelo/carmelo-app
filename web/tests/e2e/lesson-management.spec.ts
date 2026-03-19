@@ -1,4 +1,7 @@
 import { test, expect, type Page } from '@playwright/test';
+import { loginAsAdmin } from './helpers/auth';
+import { fillByLabel } from './helpers/forms';
+import { navigateToAdminLessons, navigateToAdminPath } from './helpers/navigation';
 
 /**
  * T027: Lesson Management Tests
@@ -7,53 +10,6 @@ import { test, expect, type Page } from '@playwright/test';
  */
 
 test.describe('T027: Lesson Management', () => {
-  const adminEmail = process.env.E2E_SUPABASE_ADMIN_EMAIL || 'admin@test.com';
-  const adminPassword = process.env.E2E_SUPABASE_ADMIN_PASSWORD || 'senha123';
-
-  async function loginAsAdmin(page: Page) {
-    await page.goto('/login');
-    await page.waitForTimeout(1000);
-    await page.getByLabel('E-mail').fill(adminEmail);
-    await page.getByLabel('Senha').fill(adminPassword);
-    await expect(page.getByRole('button', { name: /entrar/i })).toBeEnabled({ timeout: 15000 });
-    await page.getByRole('button', { name: /entrar/i }).click();
-    await page.waitForURL('**/dashboard', { timeout: 30000 }).catch(() => {});
-    if (!page.url().includes('/dashboard')) {
-      await page.goto('/login');
-      await page.waitForTimeout(1000);
-      await page.getByLabel('E-mail').fill(adminEmail);
-      await page.getByLabel('Senha').fill(adminPassword);
-      await expect(page.getByRole('button', { name: /entrar/i })).toBeEnabled({ timeout: 15000 });
-      await page.getByRole('button', { name: /entrar/i }).click();
-      await page.waitForURL('**/dashboard', { timeout: 30000 });
-    }
-    await expect(page.getByRole('heading', { name: /bem-vindo/i })).toBeVisible({ timeout: 15000 });
-    await page.waitForLoadState('domcontentloaded');
-    await page.reload();
-    if (page.url().includes('/login')) {
-      await page.getByLabel('E-mail').fill(adminEmail);
-      await page.getByLabel('Senha').fill(adminPassword);
-      await expect(page.getByRole('button', { name: /entrar/i })).toBeEnabled({ timeout: 15000 });
-      await page.getByRole('button', { name: /entrar/i }).click();
-      await page.waitForURL('**/dashboard', { timeout: 30000 });
-      await expect(page.getByRole('heading', { name: /bem-vindo/i })).toBeVisible({ timeout: 15000 });
-    }
-  }
-
-  async function navigateToAdminPath(page: Page, path: string) {
-    await page.goto(`/admin${path}`, { waitUntil: 'domcontentloaded' });
-
-    if (page.url().includes('/login')) {
-      await loginAsAdmin(page);
-      await page.goto(`/admin${path}`, { waitUntil: 'domcontentloaded' });
-    }
-  }
-
-  async function navigateToAdminLessons(page: Page) {
-    await navigateToAdminPath(page, '/lessons');
-    await expect(page.getByRole('heading', { name: /lições e séries/i })).toBeVisible({ timeout: 10000 });
-  }
-
   test.beforeEach(async ({ page }) => {
     await loginAsAdmin(page);
     await navigateToAdminLessons(page);
@@ -80,10 +36,8 @@ test.describe('T027: Lesson Management', () => {
 
     // Fill series information
     const seriesName = `Fundamentos da Fé - Test ${Date.now()}`;
-    await expect(page.getByLabel('Nome da Série')).toBeEnabled({ timeout: 15000 });
-    await page.getByLabel('Nome da Série').fill(seriesName);
-    await expect(page.getByLabel('Descrição')).toBeEnabled({ timeout: 15000 });
-    await page.getByLabel('Descrição').fill('Série introdutória sobre princípios cristãos');
+    await fillByLabel(page, 'Nome da Série', seriesName);
+    await fillByLabel(page, 'Descrição', 'Série introdutória sobre princípios cristãos');
 
     // Add initial lessons if the form supports it
     const addLessonBtn = page.getByRole('button', { name: 'Adicionar Lição' });
@@ -136,9 +90,7 @@ test.describe('T027: Lesson Management', () => {
     // Update series description
     const updatedDescription = 'Descrição atualizada - teste automatizado';
     const descriptionField = page.getByLabel('Descrição');
-    await expect(descriptionField).toBeVisible({ timeout: 15000 });
-    await expect(descriptionField).toBeEnabled({ timeout: 15000 });
-    await descriptionField.fill(updatedDescription);
+    await fillByLabel(page, 'Descrição', updatedDescription);
 
     // Save changes
     await page.getByRole('button', { name: 'Salvar Alterações' }).click();
@@ -154,10 +106,8 @@ test.describe('T027: Lesson Management', () => {
 
     // Fill lesson form
     const lessonTitle = `Lição Avulsa - Teste ${Date.now()}`;
-    await expect(page.getByLabel('Título')).toBeEnabled({ timeout: 15000 });
-    await page.getByLabel('Título').fill(lessonTitle);
-    await expect(page.getByLabel('Descrição')).toBeEnabled({ timeout: 15000 });
-    await page.getByLabel('Descrição').fill('Esta é uma lição de teste');
+    await fillByLabel(page, 'Título', lessonTitle);
+    await fillByLabel(page, 'Descrição', 'Esta é uma lição de teste');
 
     // Submit form
     await page.getByRole('button', { name: 'Criar Lição' }).click();
@@ -186,10 +136,8 @@ test.describe('T027: Lesson Management', () => {
     await expect(page).toHaveURL(new RegExp(`/admin/lessons/new\\?series=${seriesId}`));
 
     const lessonTitle = `Lição da Série - Teste ${Date.now()}`;
-    await expect(page.getByLabel('Título')).toBeEnabled({ timeout: 15000 });
-    await page.getByLabel('Título').fill(lessonTitle);
-    await expect(page.getByLabel('Descrição')).toBeEnabled({ timeout: 15000 });
-    await page.getByLabel('Descrição').fill('Lição vinculada a uma série existente');
+    await fillByLabel(page, 'Título', lessonTitle);
+    await fillByLabel(page, 'Descrição', 'Lição vinculada a uma série existente');
     await page.getByRole('button', { name: 'Criar Lição' }).click();
 
     await expect(page).toHaveURL(new RegExp(`/admin/lessons/series/${seriesId}`));

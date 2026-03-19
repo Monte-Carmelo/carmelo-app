@@ -1,14 +1,22 @@
+import { createSupabaseServerClient } from '@/lib/supabase/server-client';
+import { getAuthenticatedUser } from '@/lib/supabase/server-auth';
 import { Users, BookOpen, UserCheck, UserPlus } from 'lucide-react';
 import { DashboardGrid } from '@/components/dashboard/DashboardGrid';
 import { LeaderDashboardOverview } from '@/components/dashboard/LeaderDashboardOverview';
+import { getEmptyLeaderDashboardData, getLeaderDashboardData } from '@/lib/dashboard/queries';
 
-export default function DashboardPage() {
+export default async function DashboardPage() {
   const navigationItems = [
     { title: 'GC', icon: Users, href: '/gc', description: 'Grupos de Crescimento' },
     { title: 'Lições', icon: BookOpen, href: '/lessons', description: 'Catálogo de lições e séries' },
     { title: 'Participantes', icon: UserCheck, href: '/participants', description: 'Membros dos grupos' },
     { title: 'Visitantes', icon: UserPlus, href: '/visitors', description: 'Visitantes e interessados' },
   ];
+  const user = await getAuthenticatedUser();
+  const supabase = await createSupabaseServerClient();
+  const dashboardData = user
+    ? await getLeaderDashboardData(supabase, user.id)
+    : getEmptyLeaderDashboardData();
 
   return (
     <main className="min-h-screen bg-gray-50">
@@ -17,7 +25,7 @@ export default function DashboardPage() {
           Bem-vindo
         </h1>
         <DashboardGrid items={navigationItems} />
-        <LeaderDashboardOverview />
+        <LeaderDashboardOverview data={dashboardData} />
       </div>
     </main>
   );

@@ -7,6 +7,8 @@ Repositório monorepo que combina:
 
 Leituras rápidas:
 - `docs/onboarding.md` — ponto de entrada obrigatório para novos agentes/devs e sessões sem contexto
+- `docs/frontend-architecture.md` — padrao arquitetural oficial do frontend web
+- `docs/frontend-hardening-plan.md` — plano de convergencia do legado frontend em 3 fases
 - `docs/technical-debt.md` — inventário central de débitos técnicos abertos
 - `docs/web.md` — detalhes da aplicação web
 - `docs/supabase.md` — banco, migrations e seeds
@@ -30,7 +32,7 @@ Leituras rápidas:
    - `npm run dev`
 
 ## Estado atual resumido
-- **Web Next**: Layout autenticado, dashboards básicos, listagem de GCs, participantes, visitantes e reuniões com formulários híbridos. Fluxos críticos de reuniões e visitantes usam API routes autenticadas; fluxo de eventos implementado via server actions. Ver `docs/web.md`.
+- **Web Next**: Layout autenticado, dashboards básicos, listagem de GCs, participantes, visitantes e reuniões. A arquitetura alvo do frontend agora esta formalizada em `docs/frontend-architecture.md`, com hardening incremental descrito em `docs/frontend-hardening-plan.md`. Fluxos críticos de reuniões e visitantes usam API routes autenticadas; fluxo de eventos implementado via server actions. Ver `docs/web.md`.
 - **Banco**: 20+ migrations, triggers de hierarquia e conversão de visitantes, seeds completas + script adicional para Auth. Migrations recentes adicionam eventos. RLS parcialmente desativado pela migration `015_disable_rls_for_tests.sql` (somente para ambiente de teste). Ver `docs/supabase.md`.
 
 ## Testes

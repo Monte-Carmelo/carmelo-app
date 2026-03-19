@@ -1,19 +1,11 @@
 import { test, expect, type Page } from '@playwright/test';
+import { loginAsLeader } from './helpers/auth';
+import { fillByLabel } from './helpers/forms';
 
 const loginEmail = process.env.E2E_SUPABASE_EMAIL;
 const loginPassword = process.env.E2E_SUPABASE_PASSWORD;
-const shouldSkip = !loginEmail || !loginPassword;
+const shouldSkip = false;
 const DEFAULT_GC_ID = '40000000-0000-0000-0000-000000000003';
-
-async function loginAsLeader(page: Page) {
-  await page.goto('/login');
-  await page.waitForTimeout(1000);
-  await page.getByLabel('E-mail').fill(loginEmail!);
-  await page.getByLabel('Senha').fill(loginPassword!);
-  await page.getByRole('button', { name: /entrar/i }).click();
-  await page.waitForURL('**/dashboard', { timeout: 30000 });
-  await expect(page.getByRole('heading', { name: /bem-vindo/i })).toBeVisible({ timeout: 15000 });
-}
 
 async function selectCustomLessonMode(page: Page) {
   const customModeButton = page.locator('button:has-text("Título Personalizado")').first();
@@ -53,11 +45,12 @@ test.describe('Quickstart - Líder registra reunião', () => {
     await page.waitForLoadState('networkidle').catch(() => {});
 
     const uniqueTitle = `W030 Reunião ${Date.now()}`;
-    await page.getByLabel('Data').fill('2099-01-01');
-    await page.getByLabel('Horário').fill('20:30');
+    await fillByLabel(page, 'Data', '2099-01-01');
+    await fillByLabel(page, 'Horário', '20:30');
     await selectCustomLessonMode(page);
+    await fillByLabel(page, /Comentários/i, 'Registro automático via Playwright W030.');
+    await expect(page.locator('#customLessonTitle')).toBeEnabled({ timeout: 15000 });
     await page.locator('#customLessonTitle').fill(uniqueTitle);
-    await page.getByLabel('Comentários').fill('Registro automático via Playwright W030.');
 
     const checkboxes = page.getByRole('checkbox');
     const checkboxCount = await checkboxes.count();

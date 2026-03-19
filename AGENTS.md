@@ -14,6 +14,8 @@ Leitura obrigatoria no inicio de toda sessao nova, em contexto compactado, ou qu
 Regras operacionais:
 - `docs/onboarding.md` e o ponto de entrada canonico do projeto para devs seniores e agentes de IA.
 - Se uma mudanca alterar setup local, arquitetura ativa, comandos oficiais de validacao, invariantes de dominio/auth ou a forma correta de testar a aplicacao, atualize `docs/onboarding.md`.
+- Se a mudanca alterar o padrao oficial do frontend web, atualize tambem `docs/frontend-architecture.md` e, quando houver impacto de roadmap ou migracao, `docs/frontend-hardening-plan.md`.
+- Se um bug real revelar um padrao duravel de implementacao, UX, hidratacao, dados ou teste, registre o aprendizado no `AGENTS.md` antes de encerrar o trabalho e atualize tambem `docs/onboarding.md` e `memory-bank/` quando o impacto for estrutural.
 - Use `memory-bank/` como memoria persistente complementar, nao como ponto de entrada principal.
 - Ao iniciar sem contexto suficiente, leia ao menos `memory-bank/activeContext.md` e `memory-bank/decisionLog.md` depois do onboarding.
 - Ao concluir uma decisao duravel, atualize `memory-bank/decisionLog.md`; ao concluir uma mudanca estrutural relevante, atualize tambem `memory-bank/activeContext.md`, `memory-bank/systemPatterns.md` ou `memory-bank/progress.md` conforme o caso.
@@ -134,4 +136,29 @@ cd web && npm run test:e2e:full  # Full desktop Playwright suite
   - `web` now uses internal authenticated API routes for meeting creation, visitor creation, and GC attendance option loading.
   - `web` lint command now uses ESLint CLI instead of `next lint`.
   - Playwright scripts unset `NO_COLOR`, and the Playwright web server suppresses Node 23 `ExperimentalWarning` noise.
+- 2026-03-17: Padrões obrigatórios para formulários cliente e CRUD admin no `web`
+  - Em qualquer formulário cliente com `useClientReady`, nao bloqueie apenas o botao de submit: envolva os campos em `fieldset disabled={!isClientReady || estadoDeSubmit}` com `className="contents"`.
+  - Inputs, selects, textareas, checkboxes e multiselects devem permanecer indisponiveis ate a hidratacao do React terminar; isso evita perda de valores digitados antes da hidratacao.
+  - Testes Playwright que interagem com esses formulários devem esperar explicitamente os campos ficarem `enabled`, nao apenas `visible`.
+  - Em fluxos admin criticos de CRUD, prefira carregar dados no servidor e executar escrita por server actions ou rotas internas autenticadas; evite depender de leitura/escrita direta do Supabase no browser quando isso puder prender a tela em loading ou criar estados inconsistentes.
+  - Ao excluir uma entidade pai em fluxos relacionais, a implementacao precisa refletir exatamente a promessa da UI e preservar a consistencia dos filhos remanescentes.
+- 2026-03-17: Arquitetura oficial do frontend documentada
+  - O padrao oficial do `web` agora esta formalizado em `docs/frontend-architecture.md`.
+  - O plano de convergencia legado e hardening incremental em 3 fases esta em `docs/frontend-hardening-plan.md`.
+  - Novas telas e manutencoes relevantes devem seguir esse modelo, mesmo que o legado ainda esteja em transicao.
+- 2026-03-17: Execucao do hardening do frontend no `web`
+  - `ClientFormShell` virou o wrapper padrao para formularios cliente com gate de hidratacao; nao reintroduza `useClientReady` direto em formularios endurecidos.
+  - Participantes, visitantes, reunioes, GC edit, configuracoes admin e conversao manual de visitante usam rotas internas autenticadas para escrita critica.
+  - Alternancia de status de participante tambem deve passar por rota interna, nao por `getSupabaseBrowserClient()` no componente.
+  - Deduplicacao de `people` em fluxos de participante/visitante deve usar o helper compartilhado em `web/src/lib/supabase/mutations/people.ts`.
+- 2026-03-19: Fechamento do hardening do frontend no `web`
+  - `admin/reports` migrou para leitura server-first; nao reintroduza fetch inicial client-side nessa area.
+  - Logout autenticado no web deve usar backend interno (`/api/auth/logout`) em vez de depender apenas de redirect client-side apos `supabase.auth.signOut()`.
+  - Nao reaplique filtros em `deleted_at` por imitacao entre tabelas; confirme primeiro se a entidade realmente implementa soft delete. `visitors` e um caso real em que isso quebra o fluxo.
+  - Se precisar preservar artefatos de build durante depuracao, mova-os para fora de `web/`; deixar snapshots de `.next` dentro do workspace faz o `npm run lint` varrer codigo gerado e produzir falso negativo.
+- 2026-03-19: Convergencia final de leitura server-first e fronteiras de modulo no `web`
+  - Dashboard autenticado nao deve voltar a carregar estado inicial no browser; use leitura server-first e modulos compartilhados em `web/src/lib/dashboard/queries.ts`.
+  - Leitura reutilizada entre area publica e admin nao pertence a `app/(app)/admin/**/actions`; mova para `web/src/lib/<dominio>/queries.ts` e deixe as actions do admin restritas a mutacoes ou orquestracao administrativa.
+  - Fora de auth e sessao, trate `getSupabaseBrowserClient()` como excecao documentada, nao como caminho padrao para leitura ou escrita de dominio.
+  - Ao validar uma build com `next start`, reinicie o servidor standalone depois de cada novo `npm run build`; manter o processo antigo servindo chunks obsoletos causa falhas falsas de hidratacao e erro client-side.
 <!-- MANUAL ADDITIONS END -->

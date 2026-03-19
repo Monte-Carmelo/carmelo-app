@@ -5,8 +5,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useRouter } from 'next/navigation';
 import { z } from 'zod';
-import { useClientReady } from '@/lib/hooks/use-client-ready';
-import { getSupabaseBrowserClient } from '@/lib/supabase/browser-client';
+import { ClientFormShell } from '@/components/forms/ClientFormShell';
 import type { Database } from '@/lib/supabase/types';
 
 const schema = z
@@ -45,8 +44,6 @@ interface ParticipantEditFormProps {
 
 export function ParticipantEditForm({ participant, groups }: ParticipantEditFormProps) {
   const router = useRouter();
-  const isClientReady = useClientReady();
-  const supabase = getSupabaseBrowserClient();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -69,46 +66,49 @@ export function ParticipantEditForm({ participant, groups }: ParticipantEditForm
   const onSubmit = handleSubmit(async (values) => {
     setIsSubmitting(true);
     setErrorMessage(null);
+    let isSuccess = false;
 
-    const trimmedEmail = values.email?.trim() || null;
-    const trimmedPhone = values.phone?.trim() || null;
+    try {
+      const response = await fetch(`/api/participants/${participant.participantId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          participantId: participant.participantId,
+          personId: participant.personId,
+          gcId: values.gcId,
+          name: values.name.trim(),
+          email: values.email?.trim() || null,
+          phone: values.phone?.trim() || null,
+          role: values.role,
+          status: values.status,
+        }),
+      });
+      const result = await response.json();
 
-    const { error: personError } = await supabase
-      .from('people')
-      .update({
-        name: values.name.trim(),
-        email: trimmedEmail,
-        phone: trimmedPhone,
-      })
-      .eq('id', participant.personId);
+      if (!response.ok || !result.success) {
+        setErrorMessage(result.error ?? 'Não foi possível salvar alterações.');
+        return;
+      }
 
-    if (personError) {
-      setErrorMessage(personError.message ?? 'Falha ao atualizar dados pessoais.');
-      setIsSubmitting(false);
-      return;
+      isSuccess = true;
+      window.location.assign('/participants');
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : 'Não foi possível salvar alterações.');
+    } finally {
+      if (!isSuccess) {
+        setIsSubmitting(false);
+      }
     }
-
-    const { error: participantError } = await supabase
-      .from('growth_group_participants')
-      .update({
-        gc_id: values.gcId,
-        role: values.role,
-        status: values.status,
-      })
-      .eq('id', participant.participantId);
-
-    if (participantError) {
-      setErrorMessage(participantError.message ?? 'Não foi possível salvar alterações.');
-      setIsSubmitting(false);
-      return;
-    }
-
-    router.replace('/participants');
-    router.refresh();
   });
 
   return (
-    <form onSubmit={onSubmit} className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-10">
+    <ClientFormShell
+      onSubmit={onSubmit}
+      className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-10"
+      pending={isSubmitting}
+    >
       <header className="flex flex-col gap-2">
         <h1 className="text-2xl font-semibold text-slate-900">Editar participante</h1>
         <p className="text-sm text-slate-600">Atualize contato, papel e status do participante selecionado.</p>
@@ -203,12 +203,12 @@ export function ParticipantEditForm({ participant, groups }: ParticipantEditForm
         </button>
         <button
           type="submit"
-          disabled={!isClientReady || isSubmitting}
+          disabled={isSubmitting}
           className="inline-flex items-center rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-70"
         >
           {isSubmitting ? 'Salvando...' : 'Salvar alterações'}
         </button>
       </div>
-    </form>
+    </ClientFormShell>
   );
 }

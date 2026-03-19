@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '../types';
+import { resolveExistingPersonByContact } from './people';
 
 export type AddVisitorInput = {
   gcId: string;
@@ -28,32 +29,20 @@ export async function addVisitor(
   const trimmedPhone = input.phone?.trim() || null;
   const trimmedName = input.name.trim();
 
-  // Verificar se a pessoa já existe (por email ou telefone)
-  let personId: string | null = null;
+  const personLookup = await resolveExistingPersonByContact(supabase, {
+    name: trimmedName,
+    email: trimmedEmail,
+    phone: trimmedPhone,
+  });
 
-  if (trimmedEmail) {
-    const { data: existingByEmail } = await supabase
-      .from('people')
-      .select('id')
-      .eq('email', trimmedEmail)
-      .maybeSingle();
-
-    if (existingByEmail) {
-      personId = existingByEmail.id;
-    }
+  if (personLookup.error) {
+    return {
+      success: false,
+      error: personLookup.error,
+    };
   }
 
-  if (!personId && !trimmedEmail && trimmedPhone) {
-    const { data: existingByPhone } = await supabase
-      .from('people')
-      .select('id')
-      .eq('phone', trimmedPhone)
-      .maybeSingle();
-
-    if (existingByPhone) {
-      personId = existingByPhone.id;
-    }
-  }
+  let personId = personLookup.personId;
 
   // Se a pessoa não existe, criar novo registro
   if (!personId) {

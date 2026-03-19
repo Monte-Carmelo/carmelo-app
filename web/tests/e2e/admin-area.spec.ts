@@ -1,119 +1,18 @@
 import { test, expect, type Page } from '@playwright/test';
+import { loginAsAdmin, loginAsNonAdmin } from './helpers/auth';
+import { fillByLabel, selectComboboxOption } from './helpers/forms';
+import { navigateToAdminPath } from './helpers/navigation';
 // import { supabase } from '../supabase';
 
-// Use admin credentials from env or seed data fallback
-const adminEmail = process.env.E2E_SUPABASE_ADMIN_EMAIL || 'admin@test.com';
-const adminPassword = process.env.E2E_SUPABASE_ADMIN_PASSWORD || 'senha123';
-const nonAdminEmail = process.env.E2E_SUPABASE_NON_ADMIN_EMAIL || 'lider1@test.com';
-const nonAdminPassword = process.env.E2E_SUPABASE_NON_ADMIN_PASSWORD || 'senha123';
-
 const shouldSkip = false; // Enable tests by default
-
-async function selectComboboxOption(page: Page, label: string, option: RegExp) {
-  const combobox = page.getByRole('combobox', { name: new RegExp(label, 'i') });
-  if (await combobox.count()) {
-    await combobox.first().click();
-  } else {
-    await page.getByLabel(label).click();
-  }
-
-  const optionLocator = page.getByRole('option', { name: option });
-  await optionLocator.first().waitFor({ state: 'visible', timeout: 5000 });
-  await optionLocator.first().click();
-}
-
-/**
- * Helper function to login as admin
- */
-async function loginAsAdmin(page: Page) {
-  await page.goto('/login', { waitUntil: 'domcontentloaded' });
-  await page.waitForTimeout(1000);
-  await page.getByLabel('E-mail').fill(adminEmail);
-  await page.getByLabel('Senha').fill(adminPassword);
-  await page.getByRole('button', { name: /entrar/i }).click();
-
-  const firstAttempt = await page
-    .waitForURL('**/dashboard', { timeout: 15000 })
-    .then(() => true)
-    .catch(() => false);
-  if (!firstAttempt) {
-    await page.waitForTimeout(1000);
-    await page.goto('/dashboard', { waitUntil: 'domcontentloaded' });
-  }
-
-  if (!page.url().includes('/dashboard')) {
-    await page.goto('/login', { waitUntil: 'domcontentloaded' });
-    await page.waitForTimeout(1000);
-    await page.getByLabel('E-mail').fill(adminEmail);
-    await page.getByLabel('Senha').fill(adminPassword);
-    await page.getByRole('button', { name: /entrar/i }).click();
-    await page.waitForURL('**/dashboard', { timeout: 30000 }).catch(() => {});
-    if (!page.url().includes('/dashboard')) {
-      await page.goto('/dashboard', { waitUntil: 'domcontentloaded' });
-    }
-  }
-
-  if (!page.url().includes('/dashboard')) {
-    throw new Error('Falha no login admin. Verifique E2E_SUPABASE_ADMIN_EMAIL/E2E_SUPABASE_ADMIN_PASSWORD.');
-  }
-
-  await expect(page.getByRole('heading', { name: /bem-vindo/i })).toBeVisible({ timeout: 15000 });
-  await page.waitForLoadState('domcontentloaded');
-}
-
-async function loginAsNonAdmin(page: Page) {
-  await page.context().clearCookies();
-  await page.goto('/login', { waitUntil: 'domcontentloaded' });
-  await page.waitForTimeout(1000);
-
-  await page.evaluate(() => {
-    localStorage.clear();
-    sessionStorage.clear();
-  });
-
-  await page.getByLabel('E-mail').fill(nonAdminEmail);
-  await page.getByLabel('Senha').fill(nonAdminPassword);
-  await page.getByRole('button', { name: /entrar/i }).click();
-
-  const loggedIn = await page
-    .waitForURL('**/dashboard', { timeout: 15000 })
-    .then(() => true)
-    .catch(() => false);
-
-  if (!loggedIn || !page.url().includes('/dashboard')) {
-    throw new Error('Falha no login não-admin. Verifique E2E_SUPABASE_NON_ADMIN_EMAIL/E2E_SUPABASE_NON_ADMIN_PASSWORD.');
-  }
-}
-
-/**
- * Helper function to navigate to admin section
- */
-async function navigateToAdmin(page: Page, section: string = '') {
-  try {
-    await page.goto(`/admin${section}`, { waitUntil: 'domcontentloaded' });
-  } catch {
-    await page.waitForTimeout(1000);
-    await page.goto(`/admin${section}`, { waitUntil: 'domcontentloaded' });
-  }
-  if (page.url().includes('/login')) {
-    await loginAsAdmin(page);
-    await page.goto(`/admin${section}`, { waitUntil: 'domcontentloaded' });
-  }
-  await page.waitForURL(`**/admin${section}*`, { timeout: 30000 }).catch(() => {});
-}
+const navigateToAdmin = navigateToAdminPath;
 
 /**
  * Helper function to check if user has admin access
  */
 async function verifyAdminAccess(page: Page) {
   // Try to access admin page
-  await page.goto('/admin', { waitUntil: 'domcontentloaded' });
-
-  // If redirected to login, login first
-  if (page.url().includes('/login')) {
-    await loginAsAdmin(page);
-    await page.goto('/admin', { waitUntil: 'domcontentloaded' });
-  }
+  await navigateToAdminPath(page);
 
   // Should be able to see admin dashboard
   await expect(page.getByRole('heading', { name: /dashboard admin/i })).toBeVisible();
@@ -198,10 +97,15 @@ test.describe('Área Administrativa - Testes Completos', () => {
         password: 'senha123456',
       };
 
+      await expect(page.getByLabel('Nome completo')).toBeEnabled({ timeout: 15000 });
       await page.getByLabel('Nome completo').fill(testUser.name);
+      await expect(page.getByLabel('E-mail')).toBeEnabled({ timeout: 15000 });
       await page.getByLabel('E-mail').fill(testUser.email);
+      await expect(page.getByLabel('Telefone')).toBeEnabled({ timeout: 15000 });
       await page.getByLabel('Telefone').fill(testUser.phone);
+      await expect(page.getByLabel('Senha temporária')).toBeEnabled({ timeout: 15000 });
       await page.getByLabel('Senha temporária').fill(testUser.password);
+      await expect(page.getByLabel('Confirmar senha')).toBeEnabled({ timeout: 15000 });
       await page.getByLabel('Confirmar senha').fill(testUser.password);
 
       // Submit form
@@ -221,9 +125,13 @@ test.describe('Área Administrativa - Testes Completos', () => {
         password: 'senha123456',
       };
 
+      await expect(page.getByLabel('Nome completo')).toBeEnabled({ timeout: 15000 });
       await page.getByLabel('Nome completo').fill(testUser.name);
+      await expect(page.getByLabel('E-mail')).toBeEnabled({ timeout: 15000 });
       await page.getByLabel('E-mail').fill(testUser.email);
+      await expect(page.getByLabel('Senha temporária')).toBeEnabled({ timeout: 15000 });
       await page.getByLabel('Senha temporária').fill(testUser.password);
+      await expect(page.getByLabel('Confirmar senha')).toBeEnabled({ timeout: 15000 });
       await page.getByLabel('Confirmar senha').fill(testUser.password);
 
       await page.getByRole('button', { name: 'Criar usuário' }).click();
@@ -246,14 +154,19 @@ test.describe('Área Administrativa - Testes Completos', () => {
       await expect(page.getByText(/Senha deve ter pelo menos 8 caracteres/i)).toBeVisible();
 
       // Test email validation
+      await expect(page.getByLabel('E-mail')).toBeEnabled({ timeout: 15000 });
       await page.getByLabel('E-mail').fill('email-invalido');
       await page.getByRole('button', { name: 'Criar usuário' }).click();
       await expect(page.getByText('E-mail inválido')).toBeVisible();
 
       // Test password confirmation
+      await expect(page.getByLabel('Nome completo')).toBeEnabled({ timeout: 15000 });
       await page.getByLabel('Nome completo').fill('Teste');
+      await expect(page.getByLabel('E-mail')).toBeEnabled({ timeout: 15000 });
       await page.getByLabel('E-mail').fill('valido@test.com');
+      await expect(page.getByLabel('Senha temporária')).toBeEnabled({ timeout: 15000 });
       await page.getByLabel('Senha temporária').fill('senha123');
+      await expect(page.getByLabel('Confirmar senha')).toBeEnabled({ timeout: 15000 });
       await page.getByLabel('Confirmar senha').fill('senha456');
       await page.getByRole('button', { name: 'Criar usuário' }).click();
       await expect(page.getByText('Senhas não conferem')).toBeVisible();
@@ -475,8 +388,11 @@ test.describe('Área Administrativa - Testes Completos', () => {
         // Submit form
         await page.getByRole('button', { name: 'Criar Lição' }).click();
 
-        await page.waitForURL('**/admin/lessons', { timeout: 15000 });
-        await expect(page.locator('[data-testid="series-card"]').first()).toBeVisible({ timeout: 15000 });
+        await page.waitForURL(/\/admin\/lessons\/series\/.+$/, { timeout: 15000 });
+        await expect(page.getByRole('heading', { name: /Editar Série/i })).toBeVisible({
+          timeout: 15000,
+        });
+        await expect(page.getByText(lessonTitle)).toBeVisible({ timeout: 15000 });
       }
     });
   });

@@ -1,13 +1,10 @@
-'use client';
-
-import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ArrowLeft } from 'lucide-react';
-import { getSupabaseBrowserClient } from '@/lib/supabase/browser-client';
+import { ArrowLeft, AlertTriangle, Settings as SettingsIcon } from 'lucide-react';
 import { AdminSettingsForm } from '@/components/admin/AdminSettingsForm';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertTriangle, Settings as SettingsIcon } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { createSupabaseServerClient } from '@/lib/supabase/server-client';
+import { buildSettingsValues, settingsKeys } from '@/lib/validations/settings';
 
 interface SettingsStatus {
   last_updated: string | null;
@@ -15,89 +12,67 @@ interface SettingsStatus {
   total_configs: number;
 }
 
-export default function SettingsPage() {
-  const [loading, setLoading] = useState(true);
-  const [status, setStatus] = useState<SettingsStatus>({
-    last_updated: null,
-    updated_by: null,
-    total_configs: 0,
-  });
+async function loadSettingsPageData() {
+  const supabase = await createSupabaseServerClient();
+  const [settingsResult, totalConfigsResult, recentUpdateResult] = await Promise.all([
+    supabase.from('config').select('key, value').in('key', settingsKeys),
+    supabase.from('config').select('*', { count: 'exact', head: true }),
+    supabase
+      .from('config')
+      .select('updated_at, users!inner(id, people(name))')
+      .not('updated_at', 'is', null)
+      .order('updated_at', { ascending: false })
+      .limit(1)
+      .single(),
+  ]);
 
-  const supabase = getSupabaseBrowserClient();
-
-  // Load settings status
-  useEffect(() => {
-    const loadStatus = async () => {
-      try {
-        // Get total configs count
-        const { count: totalConfigs } = await supabase
-          .from('config')
-          .select('*', { count: 'exact', head: true });
-
-        // Get most recent update
-        const { data: recentUpdate } = await supabase
-          .from('config')
-          .select('updated_at, users!inner(id, people(name))')
-          .not('updated_at', 'is', null)
-          .order('updated_at', { ascending: false })
-          .limit(1)
-          .single();
-
-        setStatus({
-          last_updated: recentUpdate?.updated_at || null,
-          updated_by: (recentUpdate as { users?: { people?: { name?: string } } })?.users?.people?.name || null,
-          total_configs: totalConfigs || 0,
-        });
-      } catch (error) {
-        console.error('Erro ao carregar status das configurações:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadStatus();
-  }, [supabase]);
-
-  if (loading) {
-    return (
-      <div className="container mx-auto py-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-      </div>
-    );
+  if (settingsResult.error) {
+    throw settingsResult.error;
   }
+
+  const recentUpdate = recentUpdateResult.data as { updated_at?: string | null; users?: { people?: { name?: string } } } | null;
+
+  return {
+    initialValues: buildSettingsValues(settingsResult.data),
+    status: {
+      last_updated: recentUpdate?.updated_at || null,
+      updated_by: recentUpdate?.users?.people?.name || null,
+      total_configs: totalConfigsResult.count || 0,
+    } satisfies SettingsStatus,
+  };
+}
+
+export default async function SettingsPage() {
+  const { initialValues, status } = await loadSettingsPageData();
 
   return (
     <div className="container mx-auto py-8">
-      {/* Header */}
       <div className="mb-6">
         <Link
           href="/admin"
-          className="inline-flex items-center text-blue-600 hover:text-blue-800 mb-4"
+          className="mb-4 inline-flex items-center text-blue-600 hover:text-blue-800"
         >
-          <ArrowLeft className="h-4 w-4 mr-2" />
+          <ArrowLeft className="mr-2 h-4 w-4" />
           Voltar para Admin
         </Link>
 
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Configurações do Sistema</h1>
-            <p className="text-gray-600 mt-1">
-              Gerencie as configurações globais da aplicação
-            </p>
+            <p className="mt-1 text-gray-600">Gerencie as configurações globais da aplicação</p>
           </div>
         </div>
       </div>
 
-      {/* Status Card */}
       <Card className="mb-6">
         <CardHeader>
           <CardTitle className="flex items-center">
-            <SettingsIcon className="h-5 w-5 mr-2" />
+            <SettingsIcon className="mr-2 h-5 w-5" />
             Status das Configurações
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             <div>
               <p className="text-sm text-gray-600">Total de Configurações</p>
               <p className="text-lg font-semibold">{status.total_configs}</p>
@@ -118,15 +93,12 @@ export default function SettingsPage() {
             </div>
             <div>
               <p className="text-sm text-gray-600">Atualizado por</p>
-              <p className="text-lg font-semibold">
-                {status.updated_by || 'Desconhecido'}
-              </p>
+              <p className="text-lg font-semibold">{status.updated_by || 'Desconhecido'}</p>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Information Alert */}
       <Alert className="mb-6">
         <AlertTriangle className="h-4 w-4" />
         <AlertDescription>
@@ -136,8 +108,7 @@ export default function SettingsPage() {
         </AlertDescription>
       </Alert>
 
-      {/* Settings Form */}
-      <AdminSettingsForm />
+      <AdminSettingsForm initialValues={initialValues} />
     </div>
   );
 }

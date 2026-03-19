@@ -7,7 +7,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { z } from 'zod';
 import { getSupabaseBrowserClient } from '@/lib/supabase/browser-client';
 import { getMissingSupabaseEnvMessage, isEnvReady } from '@/lib/env';
-import { useClientReady } from '@/lib/hooks/use-client-ready';
+import { ClientFormShell } from '@/components/forms/ClientFormShell';
 import { Spinner } from '@/components/ui/spinner';
 
 const schema = z.object({
@@ -19,7 +19,6 @@ type FormValues = z.infer<typeof schema>;
 
 export function LoginForm() {
   const router = useRouter();
-  const isClientReady = useClientReady();
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get('redirect');
   const safeRedirectTo =
@@ -87,45 +86,49 @@ export function LoginForm() {
   });
 
   return (
-    <form onSubmit={onSubmit} className="flex w-full max-w-md flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-      <div>
-        <label htmlFor="email" className="text-sm font-medium text-slate-700">
-          E-mail
-        </label>
-        <input
-          id="email"
-          type="email"
-          autoComplete="email"
-          className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
-          {...register('email')}
-        />
-        {errors.email ? <p className="mt-1 text-sm text-red-600">{errors.email.message}</p> : null}
-      </div>
+    <ClientFormShell
+      onSubmit={onSubmit}
+      className="flex w-full max-w-md flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
+      pending={isSubmitting}
+    >
+        <div>
+          <label htmlFor="email" className="text-sm font-medium text-slate-700">
+            E-mail
+          </label>
+          <input
+            id="email"
+            type="email"
+            autoComplete="email"
+            className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
+            {...register('email')}
+          />
+          {errors.email ? <p className="mt-1 text-sm text-red-600">{errors.email.message}</p> : null}
+        </div>
 
-      <div>
-        <label htmlFor="password" className="text-sm font-medium text-slate-700">
-          Senha
-        </label>
-        <input
-          id="password"
-          type="password"
-          autoComplete="current-password"
-          className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
-          {...register('password')}
-        />
-        {errors.password ? <p className="mt-1 text-sm text-red-600">{errors.password.message}</p> : null}
-      </div>
+        <div>
+          <label htmlFor="password" className="text-sm font-medium text-slate-700">
+            Senha
+          </label>
+          <input
+            id="password"
+            type="password"
+            autoComplete="current-password"
+            className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
+            {...register('password')}
+          />
+          {errors.password ? <p className="mt-1 text-sm text-red-600">{errors.password.message}</p> : null}
+        </div>
 
-      {errorMessage ? <p className="text-sm text-red-600">{errorMessage}</p> : null}
+        {errorMessage ? <p className="text-sm text-red-600">{errorMessage}</p> : null}
 
-      <button
-        type="submit"
-        disabled={!isClientReady || isSubmitting}
-        className="inline-flex items-center justify-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-70"
-      >
-        {isSubmitting && <Spinner size="sm" className="border-white border-t-transparent" />}
-        {isSubmitting ? 'Entrando...' : 'Entrar'}
-      </button>
-    </form>
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          className="inline-flex items-center justify-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-70"
+        >
+          {isSubmitting && <Spinner size="sm" className="border-white border-t-transparent" />}
+          {isSubmitting ? 'Entrando...' : 'Entrar'}
+        </button>
+    </ClientFormShell>
   );
 }

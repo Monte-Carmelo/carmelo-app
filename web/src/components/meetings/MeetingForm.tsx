@@ -7,13 +7,13 @@ import { useState, useEffect } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { z } from 'zod';
 import { Calendar, FileText, UserCheck } from 'lucide-react';
-import { useClientReady } from '@/lib/hooks/use-client-ready';
 import type { LessonTemplate } from '@/lib/api/lessons';
 import type {
   AttendanceMemberOption,
   AttendanceVisitorOption,
 } from '@/lib/api/growth-group-attendance';
 import type { Database } from '@/lib/supabase/types';
+import { ClientFormShell } from '@/components/forms/ClientFormShell';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -80,7 +80,6 @@ export function MeetingForm({
   initialVisitors = [],
 }: MeetingFormProps) {
   const router = useRouter();
-  const isClientReady = useClientReady();
   const queryClient = useQueryClient();
 
   const [participants, setParticipants] = useState<AttendanceMemberOption[]>(initialParticipants);
@@ -239,7 +238,11 @@ export function MeetingForm({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-4 py-8">
+    <ClientFormShell
+      onSubmit={handleSubmit}
+      className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-4 py-8"
+      pending={isSubmitting}
+    >
       <div className="space-y-2">
         <h1 className="text-3xl font-bold tracking-tight">Registrar reunião</h1>
         <p className="text-muted-foreground">
@@ -408,11 +411,11 @@ export function MeetingForm({
         >
           Cancelar
         </Button>
-        <Button type="submit" disabled={!isClientReady || isSubmitting || isFetchingAttendance}>
+        <Button type="submit" disabled={isSubmitting || isFetchingAttendance}>
           <Calendar className="mr-2 h-4 w-4" />
           {isSubmitting ? 'Salvando...' : 'Registrar reunião'}
         </Button>
       </div>
-    </form>
+    </ClientFormShell>
   );
 }

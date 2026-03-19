@@ -1,5 +1,3 @@
-'use client';
-
 import { BarChart3, TrendingUp, UsersRound } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 

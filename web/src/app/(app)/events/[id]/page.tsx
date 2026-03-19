@@ -1,6 +1,7 @@
-import { getEventAction } from '@/app/(app)/admin/events/actions';
-import { EventDetail } from '@/components/events/EventDetail';
 import { notFound } from 'next/navigation';
+import { EventDetail } from '@/components/events/EventDetail';
+import { createSupabaseServerClient } from '@/lib/supabase/server-client';
+import { getEventById } from '@/lib/events/queries';
 
 interface EventDetailsPageProps {
   params: Promise<{
@@ -10,15 +11,16 @@ interface EventDetailsPageProps {
 
 export default async function EventDetailsPage({ params }: EventDetailsPageProps) {
   const { id } = await params;
-  const result = await getEventAction({ id });
+  const supabase = await createSupabaseServerClient();
+  const event = await getEventById(supabase, id);
 
-  if (!result.success) {
+  if (!event) {
     notFound();
   }
 
   return (
     <div className="p-6">
-      <EventDetail event={result.data} />
+      <EventDetail event={event} />
     </div>
   );
 }

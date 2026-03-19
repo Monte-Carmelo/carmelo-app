@@ -11,25 +11,21 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 
-interface DataPoint {
-  [key: string]: string | number;
-}
-
-interface BarChartProps {
-  data: DataPoint[];
+interface BarChartProps<T extends object> {
+  data: T[];
   bars: Array<{
-    dataKey: string;
+    dataKey: Extract<keyof T, string>;
     fill: string;
     name: string;
   }>;
-  xAxisDataKey: string;
+  xAxisDataKey: Extract<keyof T, string>;
   height?: number;
   width?: string | number;
   title?: string;
   layout?: 'vertical' | 'horizontal';
 }
 
-export function BarChart({
+export function BarChart<T extends object>({
   data,
   bars,
   xAxisDataKey,
@@ -37,7 +33,7 @@ export function BarChart({
   width = '100%',
   title,
   layout = 'vertical',
-}: BarChartProps) {
+}: BarChartProps<T>) {
   return (
     <div style={{ width }}>
       {title && (

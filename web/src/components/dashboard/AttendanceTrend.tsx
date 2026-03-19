@@ -1,18 +1,14 @@
-'use client';
-
 import Link from 'next/link';
 import { CalendarDays, UserCheck, UserPlus } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface AttendanceTrendProps {
-  isLoading: boolean;
   activeMembers: number;
   activeVisitors: number;
   groupCount: number;
 }
 
 export function AttendanceTrend({
-  isLoading,
   activeMembers,
   activeVisitors,
   groupCount,
@@ -25,7 +21,7 @@ export function AttendanceTrend({
             <UserCheck className="h-4 w-4" />
             Presença ativa
           </CardDescription>
-          <CardTitle>{isLoading ? '--' : activeMembers}</CardTitle>
+          <CardTitle>{activeMembers}</CardTitle>
         </CardHeader>
         <CardContent className="pt-0 text-sm text-text-light">
           Membros ativos em {groupCount} GC(s).
@@ -38,7 +34,7 @@ export function AttendanceTrend({
             <UserPlus className="h-4 w-4" />
             Visitantes ativos
           </CardDescription>
-          <CardTitle>{isLoading ? '--' : activeVisitors}</CardTitle>
+          <CardTitle>{activeVisitors}</CardTitle>
         </CardHeader>
         <CardContent className="pt-0 text-sm text-text-light">
           <Link href="/meetings/new" className="inline-flex items-center gap-1 text-primary hover:underline">

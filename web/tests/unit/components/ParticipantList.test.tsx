@@ -5,22 +5,11 @@ import { ParticipantList } from '@/components/participants/ParticipantList';
 
 const replaceMock = vi.fn();
 const refreshMock = vi.fn();
-
-const updateMock = vi.fn(() => ({
-  eq: vi.fn(() => Promise.resolve({ error: null })),
-}));
-
-const supabaseMock = {
-  from: vi.fn(() => ({ update: updateMock })),
-};
+const fetchMock = vi.fn();
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ replace: replaceMock, refresh: refreshMock }),
   useSearchParams: () => new URLSearchParams('status=active'),
-}));
-
-vi.mock('@/lib/supabase/browser-client', () => ({
-  getSupabaseBrowserClient: () => supabaseMock,
 }));
 
 const participants = [
@@ -41,6 +30,17 @@ const participants = [
 describe('ParticipantList', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.stubGlobal(
+      'fetch',
+      fetchMock.mockResolvedValue({
+        ok: true,
+        json: async () => ({ success: true }),
+      }),
+    );
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
   it('exibe participantes e permite alternar status', async () => {
@@ -51,7 +51,12 @@ describe('ParticipantList', () => {
     await userEvent.click(screen.getByRole('button', { name: /inativar/i }));
 
     await waitFor(() => {
-      expect(updateMock).toHaveBeenCalled();
+      expect(fetchMock).toHaveBeenCalledWith(
+        `${window.location.origin}/api/participants/pp-1/status`,
+        expect.objectContaining({
+          method: 'PATCH',
+        }),
+      );
       expect(refreshMock).toHaveBeenCalled();
     });
   });

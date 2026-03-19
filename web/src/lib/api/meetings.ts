@@ -1,7 +1,5 @@
 import type { QueryClient } from '@tanstack/react-query';
-import { getSupabaseBrowserClient } from '@/lib/supabase/browser-client';
 import {
-  createMeeting as createMeetingMutation,
   type CreateMeetingInput,
   type CreateMeetingResult,
 } from '@/lib/supabase/mutations/meetings';
@@ -24,18 +22,30 @@ async function invalidateMeetingQueries(
 }
 
 export async function registerMeeting(input: RegisterMeetingInput): Promise<CreateMeetingResult> {
-  const supabase = getSupabaseBrowserClient();
-
-  const result = await createMeetingMutation(supabase, {
-    gcId: input.gcId,
-    lessonTemplateId: input.lessonTemplateId,
-    lessonTitle: input.lessonTitle,
-    datetime: input.datetime,
-    comments: input.comments,
-    registeredByUserId: input.registeredByUserId,
-    memberAttendance: input.memberAttendance,
-    visitorAttendance: input.visitorAttendance,
+  const response = await fetch('/api/meetings', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      gcId: input.gcId,
+      lessonTemplateId: input.lessonTemplateId ?? null,
+      lessonTitle: input.lessonTitle,
+      datetime: input.datetime,
+      comments: input.comments ?? null,
+      memberAttendance: input.memberAttendance ?? [],
+      visitorAttendance: input.visitorAttendance ?? [],
+    }),
   });
+
+  const result = (await response.json().catch(() => null)) as CreateMeetingResult | null;
+
+  if (!response.ok || !result?.success) {
+    return {
+      success: false,
+      error: result?.error ?? 'Falha ao criar reunião',
+    };
+  }
 
   if (result.success && input.queryClient) {
     await invalidateMeetingQueries(input.queryClient, input.gcId, input.userId);

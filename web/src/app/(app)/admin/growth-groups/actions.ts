@@ -288,22 +288,6 @@ export async function multiplyGrowthGroupAction(
       return { error: 'Usuário não autenticado.' };
     }
 
-    // Step 0: Get person_ids for all user_ids involved
-    const allUserIds = multiplicationState.newGCs.flatMap((gc) => [
-      gc.leaderId,
-      ...gc.supervisorIds,
-    ]);
-    const { data: usersData, error: usersError } = await supabase
-      .from('users')
-      .select('id, person_id')
-      .in('id', allUserIds);
-
-    if (usersError || !usersData) {
-      return { error: 'Erro ao buscar dados dos usuários.' };
-    }
-
-    const userIdToPersonId = new Map(usersData.map((u) => [u.id, u.person_id]));
-
     // Step 1: Update original GC status to 'multiplying'
     const { error: updateError } = await supabase
       .from('growth_groups')
@@ -352,11 +336,10 @@ export async function multiplyGrowthGroupAction(
       const participants = [];
 
       // Leader
-      const leaderPersonId = userIdToPersonId.get(newGcData.leaderId);
-      if (leaderPersonId) {
+      if (newGcData.leaderId) {
         participants.push({
           gc_id: newGc.id,
-          person_id: leaderPersonId,
+          person_id: newGcData.leaderId,
           role: 'leader',
           status: 'active',
           joined_at: now,
@@ -366,11 +349,10 @@ export async function multiplyGrowthGroupAction(
 
       // Supervisors
       for (const supervisorId of newGcData.supervisorIds) {
-        const supervisorPersonId = userIdToPersonId.get(supervisorId);
-        if (supervisorPersonId) {
+        if (supervisorId) {
           participants.push({
             gc_id: newGc.id,
-            person_id: supervisorPersonId,
+            person_id: supervisorId,
             role: 'supervisor',
             status: 'active',
             joined_at: now,

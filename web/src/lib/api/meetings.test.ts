@@ -1,7 +1,13 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@/lib/supabase/types';
-import { createMeeting, updateMeeting, deleteMeeting } from '@/lib/supabase/mutations/meetings';
+import {
+  createMeeting,
+  updateMeeting,
+  deleteMeeting,
+  replaceMeetingAttendance,
+  updateMeetingWithAttendance,
+} from '@/lib/supabase/mutations/meetings';
 
 type TableName = keyof Database['public']['Tables'];
 
@@ -22,6 +28,8 @@ function createSupabaseMock() {
 
   const memberAttendanceInsert = vi.fn().mockResolvedValue({ error: null });
   const visitorAttendanceInsert = vi.fn().mockResolvedValue({ error: null });
+  const memberAttendanceDeleteEq = vi.fn().mockResolvedValue({ error: null });
+  const visitorAttendanceDeleteEq = vi.fn().mockResolvedValue({ error: null });
 
   const tableMock = {
     meetings: {
@@ -30,9 +38,15 @@ function createSupabaseMock() {
     },
     meeting_member_attendance: {
       insert: memberAttendanceInsert,
+      delete: vi.fn(() => ({
+        eq: memberAttendanceDeleteEq,
+      })),
     },
     meeting_visitor_attendance: {
       insert: visitorAttendanceInsert,
+      delete: vi.fn(() => ({
+        eq: visitorAttendanceDeleteEq,
+      })),
     },
   };
 
@@ -52,6 +66,8 @@ function createSupabaseMock() {
     meetingsUpdateEq,
     memberAttendanceInsert,
     visitorAttendanceInsert,
+    memberAttendanceDeleteEq,
+    visitorAttendanceDeleteEq,
   };
 }
 
@@ -152,5 +168,48 @@ describe('W021 - meetings service (mutations)', () => {
     expect(payload).toBeDefined();
     expect(payload).toHaveProperty('deleted_at');
     expect(typeof payload!.deleted_at).toBe('string');
+  });
+
+  it('replaceMeetingAttendance substitui presenças existentes', async () => {
+    const mock = createSupabaseMock();
+
+    const result = await replaceMeetingAttendance(mock.supabase, {
+      meetingId: 'meeting-1',
+      memberAttendance: ['p-1'],
+      visitorAttendance: ['v-1'],
+    });
+
+    expect(result.success).toBe(true);
+    expect(mock.memberAttendanceDeleteEq).toHaveBeenCalledWith('meeting_id', 'meeting-1');
+    expect(mock.visitorAttendanceDeleteEq).toHaveBeenCalledWith('meeting_id', 'meeting-1');
+    expect(mock.memberAttendanceInsert).toHaveBeenCalledWith([
+      { meeting_id: 'meeting-1', participant_id: 'p-1' },
+    ]);
+    expect(mock.visitorAttendanceInsert).toHaveBeenCalledWith([
+      { meeting_id: 'meeting-1', visitor_id: 'v-1' },
+    ]);
+  });
+
+  it('updateMeetingWithAttendance atualiza reunião e presenças', async () => {
+    const mock = createSupabaseMock();
+
+    const result = await updateMeetingWithAttendance(mock.supabase, {
+      meetingId: 'meeting-1',
+      lessonTemplateId: 'lesson-1',
+      lessonTitle: 'Nova lição',
+      datetime: new Date().toISOString(),
+      comments: 'novo comentário',
+      memberAttendance: ['p-1'],
+      visitorAttendance: [],
+    });
+
+    expect(result.success).toBe(true);
+    expect(mock.meetingsUpdate).toHaveBeenCalledWith({
+      lesson_template_id: 'lesson-1',
+      lesson_title: 'Nova lição',
+      datetime: expect.any(String),
+      comments: 'novo comentário',
+    });
+    expect(mock.memberAttendanceDeleteEq).toHaveBeenCalledWith('meeting_id', 'meeting-1');
   });
 });

@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { MultiSelect } from '@/components/ui/multi-select';
-import { useClientReady } from '@/lib/hooks/use-client-ready';
+import { ClientFormShell } from '@/components/forms/ClientFormShell';
 import { postgresUuid } from '@/lib/validation/postgres-uuid';
 
 // Zod Schema
@@ -60,7 +60,6 @@ const weekdayOptions = [
 ];
 
 export function AdminGrowthGroupForm({ gc, onSubmit, people }: GrowthGroupFormProps) {
-  const isClientReady = useClientReady();
   const {
     control,
     register,
@@ -88,7 +87,7 @@ export function AdminGrowthGroupForm({ gc, onSubmit, people }: GrowthGroupFormPr
   const peopleOptions = people.map((person) => ({ label: person.name, value: person.id }));
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+    <ClientFormShell onSubmit={handleSubmit(onSubmit)} className="space-y-6" pending={isSubmitting}>
       <Card>
         <CardHeader>
           <CardTitle>Informações Básicas</CardTitle>
@@ -241,10 +240,10 @@ export function AdminGrowthGroupForm({ gc, onSubmit, people }: GrowthGroupFormPr
         <Button type="button" variant="outline" disabled={isSubmitting}>
           Cancelar
         </Button>
-        <Button type="submit" disabled={!isClientReady || isSubmitting}>
+        <Button type="submit" disabled={isSubmitting}>
           {isSubmitting ? 'Salvando...' : gc?.id ? 'Atualizar GC' : 'Criar GC'}
         </Button>
       </div>
-    </form>
+    </ClientFormShell>
   );
 }

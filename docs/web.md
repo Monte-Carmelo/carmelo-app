@@ -3,11 +3,16 @@
 Aplicação Next.js 15 (App Router) com Supabase SSR e React Query. Design mobile-first, componentes Radix e UI utilitários próprios.
 
 ## Arquitetura
-- **Providers**: `src/app/providers.tsx` injeta React Query + Toaster; `SessionProvider` em `src/app/(app)/layout.tsx` cria contexto com usuário autenticado e papéis (`user_gc_roles`). Rotas em `(app)` exigem login via `getAuthenticatedUser` (supabase server).
+
+O padrao oficial do frontend web esta em `docs/frontend-architecture.md`.
+
+Resumo da arquitetura ativa:
+- **Providers**: `src/app/providers.tsx` injeta providers globais; `SessionProvider` em `src/app/(app)/layout.tsx` cria contexto com usuário autenticado e papéis (`user_gc_roles`).
+- **Boundary server/client**: telas e fluxos criticos devem carregar o estado inicial no servidor e deixar componentes cliente focados em interacao.
 - **Supabase**: clients separados para server (`server-client.ts`) e browser (`browser-client.ts`), tipos em `src/lib/supabase/types.ts`.
-- **Formulários**: React Hook Form + Zod; componentes UI em `src/components/ui/`.
-- **Estado**: páginas SSR (server components) trazem dados iniciais; alguns formulários são client components (ex.: `MeetingForm`).
-- **API interna**: fluxos críticos (`/meetings/new`, `/visitors/new`) usam API routes autenticadas para escrita e carregamento dinâmico de opções, evitando acoplamento de negócio ao cliente Supabase no browser.
+- **Mutacoes**: fluxos criticos devem usar server actions ou API routes autenticadas; o browser client nao e a via preferencial para CRUD sensivel.
+- **Formulários**: componentes cliente com hidratacao protegida; use `useClientReady` e bloqueie todos os campos ate a hidratacao terminar.
+- **Convergencia legado**: o roadmap de migracao para esse modelo esta em `docs/frontend-hardening-plan.md`.
 
 ## Rotas principais
 - `/` (landing) – Hero com CTA para login; lista “Próximos incrementos”; checklist. **Obs:** CTA “Ver Eventos” aponta para `/events` que exige login.

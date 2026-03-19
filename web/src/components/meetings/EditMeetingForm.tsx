@@ -6,11 +6,14 @@ import { useState, useEffect } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { z } from 'zod';
 import { Calendar, FileText, Users, UserCheck, Trash2 } from 'lucide-react';
-import { useClientReady } from '@/lib/hooks/use-client-ready';
-import { getSupabaseBrowserClient } from '@/lib/supabase/browser-client';
 import type { Database } from '@/lib/supabase/types';
+import type {
+  AttendanceMemberOption,
+  AttendanceVisitorOption,
+} from '@/lib/api/growth-group-attendance';
 import type { MeetingDetails } from '@/lib/supabase/queries/meetings';
 import { translateRole } from '@/lib/role-translations';
+import { ClientFormShell } from '@/components/forms/ClientFormShell';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -50,17 +53,6 @@ type FormValues = z.infer<typeof schema>;
 
 type Lesson = Database['public']['Tables']['lessons']['Row'];
 
-type Participant = {
-  id: string;
-  name: string;
-  role: Database['public']['Tables']['growth_group_participants']['Row']['role'];
-};
-
-type Visitor = {
-  id: string;
-  name: string;
-};
-
 interface EditMeetingFormProps {
   meeting: MeetingDetails;
   lessonTemplates: Pick<Lesson, 'id' | 'title'>[];
@@ -68,11 +60,9 @@ interface EditMeetingFormProps {
 
 export function EditMeetingForm({ meeting, lessonTemplates }: EditMeetingFormProps) {
   const router = useRouter();
-  const isClientReady = useClientReady();
-  const supabase = getSupabaseBrowserClient();
 
-  const [participants, setParticipants] = useState<Participant[]>([]);
-  const [visitors, setVisitors] = useState<Visitor[]>([]);
+  const [participants, setParticipants] = useState<AttendanceMemberOption[]>([]);
+  const [visitors, setVisitors] = useState<AttendanceVisitorOption[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -110,42 +100,33 @@ export function EditMeetingForm({ meeting, lessonTemplates }: EditMeetingFormPro
 
   const loadParticipantsAndVisitors = async () => {
     setIsLoading(true);
-    const [{ data: memberRows }, { data: visitorRows }] = await Promise.all([
-      supabase
-        .from('growth_group_participants')
-        .select('id, role, people:person_id ( id, name )')
-        .eq('gc_id', meeting.gc_id)
-        .eq('status', 'active')
-        .in('role', ['member', 'leader'])
-        .order('role', { ascending: true }),
-      supabase
-        .from('visitors')
-        .select('id, people:person_id ( id, name )')
-        .eq('gc_id', meeting.gc_id)
-        .eq('status', 'active')
-        .order('first_visit_date', { ascending: false }),
-    ]);
+    try {
+      const response = await fetch(`/api/growth-groups/${meeting.gc_id}/attendance-options`, {
+        cache: 'no-store',
+      });
+      const payload = await response.json();
 
-    setParticipants(
-      (memberRows ?? []).map((row) => ({
-        id: row.id,
-        name: row.people?.name ?? 'Sem nome',
-        role: row.role,
-      })),
-    );
+      if (!response.ok) {
+        throw new Error(payload.error ?? 'Falha ao carregar participantes e visitantes.');
+      }
 
-    setVisitors(
-      (visitorRows ?? []).map((row) => ({
-        id: row.id,
-        name: row.people?.name ?? 'Sem nome',
-      })),
-    );
-    setIsLoading(false);
+      setParticipants(payload.members ?? []);
+      setVisitors(payload.visitors ?? []);
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : 'Falha ao carregar participantes e visitantes.',
+      );
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleSubmit = form.handleSubmit(async (values) => {
     setErrorMessage(null);
     setIsLoading(true);
+    let isSuccess = false;
 
     // Determinar o título da lição baseado no tipo selecionado
     let lessonTitle: string;
@@ -164,70 +145,38 @@ export function EditMeetingForm({ meeting, lessonTemplates }: EditMeetingFormPro
 
     const datetime = new Date(`${values.meetingDate}T${values.meetingTime}:00`);
 
-    // Atualizar dados da reunião
-    const { error: meetingError } = await supabase
-      .from('meetings')
-      .update({
-        lesson_template_id: values.lessonType === 'catalog' ? values.lessonTemplateId || null : null,
-        lesson_title: lessonTitle,
-        comments: values.comments?.trim() || null,
-        datetime: datetime.toISOString(),
-      })
-      .eq('id', meeting.id);
+    try {
+      const response = await fetch(`/api/meetings/${meeting.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          meetingId: meeting.id,
+          lessonTemplateId: values.lessonType === 'catalog' ? values.lessonTemplateId || null : null,
+          lessonTitle,
+          comments: values.comments?.trim() || null,
+          datetime: datetime.toISOString(),
+          memberAttendance: values.members.map((member) => member.participantId),
+          visitorAttendance: values.visitors.map((visitor) => visitor.visitorId),
+        }),
+      });
+      const result = await response.json();
 
-    if (meetingError) {
-      setErrorMessage(meetingError?.message ?? 'Falha ao atualizar reunião');
-      setIsLoading(false);
-      return;
-    }
-
-    // Atualizar presença de membros
-    // 1. Deletar todas as presenças existentes
-    await supabase.from('meeting_member_attendance').delete().eq('meeting_id', meeting.id);
-
-    // 2. Inserir novas presenças
-    if (values.members.length > 0) {
-      const attendancePayload = values.members.map((member) => ({
-        meeting_id: meeting.id,
-        participant_id: member.participantId,
-      }));
-
-      const { error: memberAttendanceError } = await supabase
-        .from('meeting_member_attendance')
-        .insert(attendancePayload);
-
-      if (memberAttendanceError) {
-        setErrorMessage('Reunião atualizada, mas faltou registrar presença de membros.');
-        setIsLoading(false);
+      if (!response.ok || !result.success) {
+        setErrorMessage(result.error ?? 'Falha ao atualizar reunião');
         return;
       }
-    }
 
-    // Atualizar presença de visitantes
-    // 1. Deletar todas as presenças existentes
-    await supabase.from('meeting_visitor_attendance').delete().eq('meeting_id', meeting.id);
-
-    // 2. Inserir novas presenças
-    if (values.visitors.length > 0) {
-      const visitorPayload = values.visitors.map((visitor) => ({
-        meeting_id: meeting.id,
-        visitor_id: visitor.visitorId,
-      }));
-
-      const { error: visitorAttendanceError } = await supabase
-        .from('meeting_visitor_attendance')
-        .insert(visitorPayload);
-
-      if (visitorAttendanceError) {
-        setErrorMessage('Reunião atualizada, mas faltou registrar presença de visitantes.');
+      isSuccess = true;
+      window.location.assign(`/gc/${meeting.gc_id}`);
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : 'Falha ao atualizar reunião');
+    } finally {
+      if (!isSuccess) {
         setIsLoading(false);
-        return;
       }
     }
-
-    setIsLoading(false);
-    router.push(`/gc/${meeting.gc_id}`);
-    router.refresh();
   });
 
   const handleDelete = async () => {
@@ -236,23 +185,31 @@ export function EditMeetingForm({ meeting, lessonTemplates }: EditMeetingFormPro
     }
 
     setIsLoading(true);
-    const { error } = await supabase
-      .from('meetings')
-      .update({ deleted_at: new Date().toISOString() })
-      .eq('id', meeting.id);
+    try {
+      const response = await fetch(`/api/meetings/${meeting.id}`, {
+        method: 'DELETE',
+      });
+      const result = await response.json();
 
-    if (error) {
-      setErrorMessage(error.message);
+      if (!response.ok || !result.success) {
+        setErrorMessage(result.error ?? 'Falha ao excluir reunião');
+        setIsLoading(false);
+        return;
+      }
+
+      window.location.assign(`/gc/${meeting.gc_id}`);
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : 'Falha ao excluir reunião');
       setIsLoading(false);
-      return;
     }
-
-    router.push(`/gc/${meeting.gc_id}`);
-    router.refresh();
   };
 
   return (
-    <form onSubmit={handleSubmit} className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-4 py-8">
+    <ClientFormShell
+      onSubmit={handleSubmit}
+      className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-4 py-8"
+      pending={isLoading}
+    >
       <div className="space-y-2">
         <h1 className="text-3xl font-bold tracking-tight">Editar reunião</h1>
         <p className="text-muted-foreground">
@@ -572,12 +529,12 @@ export function EditMeetingForm({ meeting, lessonTemplates }: EditMeetingFormPro
           <Button type="button" variant="outline" onClick={() => router.back()} disabled={isLoading}>
             Cancelar
           </Button>
-          <Button type="submit" disabled={!isClientReady || isLoading}>
+          <Button type="submit" disabled={isLoading}>
             <Calendar className="mr-2 h-4 w-4" />
             {isLoading ? 'Salvando...' : 'Salvar alterações'}
           </Button>
         </div>
       </div>
-    </form>
+    </ClientFormShell>
   );
 }

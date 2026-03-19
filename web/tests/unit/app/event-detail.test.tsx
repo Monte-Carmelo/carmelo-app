@@ -2,11 +2,21 @@ import { render, screen } from '@testing-library/react';
 import { vi } from 'vitest';
 import EventDetailsPage from '@/app/(app)/events/[id]/page';
 
-const { getEventAction } = vi.hoisted(() => ({ getEventAction: vi.fn() }));
+const {
+  createSupabaseServerClient,
+  getEventById,
+} = vi.hoisted(() => ({
+  createSupabaseServerClient: vi.fn(),
+  getEventById: vi.fn(),
+}));
 const notFound = vi.fn();
 
-vi.mock('@/app/(app)/admin/events/actions', () => ({
-  getEventAction,
+vi.mock('@/lib/supabase/server-client', () => ({
+  createSupabaseServerClient,
+}));
+
+vi.mock('@/lib/events/queries', () => ({
+  getEventById,
 }));
 
 vi.mock('next/navigation', () => ({
@@ -33,10 +43,11 @@ const event = {
 describe('EventDetailsPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    createSupabaseServerClient.mockResolvedValue({});
   });
 
   it('renderiza detalhes quando sucesso', async () => {
-    getEventAction.mockResolvedValueOnce({ success: true, data: event });
+    getEventById.mockResolvedValueOnce(event);
 
     const page = await EventDetailsPage({ params: Promise.resolve({ id: 'e-1' }) });
     render(page);
@@ -46,7 +57,7 @@ describe('EventDetailsPage', () => {
   });
 
   it('chama notFound em erro', async () => {
-    getEventAction.mockResolvedValueOnce({ success: false });
+    getEventById.mockResolvedValueOnce(null);
 
     await EventDetailsPage({ params: Promise.resolve({ id: 'e-1' }) });
     expect(notFound).toHaveBeenCalled();
