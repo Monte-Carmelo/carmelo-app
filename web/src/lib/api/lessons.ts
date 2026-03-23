@@ -3,8 +3,10 @@ import type { Database } from '@/lib/supabase/types';
 
 export type LessonTemplate = Pick<
   Database['public']['Tables']['lessons']['Row'],
-  'id' | 'title'
->;
+  'id' | 'title' | 'order_in_series'
+> & {
+  series_name?: string | null;
+};
 
 export type LessonSeriesItem = Database['public']['Tables']['lesson_series']['Row'];
 export type LessonItem = Database['public']['Tables']['lessons']['Row'];
@@ -18,14 +20,25 @@ export async function getLessonTemplates(
 ): Promise<LessonTemplate[]> {
   const { data, error } = await supabase
     .from('lessons')
-    .select('id, title')
+    .select(`
+      id,
+      title,
+      order_in_series,
+      series:lesson_series ( name )
+    `)
+    .is('deleted_at', null)
     .order('title', { ascending: true });
 
   if (error) {
     throw error;
   }
 
-  return data ?? [];
+  return (data ?? []).map((lesson) => ({
+    id: lesson.id,
+    title: lesson.title,
+    order_in_series: lesson.order_in_series,
+    series_name: lesson.series?.name ?? null,
+  }));
 }
 
 export async function getRecentSeriesWithLessons(

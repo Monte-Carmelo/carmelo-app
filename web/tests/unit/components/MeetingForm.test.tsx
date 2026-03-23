@@ -40,7 +40,7 @@ vi.mock('@/lib/supabase/browser-client', () => ({
 const baseProps = {
   userId: 'user-1',
   groups: [{ id: 'gc-1', name: 'GC Esperança' }],
-  lessonTemplates: [{ id: 'lesson-1', title: 'Lição 1' }],
+  lessonTemplates: [{ id: 'lesson-1', title: 'Lição 1', order_in_series: null, series_name: null }],
 };
 
 function renderWithProviders() {

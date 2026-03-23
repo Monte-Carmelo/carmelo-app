@@ -1,5 +1,6 @@
 'use client';
 
+import { Badge } from '@/components/ui/badge';
 import { FileText } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -96,7 +97,15 @@ export function LessonSelector({
             <SelectContent>
               {lessonTemplates.map((lesson) => (
                 <SelectItem key={lesson.id} value={lesson.id}>
-                  {lesson.title}
+                  <div className="flex items-center gap-2">
+                    <span>{lesson.title}</span>
+                    {lesson.series_name && (
+                      <Badge variant="secondary" className="ml-1 text-xs">
+                        {lesson.series_name}
+                        {lesson.order_in_series && ` • ${lesson.order_in_series}`}
+                      </Badge>
+                    )}
+                  </div>
                 </SelectItem>
               ))}
             </SelectContent>
