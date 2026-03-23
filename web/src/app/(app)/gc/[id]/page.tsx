@@ -5,7 +5,6 @@ import { createSupabaseServerClient } from '@/lib/supabase/server-client';
 import { getAuthenticatedUser } from '@/lib/supabase/server-auth';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -238,12 +237,12 @@ export default async function GCDetailPage({ params }: PageProps) {
                   <Link
                     key={meeting.id}
                     href={`/meetings/${meeting.id}/edit`}
-                    className="rounded-lg border p-3 transition hover:bg-muted/50"
+                    className="block rounded-lg border p-3 transition hover:bg-muted/50 hover:border-primary/50"
                   >
-                    <p className="text-sm font-semibold">
+                    <p className="text-sm font-semibold text-foreground">
                       {meeting.lesson_title || 'Reunião'}
                     </p>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-muted-foreground mt-1">
                       {new Date(meeting.datetime).toLocaleString('pt-BR', {
                         day: '2-digit',
                         month: 'short',
@@ -252,8 +251,7 @@ export default async function GCDetailPage({ params }: PageProps) {
                         minute: '2-digit',
                       })}
                     </p>
-                    <Separator className="my-2" />
-                    <div className="flex gap-4 text-xs text-muted-foreground">
+                    <div className="flex gap-4 text-xs text-muted-foreground mt-2 pt-2 border-t">
                       <span>Membros: {memberAttendance}</span>
                       <span>Visitantes: {visitorAttendance}</span>
                     </div>
