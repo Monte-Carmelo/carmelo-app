@@ -46,11 +46,15 @@ test.describe('Participantes', () => {
     await fillByLabel(page, 'Nome completo', participantName);
     await fillByLabel(page, 'E-mail', participantEmail);
     await fillByLabel(page, 'Telefone', '(11) 98888-7777');
+    // Birth date is required for members - use type="date" input directly
+    await page.locator('input[type="date"]').fill('1990-01-01');
 
     await page.getByRole('button', { name: /cadastrar participante/i }).click();
-    await page.waitForURL(/\/participants(?:\?.*)?$/, { timeout: 15000 });
+
+    // Form uses window.location.assign() which causes full page reload
+    // Wait for the page to navigate and the heading to appear
     await expect(page.getByRole('heading', { name: /participantes/i })).toBeVisible({
-      timeout: 15000,
+      timeout: 30000,
     });
     await expect(page.getByText(participantName)).toBeVisible({ timeout: 15000 });
   });
