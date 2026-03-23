@@ -256,7 +256,14 @@ describe('GC pages', () => {
 
         if (table === 'lessons') {
           return {
-            select: () => ({ order: () => Promise.resolve({ data: [{ id: 'lesson-1', title: 'Comunhão' }] }) }),
+            select: () => ({
+              is: () => ({
+                order: () =>
+                  Promise.resolve({
+                    data: [{ id: 'lesson-1', title: 'Comunhão', order_in_series: null, series: null }],
+                  }),
+              }),
+            }),
           };
         }
 
