@@ -27,6 +27,8 @@ export async function getLessonTemplates(
       series:lesson_series ( name )
     `)
     .is('deleted_at', null)
+    .order('series_id', { ascending: true, nullsFirst: false })
+    .order('order_in_series', { ascending: true, nullsFirst: false })
     .order('title', { ascending: true });
 
   if (error) {
