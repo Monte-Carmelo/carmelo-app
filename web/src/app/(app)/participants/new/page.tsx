@@ -4,6 +4,7 @@ import { createSupabaseServerClient } from '@/lib/supabase/server-client';
 import { getAuthenticatedUser } from '@/lib/supabase/server-auth';
 import { ParticipantForm } from '@/components/participants/ParticipantForm';
 import { Loading } from '@/components/ui/spinner';
+import { getParticipantManagementScope, listGrowthGroups } from '@/lib/api/participants';
 
 type SearchParams = {
   gcId?: string;
@@ -17,17 +18,16 @@ async function ParticipantFormLoader({ searchParams }: { searchParams: SearchPar
   }
 
   const supabase = await createSupabaseServerClient();
+  const scope = await getParticipantManagementScope(supabase, user.id);
+  const groups = await listGrowthGroups(
+    supabase,
+    scope.isAdmin ? undefined : { gcIds: scope.managedGcIds },
+  );
+  const preselectedGcId = groups.some((group) => group.id === searchParams.gcId)
+    ? searchParams.gcId
+    : undefined;
 
-  const { data: groups, error } = await supabase
-    .from('growth_groups')
-    .select('id, name')
-    .order('name', { ascending: true });
-
-  if (error) {
-    throw error;
-  }
-
-  return <ParticipantForm groups={groups ?? []} preselectedGcId={searchParams.gcId} />;
+  return <ParticipantForm groups={groups} preselectedGcId={preselectedGcId} />;
 }
 
 export default async function NewParticipantPage({

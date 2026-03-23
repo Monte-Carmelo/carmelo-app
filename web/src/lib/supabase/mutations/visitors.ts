@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '../types';
 import { resolveExistingPersonByContact } from './people';
+import { formatBrazilianPhone } from '@/lib/formatters/phone';
 
 export type AddVisitorInput = {
   gcId: string;
@@ -26,7 +27,7 @@ export async function addVisitor(
   input: AddVisitorInput
 ): Promise<AddVisitorResult> {
   const trimmedEmail = input.email?.trim() || null;
-  const trimmedPhone = input.phone?.trim() || null;
+  const trimmedPhone = formatBrazilianPhone(input.phone) || null;
   const trimmedName = input.name.trim();
 
   const personLookup = await resolveExistingPersonByContact(supabase, {
@@ -155,7 +156,7 @@ export async function updateVisitor(
     updateData.email = input.email?.trim() || null;
   }
   if (input.phone !== undefined) {
-    updateData.phone = input.phone?.trim() || null;
+    updateData.phone = formatBrazilianPhone(input.phone) || null;
   }
 
   const { error: personError } = await supabase

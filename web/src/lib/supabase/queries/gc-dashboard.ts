@@ -73,6 +73,7 @@ export async function getGrowthGroups(
     .from('growth_groups')
     .select('*')
     .in('id', gcIds)
+    .neq('status', 'inactive')
     .order('name');
 
   if (groupsError) {

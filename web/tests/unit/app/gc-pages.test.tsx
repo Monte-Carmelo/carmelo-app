@@ -49,6 +49,15 @@ const gcs = [
     time: null,
     status: 'multiplying',
   },
+  {
+    id: 'gc-3',
+    name: 'GC Inativo',
+    mode: 'in_person',
+    address: 'Rua Antiga, 99',
+    weekday: 1,
+    time: '20:00',
+    status: 'inactive',
+  },
 ];
 
 const participantsDetailed = [
@@ -127,6 +136,7 @@ function createSupabaseMock() {
               return chainResult([
                 { gc_id: 'gc-1', role: 'leader' },
                 { gc_id: 'gc-2', role: 'member' },
+                { gc_id: 'gc-3', role: 'leader' },
               ]);
             },
           };
@@ -136,7 +146,10 @@ function createSupabaseMock() {
               eq: (_field: string, value: string) => ({
                 single: () => Promise.resolve({ data: gcs.find((gc) => gc.id === value) ?? null }),
               }),
-              in: (_field: string, ids: string[]) => chainResult(gcs.filter((gc) => ids.includes(gc.id))),
+              in: (_field: string, ids: string[]) => ({
+                neq: (_statusField: string, status: string) =>
+                  chainResult(gcs.filter((gc) => ids.includes(gc.id) && gc.status !== status)),
+              }),
               order: () => chainResult(gcs),
             }),
           };
@@ -197,6 +210,7 @@ describe('GC pages', () => {
     expect(meetingLinks[0]).toHaveAttribute('href', '/meetings/new?gcId=gc-1');
 
     expect(screen.getByText('GC Beta')).toBeInTheDocument();
+    expect(screen.queryByText('GC Inativo')).not.toBeInTheDocument();
     expect(redirectMock).not.toHaveBeenCalled();
   });
 

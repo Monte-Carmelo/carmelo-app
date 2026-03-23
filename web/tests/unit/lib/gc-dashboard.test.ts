@@ -8,7 +8,9 @@ function createSupabaseMock() {
         case 'growth_groups':
           return {
             select: () => ({
-              in: () => ({ order: () => Promise.resolve({ data: growthGroups, error: null }) }),
+              in: () => ({
+                neq: () => ({ order: () => Promise.resolve({ data: growthGroups, error: null }) }),
+              }),
             }),
           };
         case 'growth_group_participants':

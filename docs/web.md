@@ -21,7 +21,7 @@ Resumo da arquitetura ativa:
   - `/dashboard` – grid de atalho (GC, lições, participantes, visitantes).
   - `/gc` – lista GCs do usuário (via `growth_group_participants` + contagem de membros/visitantes).
   - `/gc/[id]` – detalhe do GC com liderança, membros, visitantes ativos e histórico recente de reuniões.
-  - `/participants` – lista participantes com filtros (`role`, `status`, `gcId`). Usa `ParticipantList`.
+  - `/participants` – lista participantes com filtros (`role`, `status`, `gcId`) limitada aos GCs ativos gerenciados pelo usuário; membros exigem data de nascimento no cadastro/edição. Usa `ParticipantList`.
   - `/visitors` – lista visitantes com filtros por GC e conversão.
   - `/meetings` – lista reuniões recentes com contagem de presenças; filtro por GC.
   - `/meetings/new` – **MeetingForm** completo (GC pré-selecionado via query opcional) para registrar reunião com lição de catálogo ou título custom, e presenças de membros/visitantes.
@@ -35,7 +35,7 @@ Resumo da arquitetura ativa:
 ## Recursos construídos
 - **Eventos (feature 005)**: tabela `events` + server actions (`createEventAction`, `updateEventAction`, `deleteEventAction`, `listEventsAction`, `getEventAction`) em `src/app/(app)/admin/events/actions.ts`. Usa RLS “admins_manage_all_events” e listagem pública autenticada.
 - **Reuniões**: MeetingForm usa `/api/meetings` e `/api/growth-groups/[gcId]/attendance-options`; aplica validações Zod, pré-carrega GC quando informado e separa estado de carregamento de presença do submit.
-- **Pessoas**: listas unificadas de `growth_group_participants` e `visitors` com filtros e componentes dedicados (`ParticipantList`, `VisitorList`).
+- **Pessoas**: listas unificadas de `growth_group_participants` e `visitors` com filtros e componentes dedicados (`ParticipantList`, `VisitorList`); no fluxo de participantes, a liderança só gerencia GCs ativos do próprio escopo e `birth_date` é obrigatório para membros.
 - **Layout**: `AppShell` com navegação lateral, `Logo`, cabeçalhos e componentes de cartão/badge customizados.
 - **Visitantes**: VisitorForm usa `/api/visitors`; deduplicação de `people` prioriza e-mail e só usa telefone como fallback quando não há e-mail informado.
 

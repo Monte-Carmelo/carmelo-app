@@ -4,7 +4,7 @@ import type { Database } from '@/lib/supabase/types';
 import { createSupabaseServerClient } from '@/lib/supabase/server-client';
 import { getAuthenticatedUser } from '@/lib/supabase/server-auth';
 import { ParticipantList } from '@/components/participants/ParticipantList';
-import { listGrowthGroups, listParticipants } from '@/lib/api/participants';
+import { getParticipantManagementScope, listGrowthGroups, listParticipants } from '@/lib/api/participants';
 import { Loading } from '@/components/ui/spinner';
 
 type SearchParams = {
@@ -21,17 +21,24 @@ async function ParticipantsContent({ searchParams }: { searchParams: SearchParam
   }
 
   const supabase = await createSupabaseServerClient();
+  const scope = await getParticipantManagementScope(supabase, user.id);
+  const groupOptions = await listGrowthGroups(
+    supabase,
+    scope.isAdmin ? undefined : { gcIds: scope.managedGcIds },
+  );
+  const allowedGcIds = groupOptions.map((group) => group.id);
 
-  const [participants, groups] = await Promise.all([
-    listParticipants(supabase, {
+  const participants = await listParticipants(
+    supabase,
+    {
       gcId: searchParams.gcId,
       role: searchParams.role,
       status: searchParams.status,
-    }),
-    listGrowthGroups(supabase),
-  ]);
+    },
+    scope.isAdmin ? undefined : { gcIds: allowedGcIds },
+  );
 
-  return <ParticipantList participants={participants} groups={groups} />;
+  return <ParticipantList participants={participants} groups={groupOptions} />;
 }
 
 export default async function ParticipantsPage({ searchParams }: { searchParams: Promise<SearchParams> }) {

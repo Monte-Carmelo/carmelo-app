@@ -46,15 +46,18 @@ export async function listGrowthGroupAttendanceOptions(
     throw visitorError;
   }
 
-  return {
-    members: (memberRows ?? []).map((row) => ({
+  const members = (memberRows ?? [])
+    .map((row) => ({
       id: row.id,
       name: row.people?.name ?? 'Sem nome',
       role: row.role,
-    })),
-    visitors: (visitorRows ?? []).map((row) => ({
-      id: row.id,
-      name: row.people?.name ?? 'Sem nome',
-    })),
-  };
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
+
+  const visitors = (visitorRows ?? []).map((row) => ({
+    id: row.id,
+    name: row.people?.name ?? 'Sem nome',
+  }));
+
+  return { members, visitors };
 }

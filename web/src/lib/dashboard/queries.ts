@@ -97,9 +97,16 @@ export async function getLeaderDashboardData(
     .from('growth_groups')
     .select('id, name, mode, address, weekday, time, status')
     .in('id', gcIds)
+    .neq('status', 'inactive')
     .order('name', { ascending: true });
 
   if (groupsError || !groupsData) {
+    return getEmptyLeaderDashboardData();
+  }
+
+  const activeGcIds = groupsData.map((group) => group.id);
+
+  if (activeGcIds.length === 0) {
     return getEmptyLeaderDashboardData();
   }
 
@@ -137,7 +144,7 @@ export async function getLeaderDashboardData(
   const { data: metricsRows } = await supabase
     .from('dashboard_metrics')
     .select('meetings_current_month, average_attendance, conversions_30d, conversion_rate_pct')
-    .in('gc_id', gcIds);
+    .in('gc_id', activeGcIds);
 
   const metrics: LeaderDashboardMetrics = {
     meetingsCurrentMonth: (metricsRows ?? []).reduce(
@@ -167,7 +174,7 @@ export async function getLeaderDashboardData(
   const { data: meetingsData } = await supabase
     .from('meetings')
     .select('id, gc_id, lesson_title, datetime, comments, growth_groups(name)')
-    .in('gc_id', gcIds)
+    .in('gc_id', activeGcIds)
     .is('deleted_at', null)
     .gte('datetime', new Date().toISOString())
     .order('datetime', { ascending: true })

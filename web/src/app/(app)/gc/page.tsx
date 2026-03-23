@@ -108,9 +108,30 @@ async function GCListContent() {
     .from('growth_groups')
     .select('*')
     .in('id', gcIds)
+    .neq('status', 'inactive')
     .order('name');
 
   const gcs = groups ?? [];
+
+  if (gcs.length === 0) {
+    return (
+      <section className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-10">
+        <div className="space-y-2">
+          <h1 className="text-3xl font-bold tracking-tight">Meus Grupos de Crescimento</h1>
+          <p className="text-muted-foreground">Gerencie seus GCs, reuniões e membros</p>
+        </div>
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-10">
+            <Users className="mb-4 h-12 w-12 text-muted-foreground" />
+            <CardTitle className="mb-2">Você não possui GCs ativos no momento</CardTitle>
+            <CardDescription>
+              GCs inativos não aparecem nesta área. Procure a administração se isso estiver incorreto.
+            </CardDescription>
+          </CardContent>
+        </Card>
+      </section>
+    );
+  }
 
   // Para cada GC, buscar contagem de membros e visitantes
   const gcsWithCounts: GCData[] = await Promise.all(

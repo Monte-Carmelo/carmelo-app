@@ -161,4 +161,8 @@ cd web && npm run test:e2e:full  # Full desktop Playwright suite
   - Leitura reutilizada entre area publica e admin nao pertence a `app/(app)/admin/**/actions`; mova para `web/src/lib/<dominio>/queries.ts` e deixe as actions do admin restritas a mutacoes ou orquestracao administrativa.
   - Fora de auth e sessao, trate `getSupabaseBrowserClient()` como excecao documentada, nao como caminho padrao para leitura ou escrita de dominio.
   - Ao validar uma build com `next start`, reinicie o servidor standalone depois de cada novo `npm run build`; manter o processo antigo servindo chunks obsoletos causa falhas falsas de hidratacao e erro client-side.
+- 2026-03-22: Regras de participantes e home da lideranca no `web`
+  - Gestao de participantes por lideranca deve sempre restringir leitura e mutacao aos GCs ativos que o usuario realmente lidera ou supervisiona; nao exponha dropdowns, filtros ou edicao fora desse escopo.
+  - No cadastro e na edicao de participantes, `role='member'` exige `people.birth_date`; nao aceite salvar membro sem data de nascimento.
+  - Cards/listas de home e areas de lideranca nao devem exibir GCs com `status='inactive'`; se o usuario so tiver vinculos inativos, a UI deve mostrar estado vazio explicito.
 <!-- MANUAL ADDITIONS END -->

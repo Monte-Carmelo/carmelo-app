@@ -24,9 +24,52 @@ const groups = [
 
 function supabaseMock() {
   return {
-    from: () => ({
-      select: () => ({ order: () => Promise.resolve({ data: groups, error: null }) }),
-    }),
+    from: (table: string) => {
+      switch (table) {
+        case 'users':
+          return {
+            select: () => ({
+              eq: () => ({
+                maybeSingle: () =>
+                  Promise.resolve({
+                    data: { person_id: 'person-1', is_admin: false },
+                    error: null,
+                  }),
+              }),
+            }),
+          };
+        case 'growth_group_participants':
+          return {
+            select: () => {
+              const result = Promise.resolve({ data: [{ gc_id: 'gc-1' }], error: null }) as Promise<unknown> & {
+                eq: ReturnType<typeof vi.fn>;
+                in: ReturnType<typeof vi.fn>;
+                is: ReturnType<typeof vi.fn>;
+              };
+              result.eq = vi.fn(() => result);
+              result.in = vi.fn(() => result);
+              result.is = vi.fn(() => result);
+              return result;
+            },
+          };
+        case 'growth_groups':
+          return {
+            select: () => {
+              const result = Promise.resolve({ data: groups, error: null }) as Promise<unknown> & {
+                in: ReturnType<typeof vi.fn>;
+                neq: ReturnType<typeof vi.fn>;
+                order: ReturnType<typeof vi.fn>;
+              };
+              result.in = vi.fn(() => result);
+              result.neq = vi.fn(() => result);
+              result.order = vi.fn(() => result);
+              return result;
+            },
+          };
+        default:
+          return { select: () => ({ order: () => Promise.resolve({ data: [], error: null }) }) };
+      }
+    },
   } as any;
 }
 

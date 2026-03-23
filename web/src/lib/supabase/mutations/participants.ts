@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '../types';
 import { resolveExistingPersonByContact } from './people';
+import { formatBrazilianPhone } from '@/lib/formatters/phone';
 
 type ParticipantRole = Database['public']['Tables']['growth_group_participants']['Row']['role'];
 type ParticipantStatus = Database['public']['Tables']['growth_group_participants']['Row']['status'];
@@ -10,6 +11,7 @@ export type AddParticipantInput = {
   name: string;
   email?: string | null;
   phone?: string | null;
+  birthDate?: string | null;
   role: ParticipantRole;
   addedByUserId: string;
 };
@@ -27,7 +29,15 @@ export async function addParticipant(
 ): Promise<AddParticipantResult> {
   const trimmedName = input.name.trim();
   const trimmedEmail = input.email?.trim() || null;
-  const trimmedPhone = input.phone?.trim() || null;
+  const trimmedPhone = formatBrazilianPhone(input.phone) || null;
+  const trimmedBirthDate = input.birthDate?.trim() || null;
+
+  if (input.role === 'member' && !trimmedBirthDate) {
+    return {
+      success: false,
+      error: 'Informe a data de nascimento para cadastrar membros.',
+    };
+  }
 
   const personLookup = await resolveExistingPersonByContact(supabase, {
     name: trimmedName,
@@ -51,6 +61,7 @@ export async function addParticipant(
         name: trimmedName,
         email: trimmedEmail,
         phone: trimmedPhone,
+        birth_date: trimmedBirthDate,
       })
       .select('id')
       .single();
@@ -63,6 +74,20 @@ export async function addParticipant(
     }
 
     personId = personData.id;
+  } else if (trimmedBirthDate) {
+    const { error: updateExistingPersonError } = await supabase
+      .from('people')
+      .update({
+        birth_date: trimmedBirthDate,
+      })
+      .eq('id', personId);
+
+    if (updateExistingPersonError) {
+      return {
+        success: false,
+        error: updateExistingPersonError.message,
+      };
+    }
   }
 
   const now = new Date().toISOString();
@@ -107,6 +132,7 @@ export type UpdateParticipantInput = {
   name: string;
   email?: string | null;
   phone?: string | null;
+  birthDate?: string | null;
   role: ParticipantRole;
   status: ParticipantStatus;
 };
@@ -125,12 +151,23 @@ export async function updateParticipant(
   supabase: SupabaseClient<Database>,
   input: UpdateParticipantInput,
 ): Promise<UpdateParticipantResult> {
+  const trimmedBirthDate = input.birthDate?.trim() || null;
+  const trimmedPhone = formatBrazilianPhone(input.phone) || null;
+
+  if (input.role === 'member' && !trimmedBirthDate) {
+    return {
+      success: false,
+      error: 'Informe a data de nascimento para membros.',
+    };
+  }
+
   const { error: personError } = await supabase
     .from('people')
     .update({
       name: input.name.trim(),
       email: input.email?.trim() || null,
-      phone: input.phone?.trim() || null,
+      phone: trimmedPhone,
+      birth_date: trimmedBirthDate,
     })
     .eq('id', input.personId);
 

@@ -223,3 +223,17 @@ Mesmo apos o hardening principal, ainda restavam dois desvios do padrao oficial:
 ### Lasting Impact
 
 Leitura inicial do dashboard autenticado passa a viver em `web/src/lib/dashboard/queries.ts` e a chegar pronta via server component. Consultas de eventos reutilizadas entre admin e area publica passam a viver em `web/src/lib/events/queries.ts`, e `app/(app)/admin/events/actions.ts` fica restrito a acoes administrativas. O browser client do Supabase fica, na pratica, limitado a auth e sessao como caminho canonico.
+
+## 2026-03-22 - Restringir participantes por GC gerenciado e exigir nascimento para membros
+
+### Decision
+
+No `web`, a gestao de participantes passa a considerar apenas GCs ativos realmente gerenciados pelo usuario autenticado (lideranca/supervisao), e o papel `member` exige `birth_date` no cadastro e na edicao.
+
+### Rationale
+
+A tela de participantes estava deixando a UI e as rotas internas exporem grupos e registros fora do escopo esperado da lideranca. Ao mesmo tempo, membros podiam ser salvos sem data de nascimento, deixando um dado basico de cadastro inconsistente.
+
+### Lasting Impact
+
+Paginas, filtros e rotas internas de participantes devem sempre partir do escopo de GCs ativos gerenciados pelo usuario, e estados vazios precisam tratar corretamente vinculos apenas com GCs inativos. Qualquer fluxo futuro que crie ou edite membros no `web` deve coletar `people.birth_date`.

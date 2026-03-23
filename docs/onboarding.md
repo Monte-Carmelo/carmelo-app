@@ -133,6 +133,7 @@ Estes pontos quebram funcionalidades quando ignorados:
 - Em deduplicacao de visitante, e-mail tem prioridade; telefone so entra como fallback quando e-mail nao existe.
 - Inativar usuario encerra seus vinculos ativos com GCs e remove seu acesso no app sem apagar historico.
 - Inativar GC preserva historico, mas ele sai dos fluxos ativos e nao conta mais para papeis derivados.
+- No fluxo web de participantes, lideres e supervisores so gerenciam participantes dos GCs ativos que lideram/supervisionam; membros exigem `birth_date` no cadastro e na edicao.
 
 ## Invariantes de arquitetura
 

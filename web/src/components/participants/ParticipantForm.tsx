@@ -6,19 +6,43 @@ import { useForm } from 'react-hook-form';
 import { useRouter } from 'next/navigation';
 import { z } from 'zod';
 import { ClientFormShell } from '@/components/forms/ClientFormShell';
+import { formatBrazilianPhone } from '@/lib/formatters/phone';
 import type { Database } from '@/lib/supabase/types';
 
 const schema = z
   .object({
-    gcId: z.string({ message: 'Selecione um grupo' }),
-    name: z.string({ message: 'Informe o nome' }).min(3, 'Nome muito curto'),
+    gcId: z.string({ message: 'Selecione um grupo' }).min(1, 'Selecione um grupo'),
+    name: z
+      .string({ message: 'Informe o nome' })
+      .trim()
+      .min(3, 'Nome deve ter pelo menos 3 caracteres'),
     email: z.string().email('E-mail inválido').optional().or(z.literal('')),
     phone: z.string().optional().or(z.literal('')),
-    role: z.enum(['member', 'leader', 'supervisor']),
+    birthDate: z
+      .string()
+      .optional()
+      .or(z.literal(''))
+      .refine((value) => !value || /^\d{4}-\d{2}-\d{2}$/.test(value), 'Data inválida'),
+    role: z.enum(['member', 'leader', 'supervisor'], {
+      message: 'Selecione um papel',
+    }),
   })
-  .refine((value) => value.email?.trim() || value.phone?.trim(), {
-    message: 'Informe e-mail ou telefone',
-    path: ['email'],
+  .superRefine((value, ctx) => {
+    if (!value.email?.trim() && !value.phone?.trim()) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'Informe e-mail ou telefone',
+        path: ['email'],
+      });
+    }
+
+    if (value.role === 'member' && !value.birthDate?.trim()) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'Informe a data de nascimento para membros',
+        path: ['birthDate'],
+      });
+    }
   });
 
 type FormValues = z.infer<typeof schema>;
@@ -47,6 +71,12 @@ export function ParticipantForm({ groups, preselectedGcId }: ParticipantFormProp
     },
   });
 
+  const phoneField = register('phone', {
+    onChange: (event) => {
+      event.target.value = formatBrazilianPhone(event.target.value);
+    },
+  });
+
   const onSubmit = handleSubmit(async (values) => {
     setErrorMessage(null);
     setIsSubmitting(true);
@@ -62,7 +92,8 @@ export function ParticipantForm({ groups, preselectedGcId }: ParticipantFormProp
           gcId: values.gcId,
           name: values.name.trim(),
           email: values.email?.trim() || null,
-          phone: values.phone?.trim() || null,
+          phone: formatBrazilianPhone(values.phone) || null,
+          birthDate: values.birthDate?.trim() || null,
           role: values.role,
         }),
       });
@@ -150,13 +181,27 @@ export function ParticipantForm({ groups, preselectedGcId }: ParticipantFormProp
             Telefone
             <input
               type="tel"
+              inputMode="numeric"
+              autoComplete="tel-national"
+              maxLength={15}
               className="rounded-lg border border-slate-300 px-3 py-2 text-slate-900 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
               placeholder="(11) 98888-8888"
-              {...register('phone')}
+              {...phoneField}
             />
             {errors.phone ? <span className="text-xs text-red-600">{errors.phone.message}</span> : null}
           </label>
         </div>
+
+        <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">
+          Data de nascimento
+          <input
+            type="date"
+            className="rounded-lg border border-slate-300 px-3 py-2 text-slate-900 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
+            {...register('birthDate')}
+          />
+          <span className="text-xs text-slate-500">Obrigatória quando o papel for membro.</span>
+          {errors.birthDate ? <span className="text-xs text-red-600">{errors.birthDate.message}</span> : null}
+        </label>
 
         <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">
           Papel no GC

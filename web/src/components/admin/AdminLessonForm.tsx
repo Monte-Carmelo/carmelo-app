@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { ClientFormShell } from '@/components/forms/ClientFormShell';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -41,6 +42,7 @@ export type LessonFormData = z.infer<typeof lessonSchema>;
 export interface LessonSeries {
   id: string;
   name: string;
+  nextOrderInSeries?: number;
 }
 
 interface AdminLessonFormProps {
@@ -86,6 +88,12 @@ export function AdminLessonForm({
   });
 
   const selectedSeriesId = watch('series_id');
+  const watchedOrderInSeries = watch('order_in_series');
+  const selectedSeries = series.find((item) => item.id === selectedSeriesId);
+  const displayedOrderInSeries =
+    typeof watchedOrderInSeries === 'number' && !Number.isNaN(watchedOrderInSeries)
+      ? watchedOrderInSeries
+      : selectedSeries?.nextOrderInSeries ?? null;
 
   // Handle the "no series" option with a special placeholder value
   const handleSeriesChange = (value: string) => {
@@ -193,6 +201,14 @@ export function AdminLessonForm({
                   ))}
                 </SelectContent>
               </Select>
+              {selectedSeries ? (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Badge variant="secondary">Série: {selectedSeries.name}</Badge>
+                  {displayedOrderInSeries ? (
+                    <Badge variant="outline">Ordem na série: {displayedOrderInSeries}</Badge>
+                  ) : null}
+                </div>
+              ) : null}
               {errors.series_id && (
                 <p className="text-sm text-red-600 mt-1">{errors.series_id.message}</p>
               )}
@@ -214,7 +230,9 @@ export function AdminLessonForm({
                   <p className="text-sm text-red-600 mt-1">{errors.order_in_series.message}</p>
                 )}
                 <p className="text-sm text-slate-500 mt-1">
-                  Posição desta lição dentro da série (pode ser ajustada depois via drag-and-drop)
+                  {displayedOrderInSeries
+                    ? `Posição atual sugerida para esta lição: ${displayedOrderInSeries}.`
+                    : 'Posição desta lição dentro da série (pode ser ajustada depois via drag-and-drop)'}
                 </p>
               </div>
             )}

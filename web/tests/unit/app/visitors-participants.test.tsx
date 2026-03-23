@@ -43,20 +43,56 @@ const supabaseMock = {
           },
         };
       case 'growth_group_participants': {
-        const result = { data: participantRows, error: null };
-        const chain: any = {
-          eq: () => chain,
-          order: () => chain,
-          limit: () => chain,
-          then: (resolve: (value: typeof result) => void) => resolve(result),
-        };
         return {
-          select: () => chain,
+          select: (columns?: string) => {
+            if (columns === 'gc_id') {
+              const scopeResult = { data: [{ gc_id: 'gc-1' }], error: null };
+              const scopeChain: any = {
+                eq: () => scopeChain,
+                in: () => scopeChain,
+                is: () => scopeChain,
+                then: (resolve: (value: typeof scopeResult) => void) => resolve(scopeResult),
+              };
+              return scopeChain;
+            }
+
+            const result = { data: participantRows, error: null };
+            const chain: any = {
+              eq: () => chain,
+              in: () => chain,
+              is: () => chain,
+              neq: () => chain,
+              order: () => chain,
+              limit: () => chain,
+              then: (resolve: (value: typeof result) => void) => resolve(result),
+            };
+            return chain;
+          },
         };
       }
       case 'growth_groups':
         return {
-          select: () => ({ order: () => Promise.resolve({ data: gcRows, error: null }) }),
+          select: () => {
+            const result = { data: gcRows, error: null };
+            const chain: any = {
+              in: () => chain,
+              neq: () => chain,
+              order: () => Promise.resolve(result),
+            };
+            return chain;
+          },
+        };
+      case 'users':
+        return {
+          select: () => ({
+            eq: () => ({
+              maybeSingle: () =>
+                Promise.resolve({
+                  data: { person_id: 'person-1', is_admin: false },
+                  error: null,
+                }),
+            }),
+          }),
         };
       default:
         return { select: () => ({ order: () => Promise.resolve({ data: [], error: null }) }) };

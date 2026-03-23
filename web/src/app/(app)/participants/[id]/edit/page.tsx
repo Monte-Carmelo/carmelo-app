@@ -3,6 +3,7 @@ import { notFound, redirect } from 'next/navigation';
 import { createSupabaseServerClient } from '@/lib/supabase/server-client';
 import { getAuthenticatedUser } from '@/lib/supabase/server-auth';
 import { ParticipantEditForm } from '@/components/participants/ParticipantEditForm';
+import { getParticipantManagementScope, listGrowthGroups } from '@/lib/api/participants';
 
 interface ParticipantEditPageProps {
   params: Promise<{ id: string }>;
@@ -17,14 +18,21 @@ export default async function ParticipantEditPage({ params }: ParticipantEditPag
   }
 
   const supabase = await createSupabaseServerClient();
+  const scope = await getParticipantManagementScope(supabase, user.id);
+  const groups = await listGrowthGroups(
+    supabase,
+    scope.isAdmin ? undefined : { gcIds: scope.managedGcIds },
+  );
+  const allowedGcIds = new Set(groups.map((group) => group.id));
 
   const participantResult = await supabase
     .from('growth_group_participants')
     .select(
       `id, gc_id, role, status,
-       people:people!growth_group_participants_person_id_fkey ( id, name, email, phone )`
+       people:people!growth_group_participants_person_id_fkey ( id, name, email, phone, birth_date )`
     )
     .eq('id', resolvedParams.id)
+    .is('deleted_at', null)
     .single();
 
   if (participantResult.error || !participantResult.data) {
@@ -33,10 +41,9 @@ export default async function ParticipantEditPage({ params }: ParticipantEditPag
 
   const participantRow = participantResult.data;
 
-  const groupsResult = await supabase
-    .from('growth_groups')
-    .select('id, name')
-    .order('name', { ascending: true });
+  if (!allowedGcIds.has(participantRow.gc_id)) {
+    notFound();
+  }
 
   const participant = {
     participantId: participantRow.id,
@@ -47,6 +54,7 @@ export default async function ParticipantEditPage({ params }: ParticipantEditPag
     name: participantRow.people?.name ?? 'Sem nome',
     email: participantRow.people?.email ?? null,
     phone: participantRow.people?.phone ?? null,
+    birthDate: participantRow.people?.birth_date ?? null,
   };
 
   return (
@@ -56,7 +64,7 @@ export default async function ParticipantEditPage({ params }: ParticipantEditPag
           ← Voltar para participantes
         </Link>
       </div>
-      <ParticipantEditForm participant={participant} groups={groupsResult.data ?? []} />
+      <ParticipantEditForm participant={participant} groups={groups} />
     </div>
   );
 }

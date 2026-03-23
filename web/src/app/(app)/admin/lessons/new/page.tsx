@@ -3,6 +3,7 @@ import { createSupabaseServerClient } from '@/lib/supabase/server-client';
 import { Loading } from '@/components/ui/spinner';
 import { createLessonAction } from '../actions';
 import { AdminLessonCreateClient } from './AdminLessonCreateClient';
+import { getNextLessonOrderInSeries, isLessonSeriesActive } from '@/lib/lessons/series';
 
 interface PageProps {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -21,7 +22,7 @@ async function AdminLessonNewContent({ searchParams }: PageProps) {
 
   const { data: series, error } = await supabase
     .from('lesson_series')
-    .select('id, name')
+    .select('*, lessons(order_in_series, deleted_at)')
     .is('deleted_at', null)
     .order('name');
 
@@ -29,7 +30,18 @@ async function AdminLessonNewContent({ searchParams }: PageProps) {
     throw error;
   }
 
-  const matchedSeries = series?.find((item) => item.id === defaultSeriesId);
+  const availableSeries =
+    (series ?? [])
+      .filter((item) => isLessonSeriesActive(item))
+      .map((item) => ({
+        id: item.id,
+        name: item.name,
+        active: 'active' in item ? item.active : undefined,
+        is_active: 'is_active' in item ? item.is_active : undefined,
+        nextOrderInSeries: getNextLessonOrderInSeries(item.lessons),
+      })) ?? [];
+
+  const matchedSeries = availableSeries.find((item) => item.id === defaultSeriesId);
   const resolvedSeriesId = matchedSeries?.id;
   const defaultSeriesName = matchedSeries?.name;
 
@@ -38,7 +50,7 @@ async function AdminLessonNewContent({ searchParams }: PageProps) {
       defaultSeriesId={resolvedSeriesId}
       defaultSeriesName={defaultSeriesName}
       onSubmit={createLessonAction}
-      series={series ?? []}
+      series={availableSeries}
     />
   );
 }

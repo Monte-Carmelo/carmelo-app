@@ -103,6 +103,7 @@ describe('participants mutations', () => {
       name: 'Maria',
       email: 'maria@example.com',
       phone: '(11) 99999-9999',
+      birthDate: '1990-05-10',
       role: 'member',
       addedByUserId: 'user-1',
     });
@@ -126,6 +127,7 @@ describe('participants mutations', () => {
       name: 'Maria',
       email: 'maria@example.com',
       phone: '(11) 90000-0000',
+      birthDate: '1988-02-21',
       role: 'leader',
       addedByUserId: 'user-1',
     });
@@ -151,6 +153,7 @@ describe('participants mutations', () => {
       name: 'Nova Pessoa',
       email: null,
       phone: '(11) 98888-7777',
+      birthDate: '1992-08-12',
       role: 'member',
       addedByUserId: 'user-1',
     });
@@ -163,6 +166,26 @@ describe('participants mutations', () => {
     expect(mock.participantUpsert).not.toHaveBeenCalled();
   });
 
+  it('addParticipant exige data de nascimento para membros', async () => {
+    const mock = createSupabaseMock();
+
+    const result = await addParticipant(mock.supabase, {
+      gcId: 'gc-1',
+      name: 'Maria',
+      email: 'maria@example.com',
+      phone: '(11) 99999-9999',
+      birthDate: null,
+      role: 'member',
+      addedByUserId: 'user-1',
+    });
+
+    expect(result).toEqual({
+      success: false,
+      error: 'Informe a data de nascimento para cadastrar membros.',
+    });
+    expect(mock.peopleInsert).not.toHaveBeenCalled();
+  });
+
   it('updateParticipant atualiza pessoa e vínculo', async () => {
     const mock = createSupabaseMock();
 
@@ -173,6 +196,7 @@ describe('participants mutations', () => {
       name: 'Maria Atualizada',
       email: 'maria@example.com',
       phone: '(11) 98888-7777',
+      birthDate: '1991-01-15',
       role: 'supervisor',
       status: 'inactive',
     });
@@ -192,5 +216,27 @@ describe('participants mutations', () => {
 
     expect(result.success).toBe(true);
     expect(mock.participantUpdateEq).toHaveBeenCalledWith('id', 'participant-1');
+  });
+
+  it('updateParticipant exige data de nascimento quando o papel e membro', async () => {
+    const mock = createSupabaseMock();
+
+    const result = await updateParticipant(mock.supabase, {
+      participantId: 'participant-1',
+      personId: 'person-1',
+      gcId: 'gc-2',
+      name: 'Maria Atualizada',
+      email: 'maria@example.com',
+      phone: '(11) 98888-7777',
+      birthDate: null,
+      role: 'member',
+      status: 'active',
+    });
+
+    expect(result).toEqual({
+      success: false,
+      error: 'Informe a data de nascimento para membros.',
+    });
+    expect(mock.peopleUpdateEq).not.toHaveBeenCalled();
   });
 });

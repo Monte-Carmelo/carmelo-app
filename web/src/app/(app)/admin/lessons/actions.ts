@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { createSupabaseServerClient } from '@/lib/supabase/server-client';
 import type { LessonFormData } from '@/components/admin/AdminLessonForm';
 import { postgresUuid } from '@/lib/validation/postgres-uuid';
+import { isLessonSeriesActive } from '@/lib/lessons/series';
 import { z } from 'zod';
 
 const lessonSchema = z.object({
@@ -34,7 +35,7 @@ function normalizeLessonData(data: LessonFormData) {
 async function loadSeriesOrThrow(supabase: LessonsSupabaseClient, seriesId: string) {
   const { data: series, error } = await supabase
     .from('lesson_series')
-    .select('id')
+    .select('*')
     .eq('id', seriesId)
     .is('deleted_at', null)
     .maybeSingle();
@@ -45,6 +46,10 @@ async function loadSeriesOrThrow(supabase: LessonsSupabaseClient, seriesId: stri
 
   if (!series) {
     throw new Error('Série não encontrada.');
+  }
+
+  if (!isLessonSeriesActive(series)) {
+    throw new Error('Selecione uma série ativa para vincular a lição.');
   }
 
   return series;

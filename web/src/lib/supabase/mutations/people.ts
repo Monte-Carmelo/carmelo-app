@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '../types';
+import { formatBrazilianPhone } from '@/lib/formatters/phone';
 
 type PersonRow = Pick<Database['public']['Tables']['people']['Row'], 'id' | 'name'>;
 type ContactField = 'email' | 'phone';
@@ -98,7 +99,7 @@ export async function resolveExistingPersonByContact(
   input: ResolveExistingPersonInput,
 ): Promise<ResolveExistingPersonResult> {
   const trimmedEmail = input.email?.trim() || null;
-  const trimmedPhone = input.phone?.trim() || null;
+  const trimmedPhone = formatBrazilianPhone(input.phone) || null;
 
   if (trimmedEmail) {
     return resolveByField(supabase, 'email', trimmedEmail, input.name);
