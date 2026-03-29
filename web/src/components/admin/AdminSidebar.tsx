@@ -1,8 +1,9 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Shield, Users, Building, BookOpen, BarChart, Settings, X, Calendar } from 'lucide-react';
+import { Shield, Users, Building, BookOpen, BarChart, Settings, X, Calendar, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 
@@ -57,6 +58,19 @@ const navItems = [
 
 export function AdminSidebar({ onClose }: AdminSidebarProps) {
   const pathname = usePathname();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    try {
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        cache: 'no-store',
+      });
+    } finally {
+      window.location.assign('/login');
+    }
+  };
 
   const isActive = (href: string) => {
     if (href === '/admin') {
@@ -124,7 +138,16 @@ export function AdminSidebar({ onClose }: AdminSidebarProps) {
 
       {/* Footer */}
       <div className="border-t border-slate-200 px-6 py-4">
-        <p className="text-xs text-slate-500">
+        <button
+          type="button"
+          onClick={handleLogout}
+          disabled={isLoggingOut}
+          className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-70"
+        >
+          <LogOut className="h-5 w-5 flex-shrink-0" />
+          <span>{isLoggingOut ? 'Saindo...' : 'Sair'}</span>
+        </button>
+        <p className="mt-2 text-xs text-slate-500">
           Carmelo App Admin
           <br />
           v1.0.0
