@@ -63,12 +63,22 @@ export function AdminSidebar({ onClose }: AdminSidebarProps) {
   const handleLogout = async () => {
     setIsLoggingOut(true);
     try {
-      await fetch('/api/auth/logout', {
+      const response = await fetch('/api/auth/logout', {
         method: 'POST',
         cache: 'no-store',
       });
-    } finally {
-      window.location.assign('/login');
+
+      if (response.ok) {
+        window.location.assign('/login');
+      } else {
+        console.error('Logout failed:', response.status, response.statusText);
+        alert('Erro ao fazer logout. Por favor, tente novamente.');
+        setIsLoggingOut(false);
+      }
+    } catch (error) {
+      console.error('Logout error:', error);
+      alert('Erro ao fazer logout. Por favor, tente novamente.');
+      setIsLoggingOut(false);
     }
   };
 
