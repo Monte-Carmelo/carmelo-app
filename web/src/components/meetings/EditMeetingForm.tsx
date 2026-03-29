@@ -22,10 +22,17 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 
+const meetingStatusOptions = [
+  { value: 'scheduled', label: 'Agendada' },
+  { value: 'completed', label: 'Realizada' },
+  { value: 'cancelled', label: 'Cancelada' },
+] as const;
+
 const schema = z
   .object({
     meetingDate: z.string({ message: 'Informe a data da reunião' }),
     meetingTime: z.string({ message: 'Informe o horário da reunião' }),
+    status: z.enum(['scheduled', 'completed', 'cancelled']),
     lessonType: z.enum(['catalog', 'custom'], { message: 'Escolha o tipo de lição' }),
     lessonTemplateId: z.string().optional(),
     customLessonTitle: z.string().max(255, 'Título muito longo').optional(),
@@ -76,6 +83,7 @@ export function EditMeetingForm({ meeting, lessonTemplates }: EditMeetingFormPro
     defaultValues: {
       meetingDate: defaultDate,
       meetingTime: defaultTime,
+      status: meeting.status ?? 'scheduled',
       lessonType: meeting.lesson_template_id ? 'catalog' : 'custom',
       lessonTemplateId: meeting.lesson_template_id || '',
       customLessonTitle: meeting.lesson_template_id ? '' : meeting.lesson_title || '',
@@ -156,6 +164,7 @@ export function EditMeetingForm({ meeting, lessonTemplates }: EditMeetingFormPro
           lessonTemplateId: values.lessonType === 'catalog' ? values.lessonTemplateId || null : null,
           lessonTitle,
           comments: values.comments?.trim() || null,
+          status: values.status,
           datetime: datetime.toISOString(),
           memberAttendance: values.members.map((member) => member.participantId),
           visitorAttendance: values.visitors.map((visitor) => visitor.visitorId),
@@ -257,6 +266,27 @@ export function EditMeetingForm({ meeting, lessonTemplates }: EditMeetingFormPro
                 <p className="text-sm text-destructive">{form.formState.errors.meetingTime.message}</p>
               )}
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="status">Status</Label>
+            <Select
+              value={form.watch('status')}
+              onValueChange={(value) =>
+                form.setValue('status', value as 'scheduled' | 'completed' | 'cancelled', { shouldValidate: true })
+              }
+            >
+              <SelectTrigger id="status">
+                <SelectValue placeholder="Selecione o status..." />
+              </SelectTrigger>
+              <SelectContent>
+                {meetingStatusOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </CardContent>
       </Card>

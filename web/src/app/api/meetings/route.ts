@@ -12,6 +12,7 @@ const createMeetingSchema = z.object({
   lessonTitle: z.string().trim().min(1).max(255),
   datetime: z.string().datetime(),
   comments: z.string().trim().max(1000).nullable().optional(),
+  status: z.enum(['scheduled', 'completed', 'cancelled']).default('scheduled'),
   memberAttendance: z.array(idSchema).default([]),
   visitorAttendance: z.array(idSchema).default([]),
 });
@@ -43,6 +44,7 @@ export async function POST(request: Request) {
     lessonTitle: parsed.data.lessonTitle,
     datetime: parsed.data.datetime,
     comments: parsed.data.comments ?? null,
+    status: parsed.data.status,
     registeredByUserId: user.id,
     memberAttendance: parsed.data.memberAttendance,
     visitorAttendance: parsed.data.visitorAttendance,

@@ -428,6 +428,7 @@ export type Database = {
           lesson_template_id: string | null
           lesson_title: string
           registered_by_user_id: string
+          status: Database["public"]["Enums"]["meeting_status"]
           updated_at: string
         }
         Insert: {
@@ -440,6 +441,7 @@ export type Database = {
           lesson_template_id?: string | null
           lesson_title: string
           registered_by_user_id: string
+          status?: Database["public"]["Enums"]["meeting_status"]
           updated_at?: string
         }
         Update: {
@@ -452,6 +454,7 @@ export type Database = {
           lesson_template_id?: string | null
           lesson_title?: string
           registered_by_user_id?: string
+          status?: Database["public"]["Enums"]["meeting_status"]
           updated_at?: string
         }
         Relationships: [
@@ -840,7 +843,7 @@ export type Database = {
       }
     }
     Enums: {
-      [_ in never]: never
+      meeting_status: "scheduled" | "completed" | "cancelled"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -970,6 +973,8 @@ export const Constants = {
     Enums: {},
   },
   public: {
-    Enums: {},
+    Enums: {
+      meeting_status: ["scheduled", "completed", "cancelled"],
+    },
   },
 } as const

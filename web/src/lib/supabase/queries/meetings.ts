@@ -1,6 +1,8 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '../types';
 
+export type MeetingStatus = 'scheduled' | 'completed' | 'cancelled';
+
 export type MeetingDetails = {
   id: string;
   gc_id: string;
@@ -8,6 +10,7 @@ export type MeetingDetails = {
   lesson_title: string;
   datetime: string;
   comments: string | null;
+  status: MeetingStatus;
   registered_by_user_id: string;
   growth_groups: {
     id: string;
@@ -55,6 +58,7 @@ export async function getMeetingById(
       lesson_title,
       datetime,
       comments,
+      status,
       registered_by_user_id,
       growth_groups!inner (
         id,

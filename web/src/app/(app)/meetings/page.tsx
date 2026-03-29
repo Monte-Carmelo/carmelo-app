@@ -11,6 +11,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Loading } from '@/components/ui/spinner';
 
+const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
+  scheduled: { label: 'Agendada', className: 'bg-blue-100 text-blue-800 border-blue-200' },
+  completed: { label: 'Realizada', className: 'bg-green-100 text-green-800 border-green-200' },
+  cancelled: { label: 'Cancelada', className: 'bg-red-100 text-red-800 border-red-200' },
+};
+
 type SearchParams = {
   gcId?: string;
 };
@@ -27,11 +33,12 @@ async function MeetingsContent({ searchParams }: { searchParams: SearchParams })
   const meetingsQuery = supabase
     .from('meetings')
     .select(
-      `id, gc_id, datetime, lesson_title, comments,
+      `id, gc_id, datetime, lesson_title, comments, status,
        growth_groups ( name ),
        meeting_member_attendance ( id ),
        meeting_visitor_attendance ( id )`
     )
+    .is('deleted_at', null)
     .order('datetime', { ascending: false })
     .limit(20);
 
@@ -113,6 +120,8 @@ async function MeetingsContent({ searchParams }: { searchParams: SearchParams })
               ? meeting.meeting_visitor_attendance.length
               : 0;
 
+            const statusCfg = STATUS_CONFIG[meeting.status] ?? STATUS_CONFIG.scheduled;
+
             return (
               <Card key={meeting.id}>
                 <CardHeader>
@@ -121,7 +130,12 @@ async function MeetingsContent({ searchParams }: { searchParams: SearchParams })
                       <CardDescription className="mb-1">
                         {meeting.growth_groups?.name ?? 'GC desconhecido'}
                       </CardDescription>
-                      <CardTitle className="text-xl">{meeting.lesson_title}</CardTitle>
+                      <div className="flex items-center gap-2">
+                        <CardTitle className="text-xl">{meeting.lesson_title}</CardTitle>
+                        <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${statusCfg.className}`}>
+                          {statusCfg.label}
+                        </span>
+                      </div>
                       <p className="mt-1 text-xs text-muted-foreground flex items-center gap-1">
                         <Calendar className="h-3 w-3" />
                         {new Date(meeting.datetime).toLocaleString('pt-BR', {

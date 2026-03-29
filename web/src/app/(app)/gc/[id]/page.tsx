@@ -10,6 +10,12 @@ type PageProps = {
   params: Promise<{ id: string }>;
 };
 
+const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
+  scheduled: { label: 'Agendada', className: 'bg-blue-100 text-blue-800 border-blue-200' },
+  completed: { label: 'Realizada', className: 'bg-green-100 text-green-800 border-green-200' },
+  cancelled: { label: 'Cancelada', className: 'bg-red-100 text-red-800 border-red-200' },
+};
+
 const WEEKDAY_NAMES = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
 const MODE_NAMES: Record<string, string> = { in_person: 'Presencial', online: 'Online', hybrid: 'Híbrido' };
 
@@ -38,7 +44,7 @@ export default async function GCDetailPage({ params }: PageProps) {
     supabase
       .from('meetings')
       .select(
-        'id, datetime, lesson_title, comments, meeting_member_attendance ( id ), meeting_visitor_attendance ( id )'
+        'id, datetime, lesson_title, comments, status, meeting_member_attendance ( id ), meeting_visitor_attendance ( id )'
       )
       .eq('gc_id', gcId)
       .order('datetime', { ascending: false })
@@ -233,15 +239,21 @@ export default async function GCDetailPage({ params }: PageProps) {
                 const visitorAttendance = Array.isArray(meeting.meeting_visitor_attendance)
                   ? meeting.meeting_visitor_attendance.length
                   : 0;
+                const statusCfg = STATUS_CONFIG[meeting.status] ?? STATUS_CONFIG.scheduled;
                 return (
                   <Link
                     key={meeting.id}
                     href={`/meetings/${meeting.id}/edit`}
                     className="block rounded-lg border p-3 transition hover:bg-muted/50 hover:border-primary/50"
                   >
-                    <p className="text-sm font-semibold text-foreground">
-                      {meeting.lesson_title || 'Reunião'}
-                    </p>
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-semibold text-foreground">
+                        {meeting.lesson_title || 'Reunião'}
+                      </p>
+                      <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold ${statusCfg.className}`}>
+                        {statusCfg.label}
+                      </span>
+                    </div>
                     <p className="text-xs text-muted-foreground mt-1">
                       {new Date(meeting.datetime).toLocaleString('pt-BR', {
                         day: '2-digit',

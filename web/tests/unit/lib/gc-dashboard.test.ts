@@ -39,7 +39,9 @@ function createSupabaseMock() {
           return {
             select: () => ({
               in: () => ({
-                gte: () => ({ order: () => ({ limit: () => Promise.resolve({ data: meetings, error: null }) }) }),
+                eq: () => ({
+                  gte: () => ({ order: () => ({ limit: () => Promise.resolve({ data: meetings, error: null }) }) }),
+                }),
               }),
             }),
           };
