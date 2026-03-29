@@ -11,7 +11,7 @@ import type {
   AttendanceMemberOption,
   AttendanceVisitorOption,
 } from '@/lib/api/growth-group-attendance';
-import type { MeetingDetails, MeetingStatus } from '@/lib/supabase/queries/meetings';
+import type { MeetingDetails } from '@/lib/supabase/queries/meetings';
 import { translateRole } from '@/lib/role-translations';
 import { ClientFormShell } from '@/components/forms/ClientFormShell';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
