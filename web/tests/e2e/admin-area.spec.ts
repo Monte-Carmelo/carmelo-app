@@ -222,8 +222,11 @@ test.describe('Área Administrativa - Testes Completos', () => {
       await page.getByPlaceholder('Selecione os supervisores').click();
       await page.getByRole('option').first().click();
 
-      // Submit form
-      await page.getByRole('button', { name: 'Criar GC' }).click();
+      // Submit form - use force click to handle devtools overlay on mobile
+      const createButton = page.getByRole('button', { name: 'Criar GC' });
+      await createButton.scrollIntoViewIfNeeded();
+      await page.waitForTimeout(500); // Wait for any overlays to settle
+      await createButton.click({ force: true });
 
       const redirected = await page
         .waitForURL('**/admin/growth-groups', { timeout: 15000 })
@@ -481,11 +484,21 @@ test.describe('Área Administrativa - Testes Completos', () => {
     test('deve fazer logout corretamente', async ({ page }) => {
       await navigateToAdmin(page);
 
-      // Find and click logout button
-      await page.getByRole('button', { name: /sair/i }).click();
+      // Find and click logout button from AdminSidebar
+      const logoutBtn = page.getByTestId('admin-sidebar').getByRole('button', { name: /sair/i });
+      await logoutBtn.click();
 
-      // Should redirect to login
-      await page.waitForURL('**/login', { timeout: 10000 });
+      // Wait for either navigation to login or check if we're already there
+      try {
+        await page.waitForURL('**/login', { timeout: 10000 });
+      } catch {
+        // If waitForURL times out, check current URL and wait a bit more for async navigation
+        await page.waitForTimeout(2000);
+        const currentUrl = page.url();
+        if (!currentUrl.includes('/login')) {
+          throw new Error(`Expected to be on /login but was on ${currentUrl}`);
+        }
+      }
     });
   });
 

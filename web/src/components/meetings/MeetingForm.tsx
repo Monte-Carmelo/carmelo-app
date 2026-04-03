@@ -24,14 +24,22 @@ import { MemberAttendanceList } from '@/components/meetings/attendance/MemberAtt
 import { VisitorAttendanceList } from '@/components/meetings/attendance/VisitorAttendanceList';
 import { LessonSelector } from '@/components/lessons/lesson-selector';
 
+const meetingStatusOptions = [
+  { value: 'scheduled', label: 'Agendada' },
+  { value: 'completed', label: 'Realizada' },
+  { value: 'cancelled', label: 'Cancelada' },
+] as const;
+
 const schema = z
   .object({
     gcId: z.string({ message: 'Selecione um GC' }),
     meetingDate: z.string({ message: 'Informe a data da reunião' }),
     meetingTime: z.string({ message: 'Informe o horário da reunião' }),
+    status: z.enum(['scheduled', 'completed', 'cancelled']),
     lessonType: z.enum(['catalog', 'custom'], { message: 'Escolha o tipo de lição' }),
     lessonTemplateId: z.string().optional(),
     customLessonTitle: z.string().max(255, 'Título muito longo').optional(),
+    taughtBy: z.string().max(255, 'Nome muito longo').optional(),
     comments: z.string().max(1000, 'Texto muito longo').optional(),
     members: z.array(z.object({ participantId: z.string() })),
     visitors: z.array(z.object({ visitorId: z.string() })),
@@ -94,9 +102,11 @@ export function MeetingForm({
       gcId: defaultGcId || '',
       meetingDate: defaultDate || new Date().toISOString().split('T')[0],
       meetingTime: defaultTime || '19:30',
+      status: 'scheduled',
       lessonType: 'catalog',
       lessonTemplateId: '',
       customLessonTitle: '',
+      taughtBy: '',
       members: [],
       visitors: [],
     },
@@ -180,7 +190,9 @@ export function MeetingForm({
           gcId: values.gcId,
           lessonTemplateId: values.lessonType === 'catalog' ? values.lessonTemplateId || null : null,
           lessonTitle,
+          taughtBy: values.taughtBy?.trim() || null,
           comments: values.comments?.trim() || null,
+          status: values.status,
           datetime: datetime.toISOString(),
           memberAttendance: values.members.map((member) => member.participantId),
           visitorAttendance: values.visitors.map((visitor) => visitor.visitorId),
@@ -324,6 +336,27 @@ export function MeetingForm({
               )}
             </div>
           </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="status">Status</Label>
+            <Select
+              value={form.watch('status')}
+              onValueChange={(value) =>
+                form.setValue('status', value as 'scheduled' | 'completed' | 'cancelled', { shouldValidate: true })
+              }
+            >
+              <SelectTrigger id="status">
+                <SelectValue placeholder="Selecione o status..." />
+              </SelectTrigger>
+              <SelectContent>
+                {meetingStatusOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </CardContent>
       </Card>
 
@@ -358,6 +391,16 @@ export function MeetingForm({
               form.setValue('customLessonTitle', value, { shouldValidate: true })
             }
           />
+
+          <div className="space-y-2">
+            <Label htmlFor="taughtBy">Ministrado por (opcional)</Label>
+            <Input
+              id="taughtBy"
+              type="text"
+              placeholder="Nome de quem ministrou a reunião"
+              {...form.register('taughtBy')}
+            />
+          </div>
 
           <div className="space-y-2">
             <Label htmlFor="comments">Comentários (opcional)</Label>

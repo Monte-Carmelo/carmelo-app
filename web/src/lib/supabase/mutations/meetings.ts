@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '../types';
+import type { MeetingStatus } from '../queries/meetings';
 
 export type CreateMeetingInput = {
   gcId: string;
@@ -7,6 +8,8 @@ export type CreateMeetingInput = {
   lessonTitle: string;
   datetime: string;
   comments?: string | null;
+  status?: MeetingStatus;
+  taughtBy?: string | null;
   registeredByUserId: string;
   memberAttendance?: string[]; // participant_ids
   visitorAttendance?: string[]; // visitor_ids
@@ -34,6 +37,8 @@ export async function createMeeting(
       lesson_title: input.lessonTitle,
       datetime: input.datetime,
       comments: input.comments || null,
+      status: input.status ?? 'scheduled',
+      taught_by: input.taughtBy || null,
       registered_by_user_id: input.registeredByUserId,
     })
     .select('id')
@@ -92,6 +97,8 @@ export type UpdateMeetingInput = {
   lessonTitle?: string;
   datetime?: string;
   comments?: string | null;
+  status?: MeetingStatus;
+  taughtBy?: string | null;
 };
 
 export type UpdateMeetingResult = {
@@ -119,6 +126,12 @@ export async function updateMeeting(
   }
   if (input.comments !== undefined) {
     updateData.comments = input.comments;
+  }
+  if (input.status !== undefined) {
+    updateData.status = input.status;
+  }
+  if (input.taughtBy !== undefined) {
+    updateData.taught_by = input.taughtBy;
   }
 
   const { error } = await supabase

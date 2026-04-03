@@ -12,6 +12,8 @@ const updateMeetingSchema = z.object({
   lessonTitle: z.string().trim().min(1).max(255),
   datetime: z.string().datetime(),
   comments: z.string().trim().max(1000).nullable().optional(),
+  status: z.enum(['scheduled', 'completed', 'cancelled']).optional(),
+  taughtBy: z.string().trim().max(255).nullable().optional(),
   memberAttendance: z.array(idSchema).default([]),
   visitorAttendance: z.array(idSchema).default([]),
 });
@@ -57,6 +59,8 @@ export async function PATCH(
     lessonTitle: parsed.data.lessonTitle,
     datetime: parsed.data.datetime,
     comments: parsed.data.comments ?? null,
+    status: parsed.data.status,
+    taughtBy: parsed.data.taughtBy ?? null,
     memberAttendance: parsed.data.memberAttendance,
     visitorAttendance: parsed.data.visitorAttendance,
   });

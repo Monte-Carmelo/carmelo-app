@@ -127,6 +127,7 @@ export async function getUpcomingMeetings(
     .from('meetings')
     .select('id, gc_id, lesson_title, datetime, comments, growth_groups(name)')
     .in('gc_id', gcIds)
+    .eq('status', 'scheduled')
     .gte('datetime', new Date().toISOString())
     .order('datetime', { ascending: true })
     .limit(10);
