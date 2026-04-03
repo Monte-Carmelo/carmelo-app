@@ -2,6 +2,7 @@
 
 import { useSession } from '@/lib/auth/session-context';
 import { Header } from './Header';
+import { BottomNav } from './BottomNav';
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { user, roles } = useSession();
@@ -19,7 +20,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         userEmail={user.email}
         roleBadges={roleBadges}
       />
-      <main className="flex-1">{children}</main>
+      <main className="flex-1 pb-16 md:pb-0">{children}</main>
+      <BottomNav />
     </div>
   );
 }
