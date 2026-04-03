@@ -20,7 +20,7 @@ async function MeetingDetailContent({ id }: { id: string }) {
   const { data: meeting, error } = await supabase
     .from('meetings')
     .select(
-      `id, datetime, lesson_title, comments,
+      `id, datetime, lesson_title, comments, taught_by,
        growth_groups ( id, name ),
        meeting_member_attendance (
          participant_id,
@@ -73,6 +73,9 @@ async function MeetingDetailContent({ id }: { id: string }) {
         </div>
         <h1 className="text-3xl font-semibold text-slate-900">{meeting.lesson_title}</h1>
         <p className="text-sm text-slate-600">{dateLabel}</p>
+        {meeting.taught_by ? (
+          <p className="text-sm text-slate-600">Ministrado por: {meeting.taught_by}</p>
+        ) : null}
       </header>
 
       {meeting.comments ? (

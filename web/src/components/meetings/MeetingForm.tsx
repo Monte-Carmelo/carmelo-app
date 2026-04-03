@@ -39,6 +39,7 @@ const schema = z
     lessonType: z.enum(['catalog', 'custom'], { message: 'Escolha o tipo de lição' }),
     lessonTemplateId: z.string().optional(),
     customLessonTitle: z.string().max(255, 'Título muito longo').optional(),
+    taughtBy: z.string().max(255, 'Nome muito longo').optional(),
     comments: z.string().max(1000, 'Texto muito longo').optional(),
     members: z.array(z.object({ participantId: z.string() })),
     visitors: z.array(z.object({ visitorId: z.string() })),
@@ -105,6 +106,7 @@ export function MeetingForm({
       lessonType: 'catalog',
       lessonTemplateId: '',
       customLessonTitle: '',
+      taughtBy: '',
       members: [],
       visitors: [],
     },
@@ -188,6 +190,7 @@ export function MeetingForm({
           gcId: values.gcId,
           lessonTemplateId: values.lessonType === 'catalog' ? values.lessonTemplateId || null : null,
           lessonTitle,
+          taughtBy: values.taughtBy?.trim() || null,
           comments: values.comments?.trim() || null,
           status: values.status,
           datetime: datetime.toISOString(),
@@ -388,6 +391,16 @@ export function MeetingForm({
               form.setValue('customLessonTitle', value, { shouldValidate: true })
             }
           />
+
+          <div className="space-y-2">
+            <Label htmlFor="taughtBy">Ministrado por (opcional)</Label>
+            <Input
+              id="taughtBy"
+              type="text"
+              placeholder="Nome de quem ministrou a reunião"
+              {...form.register('taughtBy')}
+            />
+          </div>
 
           <div className="space-y-2">
             <Label htmlFor="comments">Comentários (opcional)</Label>

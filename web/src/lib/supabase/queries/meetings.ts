@@ -11,6 +11,7 @@ export type MeetingDetails = {
   datetime: string;
   comments: string | null;
   status: MeetingStatus;
+  taught_by: string | null;
   registered_by_user_id: string;
   growth_groups: {
     id: string;
@@ -59,6 +60,7 @@ export async function getMeetingById(
       datetime,
       comments,
       status,
+      taught_by,
       registered_by_user_id,
       growth_groups!inner (
         id,

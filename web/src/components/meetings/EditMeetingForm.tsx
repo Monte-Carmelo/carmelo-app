@@ -36,6 +36,7 @@ const schema = z
     lessonType: z.enum(['catalog', 'custom'], { message: 'Escolha o tipo de lição' }),
     lessonTemplateId: z.string().optional(),
     customLessonTitle: z.string().max(255, 'Título muito longo').optional(),
+    taughtBy: z.string().max(255, 'Nome muito longo').optional(),
     comments: z.string().max(1000, 'Texto muito longo').optional(),
     members: z.array(z.object({ participantId: z.string() })),
     visitors: z.array(z.object({ visitorId: z.string() })),
@@ -87,6 +88,7 @@ export function EditMeetingForm({ meeting, lessonTemplates }: EditMeetingFormPro
       lessonType: meeting.lesson_template_id ? 'catalog' : 'custom',
       lessonTemplateId: meeting.lesson_template_id || '',
       customLessonTitle: meeting.lesson_template_id ? '' : meeting.lesson_title || '',
+      taughtBy: meeting.taught_by || '',
       comments: meeting.comments || '',
       members: meeting.meeting_member_attendance.map((att) => ({
         participantId: att.participant_id,
@@ -163,6 +165,7 @@ export function EditMeetingForm({ meeting, lessonTemplates }: EditMeetingFormPro
           meetingId: meeting.id,
           lessonTemplateId: values.lessonType === 'catalog' ? values.lessonTemplateId || null : null,
           lessonTitle,
+          taughtBy: values.taughtBy?.trim() || null,
           comments: values.comments?.trim() || null,
           status: values.status,
           datetime: datetime.toISOString(),
@@ -425,6 +428,16 @@ export function EditMeetingForm({ meeting, lessonTemplates }: EditMeetingFormPro
               )}
             </div>
           )}
+
+          <div className="space-y-2">
+            <Label htmlFor="taughtBy">Ministrado por (opcional)</Label>
+            <Input
+              id="taughtBy"
+              type="text"
+              placeholder="Nome de quem ministrou a reunião"
+              {...form.register('taughtBy')}
+            />
+          </div>
 
           <div className="space-y-2">
             <Label htmlFor="comments">Comentários (opcional)</Label>

@@ -9,6 +9,7 @@ export type CreateMeetingInput = {
   datetime: string;
   comments?: string | null;
   status?: MeetingStatus;
+  taughtBy?: string | null;
   registeredByUserId: string;
   memberAttendance?: string[]; // participant_ids
   visitorAttendance?: string[]; // visitor_ids
@@ -37,6 +38,7 @@ export async function createMeeting(
       datetime: input.datetime,
       comments: input.comments || null,
       status: input.status ?? 'scheduled',
+      taught_by: input.taughtBy || null,
       registered_by_user_id: input.registeredByUserId,
     })
     .select('id')
@@ -96,6 +98,7 @@ export type UpdateMeetingInput = {
   datetime?: string;
   comments?: string | null;
   status?: MeetingStatus;
+  taughtBy?: string | null;
 };
 
 export type UpdateMeetingResult = {
@@ -126,6 +129,9 @@ export async function updateMeeting(
   }
   if (input.status !== undefined) {
     updateData.status = input.status;
+  }
+  if (input.taughtBy !== undefined) {
+    updateData.taught_by = input.taughtBy;
   }
 
   const { error } = await supabase
