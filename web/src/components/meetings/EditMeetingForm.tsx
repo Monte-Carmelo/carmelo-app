@@ -2,17 +2,16 @@
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { z } from 'zod';
-import { Calendar, FileText, Users, UserCheck, Trash2 } from 'lucide-react';
+import { Calendar, FileText, UserCheck, Trash2, AlertCircle } from 'lucide-react';
 import type { Database } from '@/lib/supabase/types';
 import type {
   AttendanceMemberOption,
   AttendanceVisitorOption,
 } from '@/lib/api/growth-group-attendance';
 import type { MeetingDetails } from '@/lib/supabase/queries/meetings';
-import { translateRole } from '@/lib/role-translations';
 import { ClientFormShell } from '@/components/forms/ClientFormShell';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -20,7 +19,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
+import { MemberAttendanceList } from '@/components/meetings/attendance/MemberAttendanceList';
+import { VisitorAttendanceList } from '@/components/meetings/attendance/VisitorAttendanceList';
 
 const meetingStatusOptions = [
   { value: 'scheduled', label: 'Agendada' },
@@ -73,6 +73,7 @@ export function EditMeetingForm({ meeting, lessonTemplates }: EditMeetingFormPro
   const [visitors, setVisitors] = useState<AttendanceVisitorOption[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const errorRef = useRef<HTMLDivElement>(null);
 
   // Extrair data e hora da datetime ISO
   const datetime = new Date(meeting.datetime);
@@ -123,7 +124,7 @@ export function EditMeetingForm({ meeting, lessonTemplates }: EditMeetingFormPro
       setParticipants(payload.members ?? []);
       setVisitors(payload.visitors ?? []);
     } catch (error) {
-      setErrorMessage(
+      showError(
         error instanceof Error
           ? error.message
           : 'Falha ao carregar participantes e visitantes.',
@@ -133,12 +134,16 @@ export function EditMeetingForm({ meeting, lessonTemplates }: EditMeetingFormPro
     }
   };
 
+  const showError = (msg: string) => {
+    setErrorMessage(msg);
+    setTimeout(() => errorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 50);
+  };
+
   const handleSubmit = form.handleSubmit(async (values) => {
     setErrorMessage(null);
     setIsLoading(true);
     let isSuccess = false;
 
-    // Determinar o título da lição baseado no tipo selecionado
     let lessonTitle: string;
     if (values.lessonType === 'custom') {
       lessonTitle = values.customLessonTitle?.trim() || '';
@@ -146,21 +151,18 @@ export function EditMeetingForm({ meeting, lessonTemplates }: EditMeetingFormPro
       lessonTitle = lessonTemplates.find((lesson) => lesson.id === values.lessonTemplateId)?.title || '';
     }
 
-    // Validação adicional (não deveria acontecer devido ao Zod)
     if (!lessonTitle) {
-      setErrorMessage('Por favor, selecione uma lição ou informe um título personalizado');
+      showError('Por favor, selecione uma lição ou informe um título personalizado');
       setIsLoading(false);
       return;
     }
 
-    const datetime = new Date(`${values.meetingDate}T${values.meetingTime}:00`);
+    const dt = new Date(`${values.meetingDate}T${values.meetingTime}:00`);
 
     try {
       const response = await fetch(`/api/meetings/${meeting.id}`, {
         method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           meetingId: meeting.id,
           lessonTemplateId: values.lessonType === 'catalog' ? values.lessonTemplateId || null : null,
@@ -168,7 +170,7 @@ export function EditMeetingForm({ meeting, lessonTemplates }: EditMeetingFormPro
           taughtBy: values.taughtBy?.trim() || null,
           comments: values.comments?.trim() || null,
           status: values.status,
-          datetime: datetime.toISOString(),
+          datetime: dt.toISOString(),
           memberAttendance: values.members.map((member) => member.participantId),
           visitorAttendance: values.visitors.map((visitor) => visitor.visitorId),
         }),
@@ -176,14 +178,14 @@ export function EditMeetingForm({ meeting, lessonTemplates }: EditMeetingFormPro
       const result = await response.json();
 
       if (!response.ok || !result.success) {
-        setErrorMessage(result.error ?? 'Falha ao atualizar reunião');
+        showError(result.error ?? 'Falha ao atualizar reunião');
         return;
       }
 
       isSuccess = true;
       window.location.assign(`/gc/${meeting.gc_id}`);
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : 'Falha ao atualizar reunião');
+      showError(error instanceof Error ? error.message : 'Falha ao atualizar reunião');
     } finally {
       if (!isSuccess) {
         setIsLoading(false);
@@ -198,23 +200,60 @@ export function EditMeetingForm({ meeting, lessonTemplates }: EditMeetingFormPro
 
     setIsLoading(true);
     try {
-      const response = await fetch(`/api/meetings/${meeting.id}`, {
-        method: 'DELETE',
-      });
+      const response = await fetch(`/api/meetings/${meeting.id}`, { method: 'DELETE' });
       const result = await response.json();
 
       if (!response.ok || !result.success) {
-        setErrorMessage(result.error ?? 'Falha ao excluir reunião');
+        showError(result.error ?? 'Falha ao excluir reunião');
         setIsLoading(false);
         return;
       }
 
       window.location.assign(`/gc/${meeting.gc_id}`);
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : 'Falha ao excluir reunião');
+      showError(error instanceof Error ? error.message : 'Falha ao excluir reunião');
       setIsLoading(false);
     }
   };
+
+  const selectedMemberIds = form.watch('members').map((item) => item.participantId);
+  const selectedVisitorIds = form.watch('visitors').map((item) => item.visitorId);
+
+  const toggleMemberSelection = (memberId: string, checked: boolean) => {
+    if (checked) {
+      membersFieldArray.append({ participantId: memberId });
+    } else {
+      const index = form.getValues('members').findIndex((item) => item.participantId === memberId);
+      if (index >= 0) membersFieldArray.remove(index);
+    }
+  };
+
+  const toggleVisitorSelection = (visitorId: string, checked: boolean) => {
+    if (checked) {
+      visitorsFieldArray.append({ visitorId });
+    } else {
+      const index = form.getValues('visitors').findIndex((item) => item.visitorId === visitorId);
+      if (index >= 0) visitorsFieldArray.remove(index);
+    }
+  };
+
+  const selectAllMembers = () => {
+    const currentIds = new Set(form.getValues('members').map((m) => m.participantId));
+    for (const p of participants) {
+      if (!currentIds.has(p.id)) membersFieldArray.append({ participantId: p.id });
+    }
+  };
+
+  const deselectAllMembers = () => { form.setValue('members', []); };
+
+  const selectAllVisitors = () => {
+    const currentIds = new Set(form.getValues('visitors').map((v) => v.visitorId));
+    for (const v of visitors) {
+      if (!currentIds.has(v.id)) visitorsFieldArray.append({ visitorId: v.id });
+    }
+  };
+
+  const deselectAllVisitors = () => { form.setValue('visitors', []); };
 
   return (
     <ClientFormShell
@@ -228,6 +267,16 @@ export function EditMeetingForm({ meeting, lessonTemplates }: EditMeetingFormPro
           Atualize as informações da reunião, lição e presença de membros e visitantes.
         </p>
       </div>
+
+      {errorMessage && (
+        <div
+          ref={errorRef}
+          className="flex items-start gap-2 rounded-lg border border-destructive bg-destructive/10 p-3"
+        >
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
+          <p className="text-sm text-destructive">{errorMessage}</p>
+        </div>
+      )}
 
       <Card>
         <CardHeader>
@@ -303,11 +352,9 @@ export function EditMeetingForm({ meeting, lessonTemplates }: EditMeetingFormPro
           <CardDescription>Escolha uma lição do catálogo ou crie um título personalizado</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Seletor de tipo de lição */}
           <div className="space-y-3">
             <Label>Tipo de lição</Label>
             <div className="grid gap-3 md:grid-cols-2">
-              {/* Opção: Lição do Catálogo */}
               <button
                 type="button"
                 onClick={() => {
@@ -341,7 +388,6 @@ export function EditMeetingForm({ meeting, lessonTemplates }: EditMeetingFormPro
                 </p>
               </button>
 
-              {/* Opção: Título Personalizado */}
               <button
                 type="button"
                 onClick={() => {
@@ -377,7 +423,6 @@ export function EditMeetingForm({ meeting, lessonTemplates }: EditMeetingFormPro
             </div>
           </div>
 
-          {/* Campo condicional: Lição do Catálogo */}
           {form.watch('lessonType') === 'catalog' && (
             <div className="space-y-2">
               <Label htmlFor="lessonTemplateId">
@@ -406,7 +451,6 @@ export function EditMeetingForm({ meeting, lessonTemplates }: EditMeetingFormPro
             </div>
           )}
 
-          {/* Campo condicional: Título Personalizado */}
           {form.watch('lessonType') === 'custom' && (
             <div className="space-y-2">
               <Label htmlFor="customLessonTitle">
@@ -460,108 +504,23 @@ export function EditMeetingForm({ meeting, lessonTemplates }: EditMeetingFormPro
           <CardDescription>Marque os membros e visitantes presentes na reunião</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="space-y-3">
-            <h3 className="flex items-center gap-2 text-sm font-semibold">
-              <Users className="h-4 w-4" />
-              Membros
-            </h3>
-            <div className="space-y-2">
-              {participants.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  Nenhum membro ativo encontrado neste GC.
-                </p>
-              ) : (
-                participants.map((participant) => {
-                  const isChecked = form
-                    .watch('members')
-                    .some((item) => item.participantId === participant.id);
+          <MemberAttendanceList
+            members={participants}
+            selectedMemberIds={selectedMemberIds}
+            onToggle={toggleMemberSelection}
+            onSelectAll={selectAllMembers}
+            onDeselectAll={deselectAllMembers}
+          />
 
-                  return (
-                    <div key={participant.id} className="flex items-center space-x-2 rounded-lg border p-3">
-                      <Checkbox
-                        id={`member-${participant.id}`}
-                        checked={isChecked}
-                        onCheckedChange={(checked) => {
-                          if (checked) {
-                            membersFieldArray.append({ participantId: participant.id });
-                          } else {
-                            const index = form
-                              .watch('members')
-                              .findIndex((item) => item.participantId === participant.id);
-                            if (index >= 0) membersFieldArray.remove(index);
-                          }
-                        }}
-                      />
-                      <label
-                        htmlFor={`member-${participant.id}`}
-                        className="flex-1 cursor-pointer text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                      >
-                        {participant.name}
-                        <span className="ml-2 text-xs tracking-wide text-muted-foreground">
-                          {translateRole(participant.role)}
-                        </span>
-                      </label>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          </div>
-
-          <div className="space-y-3">
-            <h3 className="flex items-center gap-2 text-sm font-semibold">
-              <Users className="h-4 w-4" />
-              Visitantes
-            </h3>
-            <div className="space-y-2">
-              {visitors.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  Nenhum visitante ativo encontrado; visitantes podem ser cadastrados na área de pessoas.
-                </p>
-              ) : (
-                visitors.map((visitor) => {
-                  const isChecked = form
-                    .watch('visitors')
-                    .some((item) => item.visitorId === visitor.id);
-
-                  return (
-                    <div key={visitor.id} className="flex items-center space-x-2 rounded-lg border p-3">
-                      <Checkbox
-                        id={`visitor-${visitor.id}`}
-                        checked={isChecked}
-                        onCheckedChange={(checked) => {
-                          if (checked) {
-                            visitorsFieldArray.append({ visitorId: visitor.id });
-                          } else {
-                            const index = form
-                              .watch('visitors')
-                              .findIndex((item) => item.visitorId === visitor.id);
-                            if (index >= 0) visitorsFieldArray.remove(index);
-                          }
-                        }}
-                      />
-                      <label
-                        htmlFor={`visitor-${visitor.id}`}
-                        className="flex-1 cursor-pointer text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                      >
-                        {visitor.name}
-                      </label>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          </div>
+          <VisitorAttendanceList
+            visitors={visitors}
+            selectedVisitorIds={selectedVisitorIds}
+            onToggle={toggleVisitorSelection}
+            onSelectAll={selectAllVisitors}
+            onDeselectAll={deselectAllVisitors}
+          />
         </CardContent>
       </Card>
-
-      {errorMessage && (
-        <Card className="border-destructive">
-          <CardContent className="pt-6">
-            <p className="text-sm text-destructive">{errorMessage}</p>
-          </CardContent>
-        </Card>
-      )}
 
       <div className="flex items-center justify-between gap-3">
         <Button type="button" variant="destructive" onClick={handleDelete} disabled={isLoading}>

@@ -2,6 +2,7 @@
 
 import { Users } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Button } from '@/components/ui/button';
 import { translateRole } from '@/lib/role-translations';
 import type { Database } from '@/lib/supabase/types';
 
@@ -15,19 +16,45 @@ interface MemberAttendanceListProps {
   members: Member[];
   selectedMemberIds: string[];
   onToggle: (memberId: string, checked: boolean) => void;
+  onSelectAll?: () => void;
+  onDeselectAll?: () => void;
 }
 
 export function MemberAttendanceList({
   members,
   selectedMemberIds,
   onToggle,
+  onSelectAll,
+  onDeselectAll,
 }: MemberAttendanceListProps) {
+  const selectedCount = selectedMemberIds.length;
+  const totalCount = members.length;
+  const allSelected = totalCount > 0 && selectedCount === totalCount;
+
   return (
     <div className="space-y-3">
-      <h3 className="flex items-center gap-2 text-sm font-semibold">
-        <Users className="h-4 w-4" />
-        Membros
-      </h3>
+      <div className="flex items-center justify-between">
+        <h3 className="flex items-center gap-2 text-sm font-semibold">
+          <Users className="h-4 w-4" />
+          Membros
+          {totalCount > 0 && (
+            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-normal text-slate-600">
+              {selectedCount} de {totalCount}
+            </span>
+          )}
+        </h3>
+        {totalCount > 0 && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-auto px-2 py-1 text-xs"
+            onClick={allSelected ? onDeselectAll : onSelectAll}
+          >
+            {allSelected ? 'Desmarcar todos' : 'Marcar todos'}
+          </Button>
+        )}
+      </div>
       <div className="space-y-2">
         {members.length === 0 ? (
           <p className="text-sm text-muted-foreground">

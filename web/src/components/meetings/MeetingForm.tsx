@@ -3,10 +3,10 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { z } from 'zod';
-import { Calendar, FileText, UserCheck } from 'lucide-react';
+import { Calendar, FileText, UserCheck, AlertCircle } from 'lucide-react';
 import type { LessonTemplate } from '@/lib/api/lessons';
 import type {
   AttendanceMemberOption,
@@ -95,6 +95,7 @@ export function MeetingForm({
   const [isFetchingAttendance, setIsFetchingAttendance] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const errorRef = useRef<HTMLDivElement>(null);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -173,7 +174,7 @@ export function MeetingForm({
 
     // Validação adicional (não deveria acontecer devido ao Zod)
     if (!lessonTitle) {
-      setErrorMessage('Por favor, selecione uma lição ou informe um título personalizado');
+      showError('Por favor, selecione uma lição ou informe um título personalizado');
       setIsSubmitting(false);
       return;
     }
@@ -201,7 +202,7 @@ export function MeetingForm({
       const result = await response.json();
 
       if (!response.ok || !result.success) {
-        setErrorMessage(result.error ?? 'Falha ao criar reunião');
+        showError(result.error ?? 'Falha ao criar reunião');
         return;
       }
 
@@ -214,7 +215,7 @@ export function MeetingForm({
       isSuccess = true;
       window.location.assign(`/gc/${values.gcId}`);
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : 'Falha ao criar reunião');
+      showError(error instanceof Error ? error.message : 'Falha ao criar reunião');
     } finally {
       if (!isSuccess) {
         setIsSubmitting(false);
@@ -249,6 +250,37 @@ export function MeetingForm({
     }
   };
 
+  const selectAllMembers = () => {
+    const currentIds = new Set(form.getValues('members').map((m) => m.participantId));
+    for (const p of participants) {
+      if (!currentIds.has(p.id)) {
+        membersFieldArray.append({ participantId: p.id });
+      }
+    }
+  };
+
+  const deselectAllMembers = () => {
+    form.setValue('members', []);
+  };
+
+  const selectAllVisitors = () => {
+    const currentIds = new Set(form.getValues('visitors').map((v) => v.visitorId));
+    for (const v of visitors) {
+      if (!currentIds.has(v.id)) {
+        visitorsFieldArray.append({ visitorId: v.id });
+      }
+    }
+  };
+
+  const deselectAllVisitors = () => {
+    form.setValue('visitors', []);
+  };
+
+  const showError = (msg: string) => {
+    setErrorMessage(msg);
+    setTimeout(() => errorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 50);
+  };
+
   return (
     <ClientFormShell
       onSubmit={handleSubmit}
@@ -261,6 +293,16 @@ export function MeetingForm({
           Selecione o grupo, configure a lição e marque presenças de membros e visitantes.
         </p>
       </div>
+
+      {errorMessage && (
+        <div
+          ref={errorRef}
+          className="flex items-start gap-2 rounded-lg border border-destructive bg-destructive/10 p-3"
+        >
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
+          <p className="text-sm text-destructive">{errorMessage}</p>
+        </div>
+      )}
 
       <Card>
         <CardHeader>
@@ -427,23 +469,19 @@ export function MeetingForm({
             members={participants}
             selectedMemberIds={selectedMemberIds}
             onToggle={toggleMemberSelection}
+            onSelectAll={selectAllMembers}
+            onDeselectAll={deselectAllMembers}
           />
 
           <VisitorAttendanceList
             visitors={visitors}
             selectedVisitorIds={selectedVisitorIds}
             onToggle={toggleVisitorSelection}
+            onSelectAll={selectAllVisitors}
+            onDeselectAll={deselectAllVisitors}
           />
         </CardContent>
       </Card>
-
-      {errorMessage && (
-        <Card className="border-destructive">
-          <CardContent className="pt-6">
-            <p className="text-sm text-destructive">{errorMessage}</p>
-          </CardContent>
-        </Card>
-      )}
 
       <div className="flex items-center justify-end gap-3">
         <Button
