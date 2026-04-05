@@ -47,11 +47,24 @@ export async function getRecentSeriesWithLessons(
   supabase: SupabaseClient<Database>,
   limit = 2,
 ): Promise<SeriesWithLessons[]> {
-  const { data: series, error: seriesError } = await supabase
+  return getAllSeriesWithLessons(supabase, limit);
+}
+
+export async function getAllSeriesWithLessons(
+  supabase: SupabaseClient<Database>,
+  limit?: number,
+): Promise<SeriesWithLessons[]> {
+  let query = supabase
     .from('lesson_series')
     .select('*')
-    .order('created_at', { ascending: false })
-    .limit(limit);
+    .is('deleted_at', null)
+    .order('created_at', { ascending: false });
+
+  if (limit) {
+    query = query.limit(limit);
+  }
+
+  const { data: series, error: seriesError } = await query;
 
   if (seriesError) {
     throw seriesError;
@@ -64,6 +77,7 @@ export async function getRecentSeriesWithLessons(
       .from('lessons')
       .select('*')
       .eq('series_id', item.id)
+      .is('deleted_at', null)
       .order('order_in_series', { ascending: true, nullsFirst: false });
 
     if (lessonsError) {
@@ -77,4 +91,22 @@ export async function getRecentSeriesWithLessons(
   }
 
   return seriesWithLessons;
+}
+
+export async function getLessonById(
+  supabase: SupabaseClient<Database>,
+  lessonId: string,
+): Promise<(LessonItem & { series: LessonSeriesItem | null }) | null> {
+  const { data, error } = await supabase
+    .from('lessons')
+    .select('*, series:lesson_series(*)')
+    .eq('id', lessonId)
+    .is('deleted_at', null)
+    .single();
+
+  if (error || !data) {
+    return null;
+  }
+
+  return data as LessonItem & { series: LessonSeriesItem | null };
 }

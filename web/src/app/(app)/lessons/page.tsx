@@ -1,11 +1,12 @@
 import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
+import Link from 'next/link';
 import { createSupabaseServerClient } from '@/lib/supabase/server-client';
 import { getAuthenticatedUser } from '@/lib/supabase/server-auth';
-import { getRecentSeriesWithLessons } from '@/lib/api/lessons';
+import { getAllSeriesWithLessons } from '@/lib/api/lessons';
 import { Loading } from '@/components/ui/spinner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { BookOpen, ExternalLink } from 'lucide-react';
+import { BookOpen, ExternalLink, ChevronRight } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 async function LessonsCatalogLoader() {
@@ -17,7 +18,7 @@ async function LessonsCatalogLoader() {
 
   const supabase = await createSupabaseServerClient();
 
-  const seriesWithLessons = await getRecentSeriesWithLessons(supabase, 2);
+  const seriesWithLessons = await getAllSeriesWithLessons(supabase);
 
   return (
     <div className="mx-auto w-full max-w-5xl space-y-6 px-4 py-8">
@@ -27,7 +28,7 @@ async function LessonsCatalogLoader() {
           Catálogo de Lições
         </h1>
         <p className="text-sm text-slate-600">
-          Explore as lições disponíveis organizadas por série. Exibindo as 2 séries mais recentes.
+          Explore as lições disponíveis organizadas por série.
         </p>
       </header>
 
@@ -64,33 +65,39 @@ async function LessonsCatalogLoader() {
                 ) : (
                   <div className="divide-y divide-slate-200">
                     {series.lessons.map((lesson, index) => (
-                      <div
+                      <Link
                         key={lesson.id}
-                        className="flex items-start gap-4 px-6 py-4 transition hover:bg-slate-50"
+                        href={`/lessons/${lesson.id}`}
+                        className="flex items-center gap-4 px-6 py-4 transition hover:bg-slate-50"
                       >
                         <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
                           {lesson.order_in_series ?? index + 1}
                         </div>
 
-                        <div className="flex-1 space-y-1">
+                        <div className="min-w-0 flex-1 space-y-1">
                           <h3 className="font-medium text-slate-900">{lesson.title}</h3>
                           {lesson.description && (
-                            <p className="text-sm text-slate-600">{lesson.description}</p>
+                            <p className="truncate text-sm text-slate-600">{lesson.description}</p>
                           )}
                         </div>
 
-                        {lesson.link && (
-                          <a
-                            href={lesson.link}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-1 rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
-                          >
-                            <ExternalLink className="h-4 w-4" />
-                            Acessar
-                          </a>
-                        )}
-                      </div>
+                        <div className="flex items-center gap-2">
+                          {lesson.link && (
+                            <span
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                window.open(lesson.link!, '_blank', 'noopener,noreferrer');
+                              }}
+                              className="flex items-center gap-1 rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
+                            >
+                              <ExternalLink className="h-4 w-4" />
+                              <span className="hidden sm:inline">Acessar</span>
+                            </span>
+                          )}
+                          <ChevronRight className="h-4 w-4 text-slate-400" />
+                        </div>
+                      </Link>
                     ))}
                   </div>
                 )}
