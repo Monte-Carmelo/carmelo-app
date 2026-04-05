@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
+import { BookOpen } from 'lucide-react';
 import { createSupabaseServerClient } from '@/lib/supabase/server-client';
 import { getAuthenticatedUser } from '@/lib/supabase/server-auth';
 
@@ -20,7 +21,7 @@ async function MeetingDetailContent({ id }: { id: string }) {
   const { data: meeting, error } = await supabase
     .from('meetings')
     .select(
-      `id, datetime, lesson_title, comments, taught_by,
+      `id, datetime, lesson_title, lesson_template_id, comments, taught_by,
        growth_groups ( id, name ),
        meeting_member_attendance (
          participant_id,
@@ -76,6 +77,15 @@ async function MeetingDetailContent({ id }: { id: string }) {
         {meeting.taught_by ? (
           <p className="text-sm text-slate-600">Ministrado por: {meeting.taught_by}</p>
         ) : null}
+        {meeting.lesson_template_id && (
+          <Link
+            href={`/lessons/${meeting.lesson_template_id}`}
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
+          >
+            <BookOpen className="h-4 w-4" />
+            Ver lição no catálogo
+          </Link>
+        )}
       </header>
 
       {meeting.comments ? (
