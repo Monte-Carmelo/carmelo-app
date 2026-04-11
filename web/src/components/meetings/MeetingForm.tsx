@@ -23,6 +23,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { MemberAttendanceList } from '@/components/meetings/attendance/MemberAttendanceList';
 import { VisitorAttendanceList } from '@/components/meetings/attendance/VisitorAttendanceList';
 import { LessonSelector } from '@/components/lessons/lesson-selector';
+import { AttendanceSkeleton } from '@/components/meetings/attendance/AttendanceSkeleton';
 
 const meetingStatusOptions = [
   { value: 'scheduled', label: 'Agendada' },
@@ -465,21 +466,30 @@ export function MeetingForm({
           <CardDescription>Marque os membros e visitantes presentes na reunião</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          <MemberAttendanceList
-            members={participants}
-            selectedMemberIds={selectedMemberIds}
-            onToggle={toggleMemberSelection}
-            onSelectAll={selectAllMembers}
-            onDeselectAll={deselectAllMembers}
-          />
+          {isFetchingAttendance ? (
+            <>
+              <AttendanceSkeleton rows={5} />
+              <AttendanceSkeleton rows={3} />
+            </>
+          ) : (
+            <>
+              <MemberAttendanceList
+                members={participants}
+                selectedMemberIds={selectedMemberIds}
+                onToggle={toggleMemberSelection}
+                onSelectAll={selectAllMembers}
+                onDeselectAll={deselectAllMembers}
+              />
 
-          <VisitorAttendanceList
-            visitors={visitors}
-            selectedVisitorIds={selectedVisitorIds}
-            onToggle={toggleVisitorSelection}
-            onSelectAll={selectAllVisitors}
-            onDeselectAll={deselectAllVisitors}
-          />
+              <VisitorAttendanceList
+                visitors={visitors}
+                selectedVisitorIds={selectedVisitorIds}
+                onToggle={toggleVisitorSelection}
+                onSelectAll={selectAllVisitors}
+                onDeselectAll={deselectAllVisitors}
+              />
+            </>
+          )}
         </CardContent>
       </Card>
 
