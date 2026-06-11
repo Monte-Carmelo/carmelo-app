@@ -22,14 +22,14 @@ export function MeetingSummaryCard({
   datetime,
 }: MeetingSummaryCardProps) {
   return (
-    <Card>
+    <Card className="shadow-sm">
       <CardHeader className="pb-2">
-        <CardDescription>Próxima lição</CardDescription>
-        <CardTitle className="text-base">
+        <CardDescription className="text-xs font-medium">Próxima lição</CardDescription>
+        <CardTitle className="text-[15px] font-bold leading-snug">
           {lessonTitle ?? 'Nenhuma reunião futura'}
         </CardTitle>
       </CardHeader>
-      <CardContent className="pt-0 text-sm text-text-light">
+      <CardContent className="pt-0 text-[13px] text-muted-foreground">
         {datetime && gcName ? (
           <p>
             {gcName} • {formatMeetingDate(datetime)}

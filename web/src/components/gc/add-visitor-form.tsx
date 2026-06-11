@@ -11,6 +11,7 @@ import type { AddVisitorInput } from '@/lib/supabase/mutations/visitors';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { ScreenHeader } from '@/components/ui/screen-header';
 import {
   Select,
   SelectContent,
@@ -87,22 +88,22 @@ export function AddVisitorForm({ growthGroups, preselectedGcId, onSubmit }: AddV
       className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-10"
       pending={isSubmitting}
     >
-      <div className="space-y-2">
-        <h1 className="text-3xl font-bold tracking-tight">Cadastrar visitante</h1>
-        <p className="text-muted-foreground">Adicione uma nova pessoa como visitante de um Grupo de Crescimento.</p>
-      </div>
+      <ScreenHeader
+        title="Cadastrar visitante"
+        subtitle="Adicione uma nova pessoa como visitante de um Grupo de Crescimento."
+      />
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 text-[17px] font-bold">
             <UserPlus className="h-5 w-5" />
             Informações do visitante
           </CardTitle>
           <CardDescription>Preencha os dados básicos para registrar um novo visitante</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="gcId">
+          <div className="space-y-1.5">
+            <Label htmlFor="gcId" className="text-xs font-semibold text-muted-foreground">
               <Users className="inline h-4 w-4 mr-1" />
               Grupo de Crescimento
             </Label>
@@ -124,8 +125,8 @@ export function AddVisitorForm({ growthGroups, preselectedGcId, onSubmit }: AddV
             {errors.gcId && <p className="text-sm text-destructive">{errors.gcId.message}</p>}
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="name">Nome completo</Label>
+          <div className="space-y-1.5">
+            <Label htmlFor="name" className="text-xs font-semibold text-muted-foreground">Nome completo</Label>
             <Input
               id="name"
               type="text"
@@ -136,8 +137,8 @@ export function AddVisitorForm({ growthGroups, preselectedGcId, onSubmit }: AddV
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="email">
+            <div className="space-y-1.5">
+              <Label htmlFor="email" className="text-xs font-semibold text-muted-foreground">
                 <Mail className="inline h-4 w-4 mr-1" />
                 E-mail
               </Label>
@@ -150,8 +151,8 @@ export function AddVisitorForm({ growthGroups, preselectedGcId, onSubmit }: AddV
               {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="phone">
+            <div className="space-y-1.5">
+              <Label htmlFor="phone" className="text-xs font-semibold text-muted-foreground">
                 <Phone className="inline h-4 w-4 mr-1" />
                 Telefone
               </Label>
@@ -165,8 +166,8 @@ export function AddVisitorForm({ growthGroups, preselectedGcId, onSubmit }: AddV
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="initialVisitCount">Visitas já realizadas (opcional)</Label>
+          <div className="space-y-1.5">
+            <Label htmlFor="initialVisitCount" className="text-xs font-semibold text-muted-foreground">Visitas já realizadas (opcional)</Label>
             <Input
               id="initialVisitCount"
               type="number"
@@ -175,7 +176,7 @@ export function AddVisitorForm({ growthGroups, preselectedGcId, onSubmit }: AddV
               className="w-32"
               {...register('initialVisitCount', { valueAsNumber: true })}
             />
-            <p className="text-sm text-muted-foreground">
+            <p className="text-[13px] leading-relaxed text-muted-foreground">
               Caso o visitante já tenha frequentado o GC antes deste cadastro, informe o número de visitas.
             </p>
             {errors.initialVisitCount && (
@@ -186,23 +187,22 @@ export function AddVisitorForm({ growthGroups, preselectedGcId, onSubmit }: AddV
       </Card>
 
       {errorMessage && (
-        <Card className="border-destructive">
-          <CardContent className="pt-6">
-            <p className="text-sm text-destructive">{errorMessage}</p>
-          </CardContent>
-        </Card>
+        <div className="rounded-card bg-danger-soft px-4 py-3.5 shadow-sm">
+          <p className="text-sm font-medium text-danger">{errorMessage}</p>
+        </div>
       )}
 
-      <div className="flex items-center justify-end gap-3">
+      <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end">
         <Button
           type="button"
           variant="outline"
           onClick={() => router.back()}
           disabled={isSubmitting}
+          className="w-full sm:w-auto"
         >
           Cancelar
         </Button>
-        <Button type="submit" disabled={isSubmitting}>
+        <Button type="submit" disabled={isSubmitting} className="w-full sm:w-auto">
           <UserPlus className="mr-2 h-4 w-4" />
           {isSubmitting ? 'Salvando...' : 'Cadastrar visitante'}
         </Button>

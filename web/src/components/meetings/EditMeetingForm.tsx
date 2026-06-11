@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { z } from 'zod';
-import { Calendar, FileText, UserCheck, Trash2, AlertCircle } from 'lucide-react';
+import { Calendar, Check, FileText, Home, UserCheck, Trash2, AlertCircle } from 'lucide-react';
 import type { Database } from '@/lib/supabase/types';
 import type {
   AttendanceMemberOption,
@@ -19,6 +19,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ScreenHeader } from '@/components/ui/screen-header';
 import { MemberAttendanceList } from '@/components/meetings/attendance/MemberAttendanceList';
 import { VisitorAttendanceList } from '@/components/meetings/attendance/VisitorAttendanceList';
 
@@ -261,58 +262,59 @@ export function EditMeetingForm({ meeting, lessonTemplates }: EditMeetingFormPro
       className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-4 py-8"
       pending={isLoading}
     >
-      <div className="space-y-2">
-        <h1 className="text-3xl font-bold tracking-tight">Editar reunião</h1>
-        <p className="text-muted-foreground">
-          Atualize as informações da reunião, lição e presença de membros e visitantes.
-        </p>
-      </div>
+      <ScreenHeader
+        title="Editar reunião"
+        subtitle="Atualize as informações da reunião, lição e presença de membros e visitantes."
+      />
 
       {errorMessage && (
         <div
           ref={errorRef}
-          className="flex items-start gap-2 rounded-lg border border-destructive bg-destructive/10 p-3"
+          className="flex items-start gap-2 rounded-card bg-danger-soft px-4 py-3"
         >
-          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
-          <p className="text-sm text-destructive">{errorMessage}</p>
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-danger" />
+          <p className="text-sm font-medium text-danger">{errorMessage}</p>
         </div>
       )}
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calendar className="h-5 w-5" />
+          <CardTitle className="flex items-center gap-2 text-[17px] font-bold">
+            <Calendar className="h-5 w-5 text-brand-soft-fg" />
             Informações básicas
           </CardTitle>
           <CardDescription>Defina data e horário da reunião</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="gcName">Grupo de Crescimento</Label>
-            <Input
-              id="gcName"
-              type="text"
-              value={meeting.growth_groups.name}
-              readOnly
-              disabled
-              className="bg-muted"
-            />
+          <div className="space-y-1.5">
+            <Label htmlFor="gcName" className="text-xs font-semibold text-muted-foreground">Grupo de Crescimento</Label>
+            <div className="relative">
+              <Home className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-soft-fg" />
+              <Input
+                id="gcName"
+                type="text"
+                value={meeting.growth_groups.name}
+                readOnly
+                disabled
+                className="rounded-xl border-transparent bg-paper pl-10 font-medium text-foreground shadow-none disabled:cursor-default disabled:opacity-100"
+              />
+            </div>
             <p className="text-xs text-muted-foreground">
               O GC não pode ser alterado após criar a reunião.
             </p>
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="meetingDate">Data</Label>
+            <div className="space-y-1.5">
+              <Label htmlFor="meetingDate" className="text-xs font-semibold text-muted-foreground">Data</Label>
               <Input id="meetingDate" type="date" {...form.register('meetingDate')} />
               {form.formState.errors.meetingDate && (
                 <p className="text-sm text-destructive">{form.formState.errors.meetingDate.message}</p>
               )}
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="meetingTime">Horário</Label>
+            <div className="space-y-1.5">
+              <Label htmlFor="meetingTime" className="text-xs font-semibold text-muted-foreground">Horário</Label>
               <Input id="meetingTime" type="time" {...form.register('meetingTime')} />
               {form.formState.errors.meetingTime && (
                 <p className="text-sm text-destructive">{form.formState.errors.meetingTime.message}</p>
@@ -320,8 +322,8 @@ export function EditMeetingForm({ meeting, lessonTemplates }: EditMeetingFormPro
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="status">Status</Label>
+          <div className="space-y-1.5">
+            <Label htmlFor="status" className="text-xs font-semibold text-muted-foreground">Status</Label>
             <Select
               value={form.watch('status')}
               onValueChange={(value) =>
@@ -345,15 +347,15 @@ export function EditMeetingForm({ meeting, lessonTemplates }: EditMeetingFormPro
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5" />
+          <CardTitle className="flex items-center gap-2 text-[17px] font-bold">
+            <FileText className="h-5 w-5 text-brand-soft-fg" />
             Lição
           </CardTitle>
           <CardDescription>Escolha uma lição do catálogo ou crie um título personalizado</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-3">
-            <Label>Tipo de lição</Label>
+          <div className="space-y-1.5">
+            <Label className="text-xs font-semibold text-muted-foreground">Tipo de lição</Label>
             <div className="grid gap-3 md:grid-cols-2">
               <button
                 type="button"
@@ -361,26 +363,20 @@ export function EditMeetingForm({ meeting, lessonTemplates }: EditMeetingFormPro
                   form.setValue('lessonType', 'catalog');
                   form.setValue('customLessonTitle', '');
                 }}
-                className={`flex flex-col items-start gap-2 rounded-lg border-2 p-4 text-left transition-all hover:bg-accent ${
+                className={`flex flex-col items-start gap-2 rounded-xl p-4 text-left transition-all duration-fast ease-out-soft ${
                   form.watch('lessonType') === 'catalog'
-                    ? 'border-primary bg-primary/5'
-                    : 'border-muted'
+                    ? 'bg-brand-soft ring-1 ring-inset ring-brand'
+                    : 'bg-white shadow-inset-border hover:bg-paper-deep/50'
                 }`}
               >
                 <div className="flex items-center gap-2">
-                  <div
-                    className={`h-4 w-4 rounded-full border-2 ${
-                      form.watch('lessonType') === 'catalog'
-                        ? 'border-primary bg-primary'
-                        : 'border-muted-foreground'
-                    }`}
-                  >
-                    {form.watch('lessonType') === 'catalog' && (
-                      <div className="h-full w-full rounded-full bg-background p-0.5">
-                        <div className="h-full w-full rounded-full bg-primary" />
-                      </div>
-                    )}
-                  </div>
+                  {form.watch('lessonType') === 'catalog' ? (
+                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand text-white">
+                      <Check className="h-3 w-3" />
+                    </span>
+                  ) : (
+                    <span className="h-5 w-5 shrink-0 rounded-full border-[1.5px] border-slate-300 bg-white" />
+                  )}
                   <span className="font-semibold">Lição do Catálogo</span>
                 </div>
                 <p className="text-sm text-muted-foreground">
@@ -394,26 +390,20 @@ export function EditMeetingForm({ meeting, lessonTemplates }: EditMeetingFormPro
                   form.setValue('lessonType', 'custom');
                   form.setValue('lessonTemplateId', '');
                 }}
-                className={`flex flex-col items-start gap-2 rounded-lg border-2 p-4 text-left transition-all hover:bg-accent ${
+                className={`flex flex-col items-start gap-2 rounded-xl p-4 text-left transition-all duration-fast ease-out-soft ${
                   form.watch('lessonType') === 'custom'
-                    ? 'border-primary bg-primary/5'
-                    : 'border-muted'
+                    ? 'bg-brand-soft ring-1 ring-inset ring-brand'
+                    : 'bg-white shadow-inset-border hover:bg-paper-deep/50'
                 }`}
               >
                 <div className="flex items-center gap-2">
-                  <div
-                    className={`h-4 w-4 rounded-full border-2 ${
-                      form.watch('lessonType') === 'custom'
-                        ? 'border-primary bg-primary'
-                        : 'border-muted-foreground'
-                    }`}
-                  >
-                    {form.watch('lessonType') === 'custom' && (
-                      <div className="h-full w-full rounded-full bg-background p-0.5">
-                        <div className="h-full w-full rounded-full bg-primary" />
-                      </div>
-                    )}
-                  </div>
+                  {form.watch('lessonType') === 'custom' ? (
+                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand text-white">
+                      <Check className="h-3 w-3" />
+                    </span>
+                  ) : (
+                    <span className="h-5 w-5 shrink-0 rounded-full border-[1.5px] border-slate-300 bg-white" />
+                  )}
                   <span className="font-semibold">Título Personalizado</span>
                 </div>
                 <p className="text-sm text-muted-foreground">
@@ -424,8 +414,8 @@ export function EditMeetingForm({ meeting, lessonTemplates }: EditMeetingFormPro
           </div>
 
           {form.watch('lessonType') === 'catalog' && (
-            <div className="space-y-2">
-              <Label htmlFor="lessonTemplateId">
+            <div className="space-y-1.5">
+              <Label htmlFor="lessonTemplateId" className="text-xs font-semibold text-muted-foreground">
                 Selecione a lição <span className="text-destructive">*</span>
               </Label>
               <Select
@@ -452,8 +442,8 @@ export function EditMeetingForm({ meeting, lessonTemplates }: EditMeetingFormPro
           )}
 
           {form.watch('lessonType') === 'custom' && (
-            <div className="space-y-2">
-              <Label htmlFor="customLessonTitle">
+            <div className="space-y-1.5">
+              <Label htmlFor="customLessonTitle" className="text-xs font-semibold text-muted-foreground">
                 Título da reunião <span className="text-destructive">*</span>
               </Label>
               <Input
@@ -473,8 +463,8 @@ export function EditMeetingForm({ meeting, lessonTemplates }: EditMeetingFormPro
             </div>
           )}
 
-          <div className="space-y-2">
-            <Label htmlFor="taughtBy">Ministrado por (opcional)</Label>
+          <div className="space-y-1.5">
+            <Label htmlFor="taughtBy" className="text-xs font-semibold text-muted-foreground">Ministrado por (opcional)</Label>
             <Input
               id="taughtBy"
               type="text"
@@ -483,8 +473,8 @@ export function EditMeetingForm({ meeting, lessonTemplates }: EditMeetingFormPro
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="comments">Comentários (opcional)</Label>
+          <div className="space-y-1.5">
+            <Label htmlFor="comments" className="text-xs font-semibold text-muted-foreground">Comentários (opcional)</Label>
             <Textarea
               id="comments"
               rows={3}
@@ -497,8 +487,8 @@ export function EditMeetingForm({ meeting, lessonTemplates }: EditMeetingFormPro
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <UserCheck className="h-5 w-5" />
+          <CardTitle className="flex items-center gap-2 text-[17px] font-bold">
+            <UserCheck className="h-5 w-5 text-brand-soft-fg" />
             Presença
           </CardTitle>
           <CardDescription>Marque os membros e visitantes presentes na reunião</CardDescription>

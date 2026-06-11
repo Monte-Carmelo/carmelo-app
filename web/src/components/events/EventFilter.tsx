@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import { Button } from '@/components/ui/button';
 
 interface EventFilterProps {
   currentFilter: 'future' | 'all';
@@ -19,31 +18,20 @@ export function EventFilter({ currentFilter, currentYear }: EventFilterProps) {
     return `/events?${params.toString()}`;
   };
 
+  const pillClass = (active: boolean) =>
+    active
+      ? 'rounded-full bg-primary px-3.5 py-2 text-xs font-semibold text-white'
+      : 'rounded-full bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 shadow-sm transition-colors duration-fast ease-out-soft hover:bg-paper-deep';
+
   return (
     <div className="flex flex-wrap items-center justify-center gap-2">
-      <span className="text-sm font-medium text-slate-700">Mostrar:</span>
-      <div className="flex flex-wrap rounded-lg border border-slate-200 p-1">
-        <Button
-          variant={currentFilter === 'future' ? 'default' : 'ghost'}
-          size="sm"
-          asChild
-          className="h-8"
-        >
-          <Link href={getFilterUrl('future')}>
-            Apenas Futuros
-          </Link>
-        </Button>
-        <Button
-          variant={currentFilter === 'all' ? 'default' : 'ghost'}
-          size="sm"
-          asChild
-          className="h-8"
-        >
-          <Link href={getFilterUrl('all')}>
-            Todos do Ano
-          </Link>
-        </Button>
-      </div>
+      <span className="text-sm font-medium text-muted-foreground">Mostrar:</span>
+      <Link href={getFilterUrl('future')} className={pillClass(currentFilter === 'future')}>
+        Apenas Futuros
+      </Link>
+      <Link href={getFilterUrl('all')} className={pillClass(currentFilter === 'all')}>
+        Todos do Ano
+      </Link>
     </div>
   );
 }

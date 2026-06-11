@@ -2,10 +2,11 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Users, Mail, Calendar, TrendingUp } from 'lucide-react';
+import { Users, Mail, Calendar, TrendingUp, Hand } from 'lucide-react';
 import type { VisitorView } from '@/lib/api/visitors';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Avatar } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { EmptyState } from '@/components/ui/empty-state';
 import { ConvertDialog } from '@/components/visitors/convert-dialog';
 
 export type { VisitorView } from '@/lib/api/visitors';
@@ -44,92 +45,106 @@ export function VisitorsList({ visitors }: VisitorsListProps) {
   };
 
   return (
-    <div className="grid gap-4">
+    <div className="grid grid-cols-1 gap-4">
       {errorMessage ? (
-        <Card className="border-destructive">
-          <CardContent className="pt-6">
-            <p className="text-sm text-destructive">{errorMessage}</p>
-          </CardContent>
-        </Card>
+        <div className="rounded-card bg-danger-soft px-4 py-3 text-sm font-medium text-danger">
+          {errorMessage}
+        </div>
       ) : null}
 
       {visitors.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-8">
-            <Users className="mb-4 h-12 w-12 text-muted-foreground" />
-            <p className="text-sm text-muted-foreground">
-              Nenhum visitante encontrado para os filtros selecionados.
-            </p>
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={<Users />}
+          title="Nenhum visitante encontrado para os filtros selecionados."
+        />
       ) : (
         visitors.map((visitor) => (
-          <Card key={visitor.id}>
-            <CardHeader>
-              <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-                <div className="flex-1">
-                  <CardTitle className="text-xl">{visitor.name}</CardTitle>
-                  <CardDescription className="mt-1">
+          <div key={visitor.id} className="rounded-card bg-white p-5 shadow-sm">
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div className="flex min-w-0 flex-1 items-center gap-3">
+                <Avatar soft="sage">
+                  <Hand className="h-5 w-5" />
+                </Avatar>
+                <div className="min-w-0">
+                  <h3 className="truncate text-[15.5px] font-bold leading-tight text-foreground">
+                    {visitor.name}
+                  </h3>
+                  <p className="mt-0.5 truncate text-xs text-muted-foreground">
                     {visitor.gcName}
-                  </CardDescription>
+                  </p>
                 </div>
-                {visitor.email ? (
-                  <a
-                    href={`mailto:${visitor.email}`}
-                    className="flex items-center gap-1 text-sm text-primary hover:underline"
-                  >
-                    <Mail className="h-3 w-3" />
-                    {visitor.email}
-                  </a>
-                ) : null}
               </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <TrendingUp className="h-3 w-3" />
-                      <span>Visitas</span>
-                    </div>
-                    <Badge variant="secondary">{visitor.visitCount}</Badge>
+              {visitor.email ? (
+                <a
+                  href={`mailto:${visitor.email}`}
+                  className="flex min-w-0 items-center gap-1.5 text-sm font-semibold text-primary hover:underline"
+                >
+                  <Mail className="h-4 w-4 shrink-0" />
+                  <span className="truncate">{visitor.email}</span>
+                </a>
+              ) : null}
+            </div>
+
+            <div className="mt-5 space-y-4">
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                <div className="flex items-center gap-2.5">
+                  <Avatar soft="paper" size="sm">
+                    <TrendingUp className="h-4 w-4" />
+                  </Avatar>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Visitas</p>
+                    <Badge className="mt-1" variant="neutral">{visitor.visitCount}</Badge>
                   </div>
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <Calendar className="h-3 w-3" />
-                      <span>Última visita</span>
-                    </div>
-                    <p className="text-sm font-semibold">
+                </div>
+                <div className="flex items-center gap-2.5">
+                  <Avatar soft="paper" size="sm">
+                    <Calendar className="h-4 w-4" />
+                  </Avatar>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Última visita</p>
+                    <p className="text-sm font-semibold text-foreground">
                       {visitor.lastVisitDate
                         ? new Date(visitor.lastVisitDate).toLocaleDateString('pt-BR')
                         : '—'}
                     </p>
                   </div>
-                  <div className="space-y-1">
+                </div>
+                <div className="flex items-center">
+                  <div>
                     <p className="text-xs text-muted-foreground">Status</p>
-                    <Badge variant={visitor.status === 'active' ? 'default' : 'secondary'}>
+                    <Badge
+                      className="mt-1"
+                      dot
+                      variant={
+                        visitor.status === 'converted'
+                          ? 'success'
+                          : visitor.status === 'active'
+                            ? 'sage'
+                            : 'neutral'
+                      }
+                    >
                       {visitor.status}
                     </Badge>
                   </div>
                 </div>
-
-                {visitor.status === 'active' && visitor.personId ? (
-                  <div className="flex justify-end">
-                    <ConvertDialog
-                      visitorName={visitor.name}
-                      disabled={processingId === visitor.id || !visitor.personId}
-                      isProcessing={processingId === visitor.id}
-                      onConfirm={() => handleConvert(visitor)}
-                    />
-                  </div>
-                ) : !visitor.personId ? (
-                  <p className="text-xs text-muted-foreground">
-                    Cadastre os dados pessoais para habilitar conversão.
-                  </p>
-                ) : null}
               </div>
-            </CardContent>
-          </Card>
+
+              {visitor.status === 'active' && visitor.personId ? (
+                <div className="flex justify-end">
+                  <ConvertDialog
+                    visitorName={visitor.name}
+                    disabled={processingId === visitor.id || !visitor.personId}
+                    isProcessing={processingId === visitor.id}
+                    onConfirm={() => handleConvert(visitor)}
+                  />
+                </div>
+              ) : !visitor.personId ? (
+                <p className="text-xs text-muted-foreground">
+                  Cadastre os dados pessoais para habilitar conversão.
+                </p>
+              ) : null}
+            </div>
+          </div>
         ))
       )}
     </div>

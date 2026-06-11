@@ -5,7 +5,7 @@ test.describe('Smoke', () => {
     await page.goto('/');
     await expect(page).toHaveURL(/\/login/);
     await expect(page).toHaveTitle(/Carmelo/i);
-    await expect(page.getByRole('heading', { name: /bem-vindo/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /gestão de gcs/i })).toBeVisible();
     await expect(page.getByRole('button', { name: /entrar/i })).toBeVisible();
   });
 

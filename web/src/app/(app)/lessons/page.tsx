@@ -5,9 +5,16 @@ import { createSupabaseServerClient } from '@/lib/supabase/server-client';
 import { getAuthenticatedUser } from '@/lib/supabase/server-auth';
 import { getAllSeriesWithLessons } from '@/lib/api/lessons';
 import { Loading } from '@/components/ui/spinner';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { ScreenHeader } from '@/components/ui/screen-header';
+import { EmptyState } from '@/components/ui/empty-state';
 import { BookOpen, ExternalLink, ChevronRight } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+
+const COVER_TONES = [
+  'bg-brand-soft text-brand-soft-fg',
+  'bg-sage/35 text-forest',
+  'bg-clay/[0.18] text-[#8A4A2C]',
+] as const;
 
 async function LessonsCatalogLoader() {
   const user = await getAuthenticatedUser();
@@ -22,87 +29,93 @@ async function LessonsCatalogLoader() {
 
   return (
     <div className="mx-auto w-full max-w-5xl space-y-6 px-4 py-8">
-      <header className="flex flex-col gap-2">
-        <h1 className="flex items-center gap-2 text-3xl font-semibold text-slate-900">
-          <BookOpen className="h-8 w-8 text-primary" />
-          Catálogo de Lições
-        </h1>
-        <p className="text-sm text-slate-600">
-          Explore as lições disponíveis organizadas por série.
-        </p>
-      </header>
+      <ScreenHeader
+        title="Catálogo de Lições"
+        subtitle="Explore as lições disponíveis organizadas por série."
+      />
 
       {seriesWithLessons.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <BookOpen className="mb-4 h-12 w-12 text-slate-300" />
-            <p className="text-center text-slate-500">Nenhuma série de lições cadastrada ainda.</p>
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={<BookOpen />}
+          title="Nenhuma série de lições cadastrada ainda."
+        />
       ) : (
-        <div className="space-y-8">
-          {seriesWithLessons.map((series) => (
-            <Card key={series.id} className="overflow-hidden">
-              <CardHeader className="bg-slate-50">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <CardTitle className="text-xl">{series.name}</CardTitle>
-                    {series.description && (
-                      <CardDescription className="mt-2">{series.description}</CardDescription>
-                    )}
-                  </div>
-                  <Badge variant="outline" className="ml-4 whitespace-nowrap">
-                    {series.lessons.length} {series.lessons.length === 1 ? 'lição' : 'lições'}
-                  </Badge>
+        <div className="space-y-5">
+          {seriesWithLessons.map((series, seriesIndex) => (
+            <article key={series.id} className="overflow-hidden rounded-card bg-white shadow-sm">
+              <div className="flex items-start gap-3.5 p-3.5">
+                <div
+                  className={`flex h-[72px] w-14 shrink-0 items-center justify-center rounded-lg ${
+                    COVER_TONES[seriesIndex % COVER_TONES.length]
+                  }`}
+                >
+                  <BookOpen className="h-6 w-6" />
                 </div>
-              </CardHeader>
 
-              <CardContent className="p-0">
-                {series.lessons.length === 0 ? (
-                  <div className="px-6 py-8 text-center text-sm text-slate-500">
-                    Nenhuma lição cadastrada nesta série ainda.
-                  </div>
-                ) : (
-                  <div className="divide-y divide-slate-200">
-                    {series.lessons.map((lesson, index) => (
-                      <Link
-                        key={lesson.id}
-                        href={`/lessons/${lesson.id}`}
-                        className="flex items-center gap-4 px-6 py-4 transition hover:bg-slate-50"
-                      >
-                        <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
-                          {lesson.order_in_series ?? index + 1}
-                        </div>
+                <div className="min-w-0 flex-1 py-0.5">
+                  <h2 className="text-[14.5px] font-bold leading-tight text-foreground">
+                    {series.name}
+                  </h2>
+                  {series.description && (
+                    <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">
+                      {series.description}
+                    </p>
+                  )}
+                </div>
 
-                        <div className="min-w-0 flex-1 space-y-1">
-                          <h3 className="font-medium text-slate-900">{lesson.title}</h3>
-                          {lesson.description && (
-                            <p className="truncate text-sm text-slate-600">{lesson.description}</p>
-                          )}
-                        </div>
+                <Badge variant="neutral" className="whitespace-nowrap">
+                  {series.lessons.length} {series.lessons.length === 1 ? 'lição' : 'lições'}
+                </Badge>
+              </div>
 
-                        <div className="flex items-center gap-2">
-                          {lesson.link && (
-                            <span
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                window.open(lesson.link!, '_blank', 'noopener,noreferrer');
-                              }}
-                              className="flex items-center gap-1 rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
-                            >
-                              <ExternalLink className="h-4 w-4" />
-                              <span className="hidden sm:inline">Acessar</span>
-                            </span>
-                          )}
-                          <ChevronRight className="h-4 w-4 text-slate-400" />
-                        </div>
-                      </Link>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+              {series.lessons.length === 0 ? (
+                <div className="border-t border-divider px-6 py-8 text-center text-sm text-muted-foreground">
+                  Nenhuma lição cadastrada nesta série ainda.
+                </div>
+              ) : (
+                <div className="divide-y divide-divider border-t border-divider">
+                  {series.lessons.map((lesson, index) => (
+                    <Link
+                      key={lesson.id}
+                      href={`/lessons/${lesson.id}`}
+                      className="flex items-center gap-4 px-4 py-3.5 transition-colors duration-fast ease-out-soft hover:bg-paper-deep/50"
+                    >
+                      <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-brand-soft text-sm font-semibold text-brand-soft-fg">
+                        {lesson.order_in_series ?? index + 1}
+                      </div>
+
+                      <div className="min-w-0 flex-1">
+                        <h3 className="text-[14.5px] font-bold leading-tight text-foreground">
+                          {lesson.title}
+                        </h3>
+                        {lesson.description && (
+                          <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                            {lesson.description}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        {lesson.link && (
+                          <span
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              window.open(lesson.link!, '_blank', 'noopener,noreferrer');
+                            }}
+                            className="flex items-center gap-1 rounded-full bg-paper-deep px-3 py-1.5 text-xs font-semibold text-slate-700 transition-colors hover:bg-sand"
+                          >
+                            <ExternalLink className="h-3.5 w-3.5" />
+                            <span className="hidden sm:inline">Acessar</span>
+                          </span>
+                        )}
+                        <ChevronRight className="h-4 w-4 text-slate-400" />
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </article>
           ))}
         </div>
       )}

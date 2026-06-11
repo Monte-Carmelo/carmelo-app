@@ -7,6 +7,10 @@ import type { GrowthGroupDashboardData, UpcomingMeeting } from '@/lib/supabase/q
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { EmptyState } from '@/components/ui/empty-state';
+import { ListItem } from '@/components/ui/list-item';
+import { ScreenHeader } from '@/components/ui/screen-header';
+import { SectionRow } from '@/components/ui/section-row';
 import { Separator } from '@/components/ui/separator';
 import { Loading } from '@/components/ui/spinner';
 
@@ -38,12 +42,12 @@ export function GCDashboard({ groups, upcomingMeetings, isLoading, error }: GCDa
 
   if (error) {
     return (
-      <Card className="border-destructive">
+      <Card className="bg-danger-soft">
         <CardHeader>
-          <CardTitle className="text-destructive">Erro ao carregar dados</CardTitle>
+          <CardTitle className="text-[17px] font-bold text-danger">Erro ao carregar dados</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-destructive">{error}</p>
+          <p className="text-sm text-danger">{error}</p>
         </CardContent>
       </Card>
     );
@@ -51,55 +55,53 @@ export function GCDashboard({ groups, upcomingMeetings, isLoading, error }: GCDa
 
   if (groups.length === 0) {
     return (
-      <Card>
-        <CardContent className="flex flex-col items-center justify-center py-10">
-          <Users className="mb-4 h-12 w-12 text-muted-foreground" />
-          <CardTitle className="mb-2">Você não está associado a nenhum GC</CardTitle>
-          <CardDescription>
-            Entre em contato com seu coordenador para ser adicionado a um Grupo de Crescimento.
-          </CardDescription>
-        </CardContent>
-      </Card>
+      <EmptyState
+        icon={<Users />}
+        title="Você não está associado a nenhum GC"
+        text="Entre em contato com seu coordenador para ser adicionado a um Grupo de Crescimento."
+      />
     );
   }
 
   return (
     <div className="space-y-8">
       {/* Header com ações rápidas */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Meus Grupos de Crescimento</h1>
-          <p className="mt-1 text-muted-foreground">Gerencie seus GCs, reuniões e membros</p>
-        </div>
-        <Button asChild>
-          <Link href="/dashboard/gc/reunioes">
-            <Calendar className="mr-2 h-4 w-4" />
-            Registrar reunião
-          </Link>
-        </Button>
-      </div>
+      <ScreenHeader
+        className="flex-col gap-4 sm:flex-row"
+        title="Meus Grupos de Crescimento"
+        subtitle="Gerencie seus GCs, reuniões e membros"
+        action={
+          <Button asChild>
+            <Link href="/dashboard/gc/reunioes">
+              <Calendar className="mr-2 h-4 w-4" />
+              Registrar reunião
+            </Link>
+          </Button>
+        }
+      />
 
       {/* Lista de GCs */}
-      <section className="space-y-4">
-        <h2 className="text-xl font-semibold">Seus GCs</h2>
+      <section>
+        <SectionRow title="Seus GCs" />
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {groups.map((group) => (
-            <Card key={group.id} className="transition-shadow hover:shadow-lg">
+            <Card key={group.id} className="transition-shadow duration-base ease-out-soft hover:shadow-lg">
               <CardHeader>
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <CardTitle className="text-xl">{group.name}</CardTitle>
+                    <CardTitle className="text-[17px] font-bold">{group.name}</CardTitle>
                     <CardDescription className="mt-1">
                       {MODE_NAMES[group.mode] || group.mode}
                     </CardDescription>
                   </div>
                   <Badge
+                    dot
                     variant={
                       group.status === 'active'
-                        ? 'default'
+                        ? 'success'
                         : group.status === 'multiplying'
-                          ? 'secondary'
-                          : 'outline'
+                          ? 'default'
+                          : 'neutral'
                     }
                   >
                     {group.status === 'active' ? 'Ativo' : group.status === 'multiplying' ? 'Multiplicando' : 'Inativo'}
@@ -130,13 +132,13 @@ export function GCDashboard({ groups, upcomingMeetings, isLoading, error }: GCDa
                 {/* Estatísticas */}
                 <div className="flex gap-4">
                   <div className="flex-1 text-center">
-                    <p className="text-2xl font-bold">{group.memberCount}</p>
-                    <p className="text-xs text-muted-foreground">Membros</p>
+                    <p className="text-[22px] font-bold leading-tight text-brand">{group.memberCount}</p>
+                    <p className="mt-0.5 text-[11px] font-medium text-muted-foreground">Membros</p>
                   </div>
                   <Separator orientation="vertical" />
                   <div className="flex-1 text-center">
-                    <p className="text-2xl font-bold">{group.visitorCount}</p>
-                    <p className="text-xs text-muted-foreground">Visitantes</p>
+                    <p className="text-[22px] font-bold leading-tight text-clay">{group.visitorCount}</p>
+                    <p className="mt-0.5 text-[11px] font-medium text-muted-foreground">Visitantes</p>
                   </div>
                 </div>
 
@@ -164,15 +166,10 @@ export function GCDashboard({ groups, upcomingMeetings, isLoading, error }: GCDa
       </section>
 
       {/* Próximas reuniões */}
-      <section className="space-y-4">
-        <h2 className="text-xl font-semibold">Próximas reuniões</h2>
+      <section>
+        <SectionRow title="Próximas reuniões" />
         {upcomingMeetings.length === 0 ? (
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center py-8">
-              <Calendar className="mb-4 h-12 w-12 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">Nenhuma reunião agendada</p>
-            </CardContent>
-          </Card>
+          <EmptyState icon={<Calendar />} title="Nenhuma reunião agendada" />
         ) : (
           <div className="space-y-3">
             {upcomingMeetings.map((meeting) => {
@@ -188,26 +185,26 @@ export function GCDashboard({ groups, upcomingMeetings, isLoading, error }: GCDa
               });
 
               return (
-                <Card key={meeting.id} className="transition-shadow hover:shadow-md">
-                  <CardContent className="flex items-center gap-4 p-4">
-                    <div className="flex h-16 w-16 flex-col items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <ListItem
+                  key={meeting.id}
+                  className="transition-shadow duration-base ease-out-soft hover:shadow-md"
+                  leading={
+                    <div className="flex h-14 w-14 shrink-0 flex-col items-center justify-center rounded-card bg-brand-soft text-brand-soft-fg">
                       <span className="text-xs font-medium uppercase">{dateStr.split(' ')[0]}</span>
-                      <span className="text-xl font-bold">{dateStr.split(' ')[1]}</span>
+                      <span className="text-xl font-bold leading-tight">{dateStr.split(' ')[1]}</span>
                     </div>
-                    <div className="flex-1">
-                      <CardTitle className="text-base">{meeting.lesson_title}</CardTitle>
-                      <CardDescription className="mt-1">
-                        {meeting.gc_name} • {timeStr}
-                      </CardDescription>
-                    </div>
+                  }
+                  title={meeting.lesson_title}
+                  subtitle={`${meeting.gc_name} • ${timeStr}`}
+                  trailing={
                     <Button
                       variant="outline"
                       onClick={() => router.push(`/dashboard/gc/reunioes/${meeting.id}`)}
                     >
                       Ver
                     </Button>
-                  </CardContent>
-                </Card>
+                  }
+                />
               );
             })}
           </div>

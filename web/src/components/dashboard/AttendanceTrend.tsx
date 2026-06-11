@@ -15,29 +15,32 @@ export function AttendanceTrend({
 }: AttendanceTrendProps) {
   return (
     <>
-      <Card>
+      <Card className="shadow-sm">
         <CardHeader className="pb-2">
-          <CardDescription className="flex items-center gap-2">
+          <CardDescription className="flex items-center gap-2 text-xs font-medium">
             <UserCheck className="h-4 w-4" />
             Presença ativa
           </CardDescription>
-          <CardTitle>{activeMembers}</CardTitle>
+          <CardTitle className="text-[22px] font-bold leading-none text-brand">{activeMembers}</CardTitle>
         </CardHeader>
-        <CardContent className="pt-0 text-sm text-text-light">
+        <CardContent className="pt-0 text-[13px] text-muted-foreground">
           Membros ativos em {groupCount} GC(s).
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="shadow-sm">
         <CardHeader className="pb-2">
-          <CardDescription className="flex items-center gap-2">
+          <CardDescription className="flex items-center gap-2 text-xs font-medium">
             <UserPlus className="h-4 w-4" />
             Visitantes ativos
           </CardDescription>
-          <CardTitle>{activeVisitors}</CardTitle>
+          <CardTitle className="text-[22px] font-bold leading-none text-brand">{activeVisitors}</CardTitle>
         </CardHeader>
-        <CardContent className="pt-0 text-sm text-text-light">
-          <Link href="/meetings/new" className="inline-flex items-center gap-1 text-primary hover:underline">
+        <CardContent className="pt-0 text-[13px] text-muted-foreground">
+          <Link
+            href="/meetings/new"
+            className="inline-flex items-center gap-1 font-semibold text-primary transition-colors hover:text-brand-hover hover:underline"
+          >
             <CalendarDays className="h-4 w-4" />
             Registrar nova reunião
           </Link>

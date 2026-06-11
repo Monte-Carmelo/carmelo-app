@@ -30,17 +30,17 @@ const statusLabels = {
   cancelled: 'Cancelado',
 };
 
-const statusColors = {
-  scheduled: 'bg-brand-soft text-brand-soft-fg',
-  completed: 'bg-green-100 text-green-800',
-  cancelled: 'bg-red-100 text-red-800',
-};
+const statusVariants = {
+  scheduled: 'default',
+  completed: 'success',
+  cancelled: 'danger',
+} as const;
 
 export function EventDetail({ event }: EventDetailProps) {
   const formatEventDate = (dateStr: string, timeStr?: string | null) => {
     const date = new Date(dateStr);
     const formattedDate = format(date, "d 'de' MMMM 'de' yyyy", { locale: ptBR });
-    
+
     if (timeStr) {
       return `${formattedDate} às ${timeStr}`;
     }
@@ -62,13 +62,12 @@ export function EventDetail({ event }: EventDetailProps) {
 
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 mb-2">
+          <h1 className="mb-2 text-3xl font-bold tracking-tight text-foreground">
             {event.title}
           </h1>
-          <Badge 
-            className={`${statusColors[event.status as keyof typeof statusColors]} ${
-              isPastEvent ? 'opacity-60' : ''
-            }`}
+          <Badge
+            variant={statusVariants[event.status as keyof typeof statusVariants]}
+            className={isPastEvent ? 'opacity-60' : ''}
           >
             {statusLabels[event.status as keyof typeof statusLabels]}
           </Badge>
@@ -78,7 +77,7 @@ export function EventDetail({ event }: EventDetailProps) {
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">
           {event.banner_url && (
-            <Card className="mb-6">
+            <Card className="mb-6 overflow-hidden shadow-sm">
               <CardContent className="p-0">
                 <div className="relative h-64 w-full">
                   <Image
@@ -87,7 +86,7 @@ export function EventDetail({ event }: EventDetailProps) {
                     fill
                     sizes="(max-width: 1024px) 100vw, 66vw"
                     loading="lazy"
-                    className="object-cover rounded-lg"
+                    className="object-cover"
                   />
                 </div>
               </CardContent>
@@ -95,30 +94,30 @@ export function EventDetail({ event }: EventDetailProps) {
           )}
 
           {event.description && (
-            <Card>
+            <Card className="shadow-sm">
               <CardHeader>
-                <CardTitle>Sobre o Evento</CardTitle>
+                <CardTitle className="font-bold">Sobre o Evento</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="prose prose-slate max-w-none">
-                  <p className="whitespace-pre-wrap">{event.description}</p>
-                </div>
+                <p className="whitespace-pre-wrap text-sm leading-relaxed text-slate-700">
+                  {event.description}
+                </p>
               </CardContent>
             </Card>
           )}
         </div>
 
         <div className="space-y-6">
-          <Card>
+          <Card className="shadow-sm">
             <CardHeader>
-              <CardTitle>Informações</CardTitle>
+              <CardTitle className="font-bold">Informações</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center gap-3">
-                <Calendar className="h-5 w-5 text-slate-500" />
+                <Calendar className="h-5 w-5 text-muted-foreground" />
                 <div>
-                  <p className="font-medium">Data</p>
-                  <p className={`text-sm ${isPastEvent ? 'text-slate-400' : 'text-slate-600'}`}>
+                  <p className="text-sm font-semibold text-foreground">Data</p>
+                  <p className={`text-sm ${isPastEvent ? 'text-slate-400' : 'text-muted-foreground'}`}>
                     {formatEventDate(event.event_date, event.event_time)}
                   </p>
                 </div>
@@ -126,10 +125,10 @@ export function EventDetail({ event }: EventDetailProps) {
 
               {event.location && (
                 <div className="flex items-center gap-3">
-                  <MapPin className="h-5 w-5 text-slate-500" />
+                  <MapPin className="h-5 w-5 text-muted-foreground" />
                   <div>
-                    <p className="font-medium">Local</p>
-                    <p className={`text-sm ${isPastEvent ? 'text-slate-400' : 'text-slate-600'}`}>
+                    <p className="text-sm font-semibold text-foreground">Local</p>
+                    <p className={`text-sm ${isPastEvent ? 'text-slate-400' : 'text-muted-foreground'}`}>
                       {event.location}
                     </p>
                   </div>
@@ -137,18 +136,18 @@ export function EventDetail({ event }: EventDetailProps) {
               )}
 
               <div className="flex items-center gap-3">
-                <Clock className="h-5 w-5 text-slate-500" />
+                <Clock className="h-5 w-5 text-muted-foreground" />
                 <div>
-                  <p className="font-medium">Criado em</p>
-                  <p className="text-sm text-slate-600">
+                  <p className="text-sm font-semibold text-foreground">Criado em</p>
+                  <p className="text-sm text-muted-foreground">
                     {format(new Date(event.created_at), "d 'de' MMMM 'de' yyyy 'às' HH:mm", { locale: ptBR })}
                   </p>
                 </div>
               </div>
 
-              <div className="pt-4 border-t">
-                <p className="text-sm text-slate-500">
-                  Criado por: <span className="font-medium">{event.created_by_name}</span>
+              <div className="border-t border-divider pt-4">
+                <p className="text-sm text-muted-foreground">
+                  Criado por: <span className="font-semibold text-foreground">{event.created_by_name}</span>
                 </p>
               </div>
             </CardContent>

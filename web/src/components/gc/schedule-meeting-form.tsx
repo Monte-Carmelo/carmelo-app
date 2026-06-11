@@ -11,6 +11,7 @@ import type { CreateMeetingInput } from '@/lib/supabase/mutations/meetings';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { ScreenHeader } from '@/components/ui/screen-header';
 import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
@@ -98,19 +99,19 @@ export function ScheduleMeetingForm({
       className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-8"
       pending={isSubmitting}
     >
-      <div className="space-y-2">
-        <h1 className="text-3xl font-bold tracking-tight">Agendar reunião</h1>
-        <p className="text-muted-foreground">Crie uma nova reunião para o seu Grupo de Crescimento.</p>
-      </div>
+      <ScreenHeader
+        title="Agendar reunião"
+        subtitle="Crie uma nova reunião para o seu Grupo de Crescimento."
+      />
 
       <Card>
         <CardHeader>
-          <CardTitle>Informações básicas</CardTitle>
+          <CardTitle className="text-[17px] font-bold">Informações básicas</CardTitle>
           <CardDescription>Defina o GC, data e horário da reunião</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="gcId">Grupo de Crescimento</Label>
+          <div className="space-y-1.5">
+            <Label htmlFor="gcId" className="text-xs font-semibold text-muted-foreground">Grupo de Crescimento</Label>
             <Select
               onValueChange={(value) => setValue('gcId', value)}
               defaultValue=""
@@ -130,8 +131,8 @@ export function ScheduleMeetingForm({
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="meetingDate">Data</Label>
+            <div className="space-y-1.5">
+              <Label htmlFor="meetingDate" className="text-xs font-semibold text-muted-foreground">Data</Label>
               <Input
                 id="meetingDate"
                 type="date"
@@ -140,8 +141,8 @@ export function ScheduleMeetingForm({
               {errors.meetingDate && <p className="text-sm text-destructive">{errors.meetingDate.message}</p>}
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="meetingTime">Horário</Label>
+            <div className="space-y-1.5">
+              <Label htmlFor="meetingTime" className="text-xs font-semibold text-muted-foreground">Horário</Label>
               <Input
                 id="meetingTime"
                 type="time"
@@ -155,7 +156,7 @@ export function ScheduleMeetingForm({
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 text-[17px] font-bold">
             <FileText className="h-5 w-5" />
             Lição
           </CardTitle>
@@ -163,8 +164,8 @@ export function ScheduleMeetingForm({
         </CardHeader>
         <CardContent className="space-y-4">
           {lessonTemplates.length > 0 && (
-            <div className="space-y-2">
-              <Label htmlFor="lessonTemplateId">Lição do catálogo (opcional)</Label>
+            <div className="space-y-1.5">
+              <Label htmlFor="lessonTemplateId" className="text-xs font-semibold text-muted-foreground">Lição do catálogo (opcional)</Label>
               <Select
                 onValueChange={(value) => setValue('lessonTemplateId', value === 'none' ? '' : value)}
                 defaultValue="none"
@@ -184,8 +185,8 @@ export function ScheduleMeetingForm({
             </div>
           )}
 
-          <div className="space-y-2">
-            <Label htmlFor="lessonTitle">Título da lição</Label>
+          <div className="space-y-1.5">
+            <Label htmlFor="lessonTitle" className="text-xs font-semibold text-muted-foreground">Título da lição</Label>
             <Input
               id="lessonTitle"
               type="text"
@@ -194,14 +195,14 @@ export function ScheduleMeetingForm({
             />
             {errors.lessonTitle && <p className="text-sm text-destructive">{errors.lessonTitle.message}</p>}
             {selectedTemplate && (
-              <p className="text-sm text-muted-foreground">
+              <p className="text-[13px] leading-relaxed text-muted-foreground">
                 Você pode usar o título padrão ou substituir por um customizado.
               </p>
             )}
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="comments">Comentários (opcional)</Label>
+          <div className="space-y-1.5">
+            <Label htmlFor="comments" className="text-xs font-semibold text-muted-foreground">Comentários (opcional)</Label>
             <Textarea
               id="comments"
               rows={3}
@@ -214,23 +215,22 @@ export function ScheduleMeetingForm({
       </Card>
 
       {errorMessage && (
-        <Card className="border-destructive">
-          <CardContent className="pt-6">
-            <p className="text-sm text-destructive">{errorMessage}</p>
-          </CardContent>
-        </Card>
+        <div className="rounded-card bg-danger-soft px-4 py-3.5 shadow-sm">
+          <p className="text-sm font-medium text-danger">{errorMessage}</p>
+        </div>
       )}
 
-      <div className="flex items-center justify-end gap-3">
+      <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end">
         <Button
           type="button"
           variant="outline"
           onClick={() => router.back()}
           disabled={isSubmitting}
+          className="w-full sm:w-auto"
         >
           Cancelar
         </Button>
-        <Button type="submit" disabled={isSubmitting}>
+        <Button type="submit" disabled={isSubmitting} className="w-full sm:w-auto">
           <Calendar className="mr-2 h-4 w-4" />
           {isSubmitting ? 'Criando...' : 'Criar reunião'}
         </Button>

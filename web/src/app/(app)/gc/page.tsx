@@ -1,12 +1,14 @@
 import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { Calendar, MapPin, Users } from 'lucide-react';
+import { Calendar, Crown, MapPin, Users } from 'lucide-react';
 import { createSupabaseServerClient } from '@/lib/supabase/server-client';
 import { getAuthenticatedUser } from '@/lib/supabase/server-auth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { EmptyState } from '@/components/ui/empty-state';
+import { ScreenHeader } from '@/components/ui/screen-header';
 import { Separator } from '@/components/ui/separator';
 import { Loading } from '@/components/ui/spinner';
 
@@ -37,6 +39,12 @@ const ROLE_NAMES: Record<string, string> = {
   member: 'Membro',
 };
 
+const ROLE_BADGE_VARIANTS: Record<string, 'sage' | 'clay' | 'neutral'> = {
+  leader: 'sage',
+  supervisor: 'clay',
+  member: 'neutral',
+};
+
 async function GCListContent() {
   const user = await getAuthenticatedUser();
 
@@ -58,15 +66,11 @@ async function GCListContent() {
   if (!currentPersonId) {
     return (
       <section className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-10">
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-10">
-            <Users className="mb-4 h-12 w-12 text-muted-foreground" />
-            <CardTitle className="mb-2">Você não está associado a um perfil</CardTitle>
-            <CardDescription>
-              Entre em contato com o administrador do sistema.
-            </CardDescription>
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={<Users />}
+          title="Você não está associado a um perfil"
+          text="Entre em contato com o administrador do sistema."
+        />
       </section>
     );
   }
@@ -86,19 +90,15 @@ async function GCListContent() {
   if (gcIds.length === 0) {
     return (
       <section className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-10">
-        <div className="space-y-2">
-          <h1 className="text-3xl font-bold tracking-tight">Meus Grupos de Crescimento</h1>
-          <p className="text-muted-foreground">Gerencie seus GCs, reuniões e membros</p>
-        </div>
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-10">
-            <Users className="mb-4 h-12 w-12 text-muted-foreground" />
-            <CardTitle className="mb-2">Você não está associado a nenhum GC</CardTitle>
-            <CardDescription>
-              Entre em contato com seu coordenador para ser adicionado a um Grupo de Crescimento.
-            </CardDescription>
-          </CardContent>
-        </Card>
+        <ScreenHeader
+          title="Meus Grupos de Crescimento"
+          subtitle="Gerencie seus GCs, reuniões e membros"
+        />
+        <EmptyState
+          icon={<Users />}
+          title="Você não está associado a nenhum GC"
+          text="Entre em contato com seu coordenador para ser adicionado a um Grupo de Crescimento."
+        />
       </section>
     );
   }
@@ -116,19 +116,15 @@ async function GCListContent() {
   if (gcs.length === 0) {
     return (
       <section className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-10">
-        <div className="space-y-2">
-          <h1 className="text-3xl font-bold tracking-tight">Meus Grupos de Crescimento</h1>
-          <p className="text-muted-foreground">Gerencie seus GCs, reuniões e membros</p>
-        </div>
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-10">
-            <Users className="mb-4 h-12 w-12 text-muted-foreground" />
-            <CardTitle className="mb-2">Você não possui GCs ativos no momento</CardTitle>
-            <CardDescription>
-              GCs inativos não aparecem nesta área. Procure a administração se isso estiver incorreto.
-            </CardDescription>
-          </CardContent>
-        </Card>
+        <ScreenHeader
+          title="Meus Grupos de Crescimento"
+          subtitle="Gerencie seus GCs, reuniões e membros"
+        />
+        <EmptyState
+          icon={<Users />}
+          title="Você não possui GCs ativos no momento"
+          text="GCs inativos não aparecem nesta área. Procure a administração se isso estiver incorreto."
+        />
       </section>
     );
   }
@@ -167,43 +163,46 @@ async function GCListContent() {
   return (
     <section className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-10">
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="space-y-2">
-          <h1 className="text-3xl font-bold tracking-tight">Meus Grupos de Crescimento</h1>
-          <p className="text-muted-foreground">Gerencie seus GCs, reuniões e membros</p>
-        </div>
-        <Button asChild>
-          <Link href="/meetings/new">
-            <Calendar className="mr-2 h-4 w-4" />
-            Registrar reunião
-          </Link>
-        </Button>
-      </div>
+      <ScreenHeader
+        className="flex-col gap-4 sm:flex-row"
+        title="Meus Grupos de Crescimento"
+        subtitle="Gerencie seus GCs, reuniões e membros"
+        action={
+          <Button asChild>
+            <Link href="/meetings/new">
+              <Calendar className="mr-2 h-4 w-4" />
+              Registrar reunião
+            </Link>
+          </Button>
+        }
+      />
 
       {/* Grid de GCs */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {gcsWithCounts.map((gc) => (
-          <Card key={gc.id} className="transition-shadow hover:shadow-lg">
+          <Card key={gc.id} className="transition-shadow duration-base ease-out-soft hover:shadow-lg">
             <CardHeader>
               <div className="flex items-start justify-between gap-2">
                 <div className="flex-1">
-                  <CardTitle className="text-xl">{gc.name}</CardTitle>
+                  <CardTitle className="text-[17px] font-bold">{gc.name}</CardTitle>
                   <CardDescription className="mt-1">
                     {MODE_NAMES[gc.mode] || gc.mode}
                   </CardDescription>
                   <div className="mt-2">
-                    <Badge variant="outline" className="text-xs">
+                    <Badge variant={ROLE_BADGE_VARIANTS[gc.userRole] ?? 'neutral'} className="text-xs">
+                      {gc.userRole === 'leader' && <Crown className="h-3 w-3" />}
                       {ROLE_NAMES[gc.userRole] || gc.userRole}
                     </Badge>
                   </div>
                 </div>
                 <Badge
+                  dot
                   variant={
                     gc.status === 'active'
-                      ? 'default'
+                      ? 'success'
                       : gc.status === 'multiplying'
-                        ? 'secondary'
-                        : 'outline'
+                        ? 'default'
+                        : 'neutral'
                   }
                 >
                   {gc.status === 'active' ? 'Ativo' : gc.status === 'multiplying' ? 'Multiplicando' : 'Inativo'}
@@ -234,13 +233,13 @@ async function GCListContent() {
               {/* Estatísticas */}
               <div className="flex gap-4">
                 <div className="flex-1 text-center">
-                  <p className="text-2xl font-bold">{gc.memberCount}</p>
-                  <p className="text-xs text-muted-foreground">Membros</p>
+                  <p className="text-[22px] font-bold leading-tight text-brand">{gc.memberCount}</p>
+                  <p className="mt-0.5 text-[11px] font-medium text-muted-foreground">Membros</p>
                 </div>
                 <Separator orientation="vertical" />
                 <div className="flex-1 text-center">
-                  <p className="text-2xl font-bold">{gc.visitorCount}</p>
-                  <p className="text-xs text-muted-foreground">Visitantes</p>
+                  <p className="text-[22px] font-bold leading-tight text-clay">{gc.visitorCount}</p>
+                  <p className="mt-0.5 text-[11px] font-medium text-muted-foreground">Visitantes</p>
                 </div>
               </div>
 

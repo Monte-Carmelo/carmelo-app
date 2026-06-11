@@ -4,7 +4,7 @@ import { EventCard } from './EventCard';
 import { EventYearNavigator } from './EventYearNavigator';
 import { EventFilter } from './EventFilter';
 import { Calendar } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
+import { EmptyState } from '@/components/ui/empty-state';
 
 interface Event {
   id: string;
@@ -29,33 +29,29 @@ export function EventList({ events, currentYear, availableYears, filter }: Event
     return (
       <div className="space-y-6">
         <div className="flex flex-col items-center gap-4">
-          <EventYearNavigator 
-            currentYear={currentYear} 
-            availableYears={availableYears} 
+          <EventYearNavigator
+            currentYear={currentYear}
+            availableYears={availableYears}
           />
-          <EventFilter 
-            currentFilter={filter} 
-            currentYear={currentYear} 
+          <EventFilter
+            currentFilter={filter}
+            currentYear={currentYear}
           />
         </div>
 
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <Calendar className="h-12 w-12 text-slate-400 mb-4" />
-            <h3 className="text-lg font-semibold text-slate-900 mb-2">
-              {filter === 'future' 
-                ? 'Não há eventos futuros programados' 
-                : 'Nenhum evento cadastrado para este ano'
-              }
-            </h3>
-            <p className="text-slate-500 text-center">
-              {filter === 'future' 
-                ? 'Novos eventos serão anunciados em breve.' 
-                : 'Volte em outro ano para ver os eventos.'
-              }
-            </p>
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={<Calendar />}
+          title={
+            filter === 'future'
+              ? 'Não há eventos futuros programados'
+              : 'Nenhum evento cadastrado para este ano'
+          }
+          text={
+            filter === 'future'
+              ? 'Novos eventos serão anunciados em breve.'
+              : 'Volte em outro ano para ver os eventos.'
+          }
+        />
       </div>
     );
   }
@@ -63,13 +59,13 @@ export function EventList({ events, currentYear, availableYears, filter }: Event
   return (
     <div className="space-y-6">
       <div className="flex flex-col items-center gap-4">
-        <EventYearNavigator 
-          currentYear={currentYear} 
-          availableYears={availableYears} 
+        <EventYearNavigator
+          currentYear={currentYear}
+          availableYears={availableYears}
         />
-        <EventFilter 
-          currentFilter={filter} 
-          currentYear={currentYear} 
+        <EventFilter
+          currentFilter={filter}
+          currentYear={currentYear}
         />
       </div>
 

@@ -6,6 +6,8 @@ import { useForm } from 'react-hook-form';
 import { useRouter } from 'next/navigation';
 import { z } from 'zod';
 import { ClientFormShell } from '@/components/forms/ClientFormShell';
+import { Button } from '@/components/ui/button';
+import { ScreenHeader } from '@/components/ui/screen-header';
 import type { Database } from '@/lib/supabase/types';
 
 const schema = z
@@ -87,21 +89,21 @@ export function VisitorForm({ groups, preselectedGcId }: VisitorFormProps) {
       className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-10"
       pending={isSubmitting}
     >
-      <header className="flex flex-col gap-2">
-        <h1 className="text-2xl font-semibold text-slate-900">Cadastrar visitante</h1>
-        <p className="text-sm text-slate-600">Preencha os dados básicos para registrar um novo visitante em um GC.</p>
-      </header>
+      <ScreenHeader
+        title="Cadastrar visitante"
+        subtitle="Preencha os dados básicos para registrar um novo visitante em um GC."
+      />
 
-      <div className="grid gap-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="grid gap-4 rounded-card bg-white p-6 shadow-sm">
         {preselectedGcId ? (
           // Campo oculto com o GC pré-selecionado
           <input type="hidden" {...register('gcId')} value={preselectedGcId} />
         ) : (
           // Campo de seleção quando não há pré-seleção
-          <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">
+          <label className="flex flex-col gap-1.5 text-xs font-semibold text-muted-foreground">
             Grupo de Crescimento
             <select
-              className="rounded-lg border border-slate-300 px-3 py-2 text-slate-900 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
+              className="h-10 rounded-lg border border-input bg-white px-3.5 py-2 text-sm font-normal text-foreground transition-colors placeholder:text-slate-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25"
               {...register('gcId')}
               defaultValue=""
             >
@@ -112,65 +114,57 @@ export function VisitorForm({ groups, preselectedGcId }: VisitorFormProps) {
                 </option>
               ))}
             </select>
-            {errors.gcId ? <span className="text-xs text-red-600">{errors.gcId.message}</span> : null}
+            {errors.gcId ? <span className="text-xs font-medium text-destructive">{errors.gcId.message}</span> : null}
           </label>
         )}
 
-        <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">
+        <label className="flex flex-col gap-1.5 text-xs font-semibold text-muted-foreground">
           Nome completo
           <input
             type="text"
-            className="rounded-lg border border-slate-300 px-3 py-2 text-slate-900 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
+            className="h-10 rounded-lg border border-input bg-white px-3.5 py-2 text-sm font-normal text-foreground transition-colors placeholder:text-slate-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25"
             placeholder="Ex.: Maria da Silva"
             {...register('name')}
           />
-          {errors.name ? <span className="text-xs text-red-600">{errors.name.message}</span> : null}
+          {errors.name ? <span className="text-xs font-medium text-destructive">{errors.name.message}</span> : null}
         </label>
 
         <div className="grid gap-4 md:grid-cols-2">
-          <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">
+          <label className="flex flex-col gap-1.5 text-xs font-semibold text-muted-foreground">
             E-mail
             <input
               type="email"
-              className="rounded-lg border border-slate-300 px-3 py-2 text-slate-900 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
+              className="h-10 rounded-lg border border-input bg-white px-3.5 py-2 text-sm font-normal text-foreground transition-colors placeholder:text-slate-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25"
               placeholder="email@exemplo.com"
               {...register('email')}
             />
-            {errors.email ? <span className="text-xs text-red-600">{errors.email.message}</span> : null}
+            {errors.email ? <span className="text-xs font-medium text-destructive">{errors.email.message}</span> : null}
           </label>
 
-          <label className="flex flex-col gap-1 text-sm font-medium text-slate-700">
+          <label className="flex flex-col gap-1.5 text-xs font-semibold text-muted-foreground">
             Telefone
             <input
               type="tel"
-              className="rounded-lg border border-slate-300 px-3 py-2 text-slate-900 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
+              className="h-10 rounded-lg border border-input bg-white px-3.5 py-2 text-sm font-normal text-foreground transition-colors placeholder:text-slate-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25"
               placeholder="(11) 99999-9999"
               {...register('phone')}
             />
-            {errors.phone ? <span className="text-xs text-red-600">{errors.phone.message}</span> : null}
+            {errors.phone ? <span className="text-xs font-medium text-destructive">{errors.phone.message}</span> : null}
           </label>
         </div>
       </div>
 
       {errorMessage ? (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{errorMessage}</div>
+        <div className="rounded-card bg-danger-soft px-4 py-3 text-sm font-medium text-danger">{errorMessage}</div>
       ) : null}
 
       <div className="flex items-center justify-end gap-3">
-        <button
-          type="button"
-          className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-100"
-          onClick={() => router.back()}
-        >
+        <Button type="button" variant="outline" onClick={() => router.back()}>
           Cancelar
-        </button>
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="inline-flex items-center rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-70"
-        >
+        </Button>
+        <Button type="submit" disabled={isSubmitting}>
           {isSubmitting ? 'Salvando...' : 'Cadastrar visitante'}
-        </button>
+        </Button>
       </div>
     </ClientFormShell>
   );

@@ -37,8 +37,10 @@ export function LessonSelector({
           <button
             type="button"
             onClick={() => onLessonTypeChange('catalog')}
-            className={`flex flex-col items-start gap-2 rounded-lg border-2 p-4 text-left transition-all hover:bg-accent ${
-              lessonType === 'catalog' ? 'border-primary bg-primary/5' : 'border-muted'
+            className={`flex flex-col items-start gap-2 rounded-card p-4 text-left shadow-sm transition-all duration-base ease-out-soft ${
+              lessonType === 'catalog'
+                ? 'bg-brand-soft ring-2 ring-primary'
+                : 'bg-white hover:bg-paper-deep/50'
             }`}
           >
             <div className="flex items-center gap-2">
@@ -48,12 +50,12 @@ export function LessonSelector({
                 }`}
               >
                 {lessonType === 'catalog' && (
-                  <div className="h-full w-full rounded-full bg-background p-0.5">
+                  <div className="h-full w-full rounded-full bg-white p-0.5">
                     <div className="h-full w-full rounded-full bg-primary" />
                   </div>
                 )}
               </div>
-              <span className="font-semibold">Lição do Catálogo</span>
+              <span className="text-[14.5px] font-bold text-foreground">Lição do Catálogo</span>
             </div>
             <p className="text-sm text-muted-foreground">Escolha uma lição pré-cadastrada do sistema</p>
           </button>
@@ -61,8 +63,10 @@ export function LessonSelector({
           <button
             type="button"
             onClick={() => onLessonTypeChange('custom')}
-            className={`flex flex-col items-start gap-2 rounded-lg border-2 p-4 text-left transition-all hover:bg-accent ${
-              lessonType === 'custom' ? 'border-primary bg-primary/5' : 'border-muted'
+            className={`flex flex-col items-start gap-2 rounded-card p-4 text-left shadow-sm transition-all duration-base ease-out-soft ${
+              lessonType === 'custom'
+                ? 'bg-brand-soft ring-2 ring-primary'
+                : 'bg-white hover:bg-paper-deep/50'
             }`}
           >
             <div className="flex items-center gap-2">
@@ -72,12 +76,12 @@ export function LessonSelector({
                 }`}
               >
                 {lessonType === 'custom' && (
-                  <div className="h-full w-full rounded-full bg-background p-0.5">
+                  <div className="h-full w-full rounded-full bg-white p-0.5">
                     <div className="h-full w-full rounded-full bg-primary" />
                   </div>
                 )}
               </div>
-              <span className="font-semibold">Título Personalizado</span>
+              <span className="text-[14.5px] font-bold text-foreground">Título Personalizado</span>
             </div>
             <p className="text-sm text-muted-foreground">Crie um título específico para esta reunião</p>
           </button>

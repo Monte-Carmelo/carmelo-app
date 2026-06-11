@@ -4,17 +4,18 @@ import { redirect } from 'next/navigation';
 import { Calendar, Users, UserPlus } from 'lucide-react';
 import { createSupabaseServerClient } from '@/lib/supabase/server-client';
 import { getAuthenticatedUser } from '@/lib/supabase/server-auth';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { EmptyState } from '@/components/ui/empty-state';
+import { ScreenHeader } from '@/components/ui/screen-header';
 import { Loading } from '@/components/ui/spinner';
 
-const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
-  scheduled: { label: 'Agendada', className: 'bg-brand-soft text-brand-soft-fg border-teal-100' },
-  completed: { label: 'Realizada', className: 'bg-green-100 text-green-800 border-green-200' },
-  cancelled: { label: 'Cancelada', className: 'bg-red-100 text-red-800 border-red-200' },
+const STATUS_CONFIG: Record<string, { label: string; variant: 'default' | 'success' | 'danger' }> = {
+  scheduled: { label: 'Agendada', variant: 'default' },
+  completed: { label: 'Realizada', variant: 'success' },
+  cancelled: { label: 'Cancelada', variant: 'danger' },
 };
 
 type SearchParams = {
@@ -61,56 +62,53 @@ async function MeetingsContent({ searchParams }: { searchParams: SearchParams })
   const filteredMeetings = meetingsResult.data ?? [];
 
   return (
-    <section className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-10">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div className="space-y-2">
-          <h1 className="text-3xl font-bold tracking-tight">Reuniões</h1>
-          <p className="text-muted-foreground">
-            Acompanhe as reuniões registradas recentemente, com destaque para presença de membros e visitantes.
-          </p>
-        </div>
-        <Button asChild>
-          <Link href="/meetings/new">
-            <Calendar className="mr-2 h-4 w-4" />
-            Registrar nova reunião
-          </Link>
-        </Button>
+    <section className="mx-auto flex w-full max-w-5xl flex-col gap-6 bg-background px-4 py-10">
+      <ScreenHeader
+        className="flex-col gap-4 md:flex-row md:items-start"
+        title="Reuniões"
+        subtitle="Acompanhe as reuniões registradas recentemente, com destaque para presença de membros e visitantes."
+        action={
+          <Button asChild>
+            <Link href="/meetings/new">
+              <Calendar className="mr-2 h-4 w-4" />
+              Registrar nova reunião
+            </Link>
+          </Button>
+        }
+      />
+
+      <div className="rounded-card bg-white p-5 shadow-sm">
+        <form className="flex flex-wrap items-end gap-3">
+          <div className="flex-1 space-y-1.5">
+            <Label htmlFor="gcId" className="text-xs font-semibold text-muted-foreground">
+              Filtrar por GC
+            </Label>
+            <Select name="gcId" defaultValue={searchParams.gcId ?? 'all'}>
+              <SelectTrigger id="gcId">
+                <SelectValue placeholder="Todos" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                {(groupsResult.data ?? []).map((group) => (
+                  <SelectItem key={group.id} value={group.id}>
+                    {group.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <Button type="submit" variant="outline">
+            Aplicar filtro
+          </Button>
+        </form>
       </div>
 
-      <Card>
-        <CardContent className="pt-6">
-          <form className="flex flex-wrap items-end gap-3">
-            <div className="flex-1 space-y-2">
-              <Label htmlFor="gcId">Filtrar por GC</Label>
-              <Select name="gcId" defaultValue={searchParams.gcId ?? 'all'}>
-                <SelectTrigger id="gcId">
-                  <SelectValue placeholder="Todos" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos</SelectItem>
-                  {(groupsResult.data ?? []).map((group) => (
-                    <SelectItem key={group.id} value={group.id}>
-                      {group.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <Button type="submit" variant="outline">
-              Aplicar filtro
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
-
-      <div className="grid gap-4">
+      <div className="flex flex-col gap-3">
         {filteredMeetings.length === 0 ? (
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center py-8">
-              <Calendar className="mb-4 h-12 w-12 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">Nenhuma reunião encontrada para o filtro selecionado.</p>
-            </CardContent>
-          </Card>
+          <EmptyState
+            icon={<Calendar />}
+            title="Nenhuma reunião encontrada para o filtro selecionado."
+          />
         ) : (
           filteredMeetings.map((meeting) => {
             const memberCount = Array.isArray(meeting.meeting_member_attendance)
@@ -121,36 +119,50 @@ async function MeetingsContent({ searchParams }: { searchParams: SearchParams })
               : 0;
 
             const statusCfg = STATUS_CONFIG[meeting.status] ?? STATUS_CONFIG.scheduled;
+            const meetingDate = new Date(meeting.datetime);
+            const weekdayLabel = meetingDate
+              .toLocaleDateString('pt-BR', { weekday: 'short' })
+              .replace('.', '');
+            const monthLabel = meetingDate
+              .toLocaleDateString('pt-BR', { month: 'short' })
+              .replace('.', '');
 
             return (
-              <Card key={meeting.id}>
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <CardDescription className="mb-1">
-                        {meeting.growth_groups?.name ?? 'GC desconhecido'}
-                      </CardDescription>
-                      <div className="flex items-center gap-2">
-                        <CardTitle className="text-xl">{meeting.lesson_title}</CardTitle>
-                        <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${statusCfg.className}`}>
-                          {statusCfg.label}
-                        </span>
-                      </div>
-                      <p className="mt-1 text-xs text-muted-foreground flex items-center gap-1">
-                        <Calendar className="h-3 w-3" />
-                        {new Date(meeting.datetime).toLocaleString('pt-BR', {
-                          day: '2-digit',
-                          month: 'short',
-                          year: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
-                      </p>
+              <div key={meeting.id} className="flex items-stretch gap-3">
+                <div className="flex w-14 shrink-0 flex-col items-center justify-center gap-1 rounded-xl bg-brand-soft py-2 text-brand-soft-fg">
+                  <span className="text-[9.5px] font-semibold uppercase leading-none tracking-[0.14em] opacity-75">
+                    {weekdayLabel}
+                  </span>
+                  <span className="text-[22px] font-bold leading-none">
+                    {meetingDate.getDate()}
+                  </span>
+                  <span className="text-[9.5px] font-semibold uppercase leading-none tracking-[0.14em] opacity-75">
+                    {monthLabel}
+                  </span>
+                </div>
+
+                <div className="min-w-0 flex-1 rounded-card bg-white px-4 py-3 shadow-sm">
+                  <p className="text-xs text-muted-foreground">
+                    {meeting.growth_groups?.name ?? 'GC desconhecido'}
+                  </p>
+                  <div className="mt-1 flex flex-wrap items-center gap-2">
+                    <div className="text-[14.5px] font-bold leading-tight text-foreground">
+                      {meeting.lesson_title}
                     </div>
+                    <Badge variant={statusCfg.variant}>{statusCfg.label}</Badge>
                   </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+                  <p className="mt-1.5 flex items-center gap-1 text-xs text-muted-foreground">
+                    <Calendar className="h-3 w-3" />
+                    {meetingDate.toLocaleString('pt-BR', {
+                      day: '2-digit',
+                      month: 'short',
+                      year: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
+                  </p>
+
+                  <div className="mt-3 grid grid-cols-2 gap-4 md:grid-cols-4">
                     <div className="space-y-1">
                       <div className="flex items-center gap-1 text-xs text-muted-foreground">
                         <Users className="h-3 w-3" />
@@ -168,12 +180,12 @@ async function MeetingsContent({ searchParams }: { searchParams: SearchParams })
                     {meeting.comments ? (
                       <div className="col-span-2 space-y-1">
                         <p className="text-xs text-muted-foreground">Comentários</p>
-                        <p className="text-sm">{meeting.comments}</p>
+                        <p className="text-sm text-foreground">{meeting.comments}</p>
                       </div>
                     ) : null}
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             );
           })
         )}
