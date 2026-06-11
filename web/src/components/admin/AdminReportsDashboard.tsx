@@ -122,12 +122,12 @@ export function AdminReportsDashboard({
               lines={[
                 {
                   dataKey: 'members',
-                  stroke: '#3b82f6',
+                  stroke: '#00A499',
                   name: 'Membros',
                 },
                 {
                   dataKey: 'gcs',
-                  stroke: '#10b981',
+                  stroke: '#2E7D5B',
                   name: 'GCs',
                 },
               ]}
@@ -152,7 +152,7 @@ export function AdminReportsDashboard({
                 value: item.value,
               }))}
               height={250}
-              colors={['#3b82f6', '#10b981', '#f59e0b']}
+              colors={['#00A499', '#2E7D5B', '#C68A2E']}
             />
           </CardContent>
         </Card>
@@ -175,7 +175,7 @@ export function AdminReportsDashboard({
             bars={[
               {
                 dataKey: 'members',
-                fill: '#3b82f6',
+                fill: '#00A499',
                 name: 'Membros',
               },
             ]}
@@ -191,8 +191,8 @@ export function AdminReportsDashboard({
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Building className="h-6 w-6 text-blue-600" />
+              <div className="p-2 bg-brand-soft rounded-lg">
+                <Building className="h-6 w-6 text-primary" />
               </div>
               <div className="ml-4">
                 <h3 className="text-lg font-semibold text-gray-900">
@@ -223,8 +223,8 @@ export function AdminReportsDashboard({
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center">
-              <div className="p-2 bg-purple-100 rounded-lg">
-                <TrendingUp className="h-6 w-6 text-purple-600" />
+              <div className="p-2 bg-clay/[0.18] rounded-lg">
+                <TrendingUp className="h-6 w-6 text-[#8A4A2C]" />
               </div>
               <div className="ml-4">
                 <h3 className="text-lg font-semibold text-gray-900">

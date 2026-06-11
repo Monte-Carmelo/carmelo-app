@@ -45,7 +45,7 @@ export default async function AttendanceReportsPage({ searchParams }: Attendance
       <div className="mb-6">
         <Link
           href="/admin/reports"
-          className="inline-flex items-center text-blue-600 hover:text-blue-800 mb-4"
+          className="inline-flex items-center text-primary hover:text-brand-press mb-4"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
           Voltar para Relatórios
@@ -70,8 +70,8 @@ export default async function AttendanceReportsPage({ searchParams }: Attendance
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Calendar className="h-6 w-6 text-blue-600" />
+              <div className="p-2 bg-brand-soft rounded-lg">
+                <Calendar className="h-6 w-6 text-primary" />
               </div>
               <div className="ml-4">
                 <h3 className="text-lg font-semibold text-gray-900">
@@ -102,8 +102,8 @@ export default async function AttendanceReportsPage({ searchParams }: Attendance
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center">
-              <div className="p-2 bg-purple-100 rounded-lg">
-                <Users className="h-6 w-6 text-purple-600" />
+              <div className="p-2 bg-clay/[0.18] rounded-lg">
+                <Users className="h-6 w-6 text-[#8A4A2C]" />
               </div>
               <div className="ml-4">
                 <h3 className="text-lg font-semibold text-gray-900">
@@ -143,7 +143,7 @@ export default async function AttendanceReportsPage({ searchParams }: Attendance
               bars={[
                 {
                   dataKey: 'attendanceRate',
-                  fill: '#3b82f6',
+                  fill: '#00A499',
                   name: 'Taxa de Frequência (%)',
                 },
               ]}
@@ -161,7 +161,7 @@ export default async function AttendanceReportsPage({ searchParams }: Attendance
             <PieChart
               data={attendanceRateDistribution}
               height={300}
-              colors={['#10b981', '#3b82f6', '#f59e0b', '#ef4444']}
+              colors={['#2E7D5B', '#00A499', '#C68A2E', '#B5453F']}
             />
           </CardContent>
         </Card>
@@ -185,7 +185,7 @@ export default async function AttendanceReportsPage({ searchParams }: Attendance
                   <div className="text-right">
                     <div className={`font-semibold ${
                       gc.attendanceRate >= 90 ? 'text-green-600' :
-                      gc.attendanceRate >= 75 ? 'text-blue-600' :
+                      gc.attendanceRate >= 75 ? 'text-primary' :
                       gc.attendanceRate >= 50 ? 'text-yellow-600' : 'text-red-600'
                     }`}>
                       {gc.attendanceRate.toFixed(1)}%

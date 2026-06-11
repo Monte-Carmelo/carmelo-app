@@ -50,7 +50,7 @@ export default async function SettingsPage() {
       <div className="mb-6">
         <Link
           href="/admin"
-          className="mb-4 inline-flex items-center text-blue-600 hover:text-blue-800"
+          className="mb-4 inline-flex items-center text-primary hover:text-brand-press"
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
           Voltar para Admin

@@ -204,7 +204,7 @@ export function AdminEventList({ events }: AdminEventListProps) {
                     <span
                       className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
                         event.status === 'scheduled'
-                          ? 'bg-blue-100 text-blue-800'
+                          ? 'bg-brand-soft text-brand-soft-fg'
                           : event.status === 'completed'
                             ? 'bg-green-100 text-green-800'
                             : 'bg-red-100 text-red-800'

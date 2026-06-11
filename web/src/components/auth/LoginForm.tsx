@@ -11,8 +11,8 @@ import { ClientFormShell } from '@/components/forms/ClientFormShell';
 import { Spinner } from '@/components/ui/spinner';
 
 const schema = z.object({
-  email: z.string().min(1, 'Informe seu e-mail').email('E-mail inválido'),
-  password: z.string().min(1, 'Informe sua senha'),
+  email: z.string().min(1, 'Falta preencher seu e-mail.').email('E-mail inválido.'),
+  password: z.string().min(1, 'Falta preencher sua senha.'),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -43,7 +43,7 @@ export function LoginForm() {
 
   if (!supabase) {
     return (
-      <div className="w-full max-w-md rounded-2xl border border-amber-200 bg-amber-50 p-6 text-sm text-amber-900 shadow-sm">
+      <div className="w-full rounded-card bg-warn-soft p-6 text-sm text-warn-fg shadow-sm">
         {getMissingSupabaseEnvMessage('renderizar o login')}
       </div>
     );
@@ -88,47 +88,58 @@ export function LoginForm() {
   return (
     <ClientFormShell
       onSubmit={onSubmit}
-      className="flex w-full max-w-md flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
+      className="flex w-full flex-col gap-4"
       pending={isSubmitting}
     >
-        <div>
-          <label htmlFor="email" className="text-sm font-medium text-slate-700">
-            E-mail
-          </label>
-          <input
-            id="email"
-            type="email"
-            autoComplete="email"
-            className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
-            {...register('email')}
-          />
-          {errors.email ? <p className="mt-1 text-sm text-red-600">{errors.email.message}</p> : null}
-        </div>
-
-        <div>
-          <label htmlFor="password" className="text-sm font-medium text-slate-700">
-            Senha
-          </label>
-          <input
-            id="password"
-            type="password"
-            autoComplete="current-password"
-            className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
-            {...register('password')}
-          />
-          {errors.password ? <p className="mt-1 text-sm text-red-600">{errors.password.message}</p> : null}
-        </div>
-
-        {errorMessage ? <p className="text-sm text-red-600">{errorMessage}</p> : null}
-
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="inline-flex items-center justify-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-70"
+      <div>
+        <label
+          htmlFor="email"
+          className="mb-1.5 block text-xs font-semibold text-muted-foreground"
         >
-          {isSubmitting && <Spinner size="sm" className="border-white border-t-transparent" />}
-          {isSubmitting ? 'Entrando...' : 'Entrar'}
-        </button>
+          E-mail
+        </label>
+        <input
+          id="email"
+          type="email"
+          autoComplete="email"
+          placeholder="voce@exemplo.com"
+          className="w-full rounded-xl border-[1.5px] border-border bg-white px-4 py-3.5 text-[15px] text-foreground placeholder:text-slate-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25"
+          {...register('email')}
+        />
+        {errors.email ? (
+          <p className="mt-1 text-sm text-danger">{errors.email.message}</p>
+        ) : null}
+      </div>
+
+      <div>
+        <label
+          htmlFor="password"
+          className="mb-1.5 block text-xs font-semibold text-muted-foreground"
+        >
+          Senha
+        </label>
+        <input
+          id="password"
+          type="password"
+          autoComplete="current-password"
+          className="w-full rounded-xl border-[1.5px] border-border bg-white px-4 py-3.5 text-[15px] text-foreground placeholder:text-slate-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/25"
+          {...register('password')}
+        />
+        {errors.password ? (
+          <p className="mt-1 text-sm text-danger">{errors.password.message}</p>
+        ) : null}
+      </div>
+
+      {errorMessage ? <p className="text-sm text-danger">{errorMessage}</p> : null}
+
+      <button
+        type="submit"
+        disabled={isSubmitting}
+        className="mt-1 inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-primary px-5 text-sm font-semibold text-primary-foreground transition-all duration-base ease-out-soft hover:bg-brand-hover active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-70"
+      >
+        {isSubmitting && <Spinner size="sm" className="border-white border-t-transparent" />}
+        {isSubmitting ? 'Entrando…' : 'Entrar'}
+      </button>
     </ClientFormShell>
   );
 }

@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="320" viewBox="0 0 320 320">
+  <defs>
+    <pattern id="monte" x="0" y="0" width="80" height="80" patternUnits="userSpaceOnUse">
+      
+      <path d="M 0 80 L 20 40 L 40 80 Z" fill="currentColor" opacity="0.6"></path>
+      <path d="M 30 80 L 50 30 L 70 80 Z" fill="currentColor" opacity="0.85"></path>
+      <path d="M 56 80 L 70 56 L 80 80 Z" fill="currentColor" opacity="0.4"></path>
+      <circle cx="55" cy="22" r="3" fill="currentColor" opacity="0.5"></circle>
+    </pattern>
+  </defs>
+  <rect width="320" height="320" fill="url(#monte)"></rect>
+</svg>

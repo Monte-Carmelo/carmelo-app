@@ -30,7 +30,7 @@ const statusLabels = {
 };
 
 const statusColors = {
-  scheduled: 'bg-blue-100 text-blue-800',
+  scheduled: 'bg-brand-soft text-brand-soft-fg',
   completed: 'bg-green-100 text-green-800',
   cancelled: 'bg-red-100 text-red-800',
 };
@@ -64,14 +64,14 @@ export function EventCard({ event }: EventCardProps) {
             <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-200" />
           </div>
         ) : (
-          <div className="h-48 w-full bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
-            <Calendar className="h-12 w-12 text-blue-400" />
+          <div className="h-48 w-full bg-gradient-to-br from-brand-soft to-teal-100 flex items-center justify-center">
+            <Calendar className="h-12 w-12 text-teal-300" />
           </div>
         )}
         
         <CardHeader className="pb-3">
           <div className="flex items-start justify-between">
-            <CardTitle className="text-lg leading-tight group-hover:text-blue-600 transition-colors">
+            <CardTitle className="text-lg leading-tight group-hover:text-brand-hover transition-colors">
               {event.title}
             </CardTitle>
             <Badge 

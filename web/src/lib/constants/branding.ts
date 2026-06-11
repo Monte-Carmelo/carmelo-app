@@ -9,8 +9,8 @@ export const BRANDING = {
     subtitle: 'Grupos de Crescimento',
   },
   colors: {
-    primary: '#17a2b8',
-    textDark: '#5a5a5a',
-    textLight: '#999999',
+    primary: '#00A499',
+    textDark: '#3A3C3F',
+    textLight: '#8C8E91',
   },
 } as const;

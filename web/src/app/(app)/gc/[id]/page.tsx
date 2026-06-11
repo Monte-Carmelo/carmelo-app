@@ -11,7 +11,7 @@ type PageProps = {
 };
 
 const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
-  scheduled: { label: 'Agendada', className: 'bg-blue-100 text-blue-800 border-blue-200' },
+  scheduled: { label: 'Agendada', className: 'bg-brand-soft text-brand-soft-fg border-teal-100' },
   completed: { label: 'Realizada', className: 'bg-green-100 text-green-800 border-green-200' },
   cancelled: { label: 'Cancelada', className: 'bg-red-100 text-red-800 border-red-200' },
 };

@@ -179,7 +179,7 @@ async function AdminUserDetailContent({ userId, searchParams }: { userId: string
           </dl>
         ) : null}
         {createdRecently ? (
-          <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+          <div className="rounded-lg border border-success/30 bg-success-soft px-4 py-3 text-sm text-success">
             Usuário criado com sucesso. Defina papéis e permissões conforme necessário.
           </div>
         ) : null}

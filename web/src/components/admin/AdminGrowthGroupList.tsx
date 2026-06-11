@@ -220,7 +220,7 @@ export function AdminGrowthGroupList({ gcs }: AdminGrowthGroupListProps) {
                         gc.status === 'active'
                           ? 'bg-green-100 text-green-800'
                           : gc.status === 'multiplying' || gc.status === 'multiplied'
-                            ? 'bg-blue-100 text-blue-800'
+                            ? 'bg-brand-soft text-brand-soft-fg'
                             : 'bg-slate-100 text-slate-800'
                       }`}
                     >

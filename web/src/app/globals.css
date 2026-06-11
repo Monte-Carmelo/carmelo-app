@@ -2,83 +2,132 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  @apply bg-[rgb(var(--background))] text-[rgb(var(--foreground))] font-sans antialiased;
-}
+/* ============================================================================
+   Monte Carmelo — Design Tokens
+   Fonte: monte-carmelo-design-system (claude.ai/design handoff)
 
-html,
-body,
-#root {
-  height: 100%;
-}
-
-
+   Cores e tipografia obrigatórias derivam do
+   "Manual de Identidade Visual — Igreja Monte Carmelo".
+   Tons estendidos (paper, sand, clay, forest, sage, escalas teal/gray)
+   são extensões criadas para UI digital.
+   ============================================================================ */
 
 @layer base {
   :root {
-    --font-sans: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
-    --font-mono: 'SFMono-Regular', 'SF Mono', Consolas, 'Liberation Mono', Menlo, monospace;
-    --background: 0 0% 100%;
-    --foreground: 0 0% 3.9%;
+    /* ── Marca: cores oficiais do manual ─────────────────────────────────── */
+    --carmelo-teal: #00a499; /* Pantone 3272 */
+    --carmelo-gray: #63666a; /* Pantone Cool Gray 10 */
+
+    /* ── Apoio quente (extensão UI) ──────────────────────────────────────── */
+    --paper: #faf6ef;
+    --paper-deep: #f2ebdd;
+    --sand: #f1e7d2;
+    --clay: #c8896b;
+    --forest: #1f4a45;
+    --sage: #9cb7a4;
+
+    /* ── Tokens de marca ─────────────────────────────────────────────────── */
+    --brand: #00a499;
+    --brand-hover: #008f85;
+    --brand-press: #007268;
+    --brand-soft: #e6f6f5;
+    --brand-soft-fg: #007268;
+    --brand-deep: var(--forest);
+
+    /* ── Bordas / divisores (alfa pré-aplicado) ──────────────────────────── */
+    --border-token: rgba(99, 102, 106, 0.18);
+    --border-strong: rgba(99, 102, 106, 0.32);
+    --divider: rgba(99, 102, 106, 0.1);
+
+    /* ── Sombras (suaves, calor de papel) ────────────────────────────────── */
+    --shadow-1: 0 1px 2px rgba(21, 22, 26, 0.05);
+    --shadow-2: 0 2px 8px rgba(21, 22, 26, 0.06), 0 1px 2px rgba(21, 22, 26, 0.04);
+    --shadow-3: 0 8px 24px rgba(21, 22, 26, 0.08), 0 2px 4px rgba(21, 22, 26, 0.04);
+    --shadow-4: 0 18px 40px rgba(21, 22, 26, 0.12), 0 4px 8px rgba(21, 22, 26, 0.06);
+    --shadow-brand: 0 8px 24px rgba(0, 164, 153, 0.22);
+
+    /* ── Movimento ───────────────────────────────────────────────────────── */
+    --motion-fast: 120ms;
+    --motion-base: 220ms;
+    --motion-slow: 360ms;
+    --ease-out-soft: cubic-bezier(0.2, 0.7, 0.25, 1);
+    --ease-in-out-soft: cubic-bezier(0.5, 0, 0.25, 1);
+    --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+    /* ── Semânticos shadcn (canais HSL) ──────────────────────────────────── */
+    --background: 38 52% 96%; /* paper */
+    --foreground: 210 5% 16%; /* gray-800 */
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 3.9%;
+    --card-foreground: 210 5% 16%;
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 3.9%;
-    --primary: 0 0% 9%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 0 0% 96.1%;
-    --secondary-foreground: 0 0% 9%;
-    --muted: 0 0% 96.1%;
-    --muted-foreground: 0 0% 45.1%;
-    --accent: 0 0% 96.1%;
-    --accent-foreground: 0 0% 9%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 89.8%;
-    --input: 0 0% 89.8%;
-    --ring: 0 0% 3.9%;
-    --chart-1: 12 76% 61%;
-    --chart-2: 173 58% 39%;
-    --chart-3: 197 37% 24%;
-    --chart-4: 43 74% 66%;
-    --chart-5: 27 87% 67%;
-    --radius: 0.5rem;
+    --popover-foreground: 210 5% 16%;
+    --primary: 176 100% 32%; /* teal #00A499 */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 40 45% 91%; /* paper-deep */
+    --secondary-foreground: 216 4% 24%; /* gray-700 */
+    --muted: 40 45% 91%; /* paper-deep */
+    --muted-foreground: 214 3% 40%; /* gray-500 */
+    --accent: 176 47% 93%; /* brand-soft (teal-50) */
+    --accent-foreground: 175 100% 22%; /* brand-soft-fg (teal-700) */
+    --destructive: 3 48% 48%; /* danger #B5453F */
+    --destructive-foreground: 0 0% 100%;
+    --border: 214 3% 40% / 0.18;
+    --input: 214 3% 40% / 0.32;
+    --ring: 176 100% 32%;
+    --chart-1: 176 100% 32%; /* teal */
+    --chart-2: 173 41% 21%; /* forest */
+    --chart-3: 19 46% 60%; /* clay */
+    --chart-4: 138 16% 67%; /* sage */
+    --chart-5: 36 62% 48%; /* warn */
+    --radius: 0.625rem; /* 10px — cards pequenos, inputs */
   }
-  .dark {
-    --background: 0 0% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 0 0% 3.9%;
-    --card-foreground: 0 0% 98%;
-    --popover: 0 0% 3.9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 0 0% 9%;
-    --secondary: 0 0% 14.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 0 0% 14.9%;
-    --muted-foreground: 0 0% 63.9%;
-    --accent: 0 0% 14.9%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 14.9%;
-    --input: 0 0% 14.9%;
-    --ring: 0 0% 83.1%;
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
-  }
-}
 
-
-
-@layer base {
   * {
     @apply border-border;
   }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
   body {
     @apply bg-background text-foreground;
+  }
+
+  ::selection {
+    background: var(--brand-soft);
+    color: var(--brand-soft-fg);
+  }
+}
+
+@layer components {
+  /* Etiqueta de seção — ecoa o tipograma "IGREJA MONTE CARMELO" do logo */
+  .eyebrow {
+    font-size: 0.75rem;
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--brand-soft-fg);
+  }
+
+  /* Tipograma da marca */
+  .tipograma {
+    font-weight: 300;
+    line-height: 1.1;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--carmelo-gray);
+  }
+
+  /* Citações bíblicas — itálico light, referência em caption abaixo */
+  .scripture {
+    font-weight: 300;
+    font-style: italic;
+    font-size: 1.125rem;
+    line-height: 1.65;
+    color: hsl(216 4% 24%);
   }
 }

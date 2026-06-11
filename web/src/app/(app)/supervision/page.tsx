@@ -106,11 +106,11 @@ async function SupervisionContent({ searchParams }: { searchParams: SearchParams
                   </div>
                   <div>
                     <dt className="uppercase text-xs tracking-wide text-slate-400">Crescimento (30d)</dt>
-                    <dd className="text-sm font-semibold text-emerald-600">{metric.growth_30d ?? 0}</dd>
+                    <dd className="text-sm font-semibold text-success">{metric.growth_30d ?? 0}</dd>
                   </div>
                   <div>
                     <dt className="uppercase text-xs tracking-wide text-slate-400">Conversões (30d)</dt>
-                    <dd className="text-sm font-semibold text-emerald-600">{metric.conversions_30d ?? 0}</dd>
+                    <dd className="text-sm font-semibold text-success">{metric.conversions_30d ?? 0}</dd>
                   </div>
                   {metric.conversion_rate_pct !== null ? (
                     <div className="col-span-2 md:col-span-4">

@@ -26,14 +26,14 @@ interface PieChartProps {
 }
 
 const DEFAULT_COLORS = [
-  '#3b82f6', // blue-500
-  '#10b981', // emerald-500
-  '#f59e0b', // amber-500
-  '#ef4444', // red-500
-  '#8b5cf6', // violet-500
-  '#ec4899', // pink-500
-  '#06b6d4', // cyan-500
-  '#84cc16', // lime-500
+  '#00A499', // teal — marca
+  '#1F4A45', // forest
+  '#C8896B', // clay
+  '#9CB7A4', // sage
+  '#C68A2E', // warn
+  '#5BC2BA', // teal-300
+  '#63666A', // gray — marca
+  '#B5453F', // danger
 ];
 
 export function PieChart({

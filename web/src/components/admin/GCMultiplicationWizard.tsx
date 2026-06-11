@@ -233,8 +233,8 @@ export function GCMultiplicationWizard({
           {/* Step 1: New GCs Info */}
           {currentStep === 1 && (
             <div className="space-y-6">
-              <div className="rounded-md border border-blue-200 bg-blue-50 p-4">
-                <p className="text-sm text-blue-900">
+              <div className="rounded-md border border-teal-100 bg-brand-soft p-4">
+                <p className="text-sm text-teal-900">
                   GC Original: <strong>{originalGC.name}</strong> ({originalGC.members.length}{' '}
                   membros)
                 </p>
@@ -433,7 +433,7 @@ export function GCMultiplicationWizard({
               </div>
 
               {/* Allocation Summary */}
-              <Card className="bg-blue-50 border-blue-200">
+              <Card className="bg-brand-soft border-teal-100">
                 <CardHeader>
                   <CardTitle className="text-base">Resumo da Alocação</CardTitle>
                 </CardHeader>
@@ -595,7 +595,7 @@ export function GCMultiplicationWizard({
                         className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${
                           state.keepOriginalActive
                             ? 'bg-green-100 text-green-800'
-                            : 'bg-blue-100 text-blue-800'
+                            : 'bg-brand-soft text-brand-soft-fg'
                         }`}
                       >
                         {state.keepOriginalActive ? 'Continua Ativo' : 'Marcado como Multiplicado'}

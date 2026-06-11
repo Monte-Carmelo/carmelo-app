@@ -12,8 +12,8 @@ test.describe('Visual Identity & Navigation', () => {
     const logo = page.locator('img[alt*="Igreja Monte Carmelo"]');
     await expect(logo).toBeVisible();
 
-    // Verificar heading Bem-vindo
-    const heading = page.locator('h1:has-text("Bem-vindo")');
+    // Verificar heading da tela de primeiro acesso
+    const heading = page.locator('h1:has-text("Gestão de GCs")');
     await expect(heading).toBeVisible();
 
     // Verificar botão Entrar existe
@@ -102,6 +102,6 @@ test.describe('Visual Identity & Navigation', () => {
     await page.goto('/login');
     await page.waitForTimeout(1000);
 
-    await expect(page.locator('text=Igreja Monte Carmelo')).toBeVisible();
+    await expect(page.locator('text=Igreja Monte Carmelo').first()).toBeVisible();
   });
 });

@@ -29,7 +29,7 @@ export default async function GrowthReportsPage({ searchParams }: GrowthReportsP
       <div className="mb-6">
         <Link
           href="/admin/reports"
-          className="inline-flex items-center text-blue-600 hover:text-blue-800 mb-4"
+          className="inline-flex items-center text-primary hover:text-brand-press mb-4"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
           Voltar para Relatórios
@@ -54,8 +54,8 @@ export default async function GrowthReportsPage({ searchParams }: GrowthReportsP
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Users className="h-6 w-6 text-blue-600" />
+              <div className="p-2 bg-brand-soft rounded-lg">
+                <Users className="h-6 w-6 text-primary" />
               </div>
               <div className="ml-4">
                 <h3 className="text-lg font-semibold text-gray-900">
@@ -92,8 +92,8 @@ export default async function GrowthReportsPage({ searchParams }: GrowthReportsP
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center">
-              <div className="p-2 bg-purple-100 rounded-lg">
-                <TrendingUp className="h-6 w-6 text-purple-600" />
+              <div className="p-2 bg-clay/[0.18] rounded-lg">
+                <TrendingUp className="h-6 w-6 text-[#8A4A2C]" />
               </div>
               <div className="ml-4">
                 <h3 className="text-lg font-semibold text-gray-900">
@@ -139,12 +139,12 @@ export default async function GrowthReportsPage({ searchParams }: GrowthReportsP
               lines={[
                 {
                   dataKey: 'totalMembers',
-                  stroke: '#3b82f6',
+                  stroke: '#00A499',
                   name: 'Total de Membros',
                 },
                 {
                   dataKey: 'newMembers',
-                  stroke: '#10b981',
+                  stroke: '#2E7D5B',
                   name: 'Novos Membros',
                 },
               ]}
@@ -169,7 +169,7 @@ export default async function GrowthReportsPage({ searchParams }: GrowthReportsP
                 },
                 {
                   dataKey: 'newGCs',
-                  stroke: '#f59e0b',
+                  stroke: '#C68A2E',
                   name: 'Novos GCs',
                 },
               ]}

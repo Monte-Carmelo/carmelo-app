@@ -14,7 +14,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   if (user.email && roles?.is_admin) roleBadges.push('Admin');
 
   return (
-    <div className="flex min-h-screen flex-col bg-slate-50">
+    <div className="flex min-h-screen flex-col bg-background">
       <Header
         userName={roles?.name ?? undefined}
         userEmail={user.email}

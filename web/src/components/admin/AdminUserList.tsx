@@ -215,9 +215,9 @@ export function AdminUserList({ currentUserId, users }: AdminUserListProps) {
                               key={role}
                               className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
                                 role === 'Admin'
-                                  ? 'bg-purple-100 text-purple-800'
+                                  ? 'bg-clay/[0.18] text-[#8A4A2C]'
                                   : role === 'Líder'
-                                    ? 'bg-blue-100 text-blue-800'
+                                    ? 'bg-brand-soft text-brand-soft-fg'
                                     : role === 'Supervisor'
                                       ? 'bg-green-100 text-green-800'
                                       : 'bg-orange-100 text-orange-800'
