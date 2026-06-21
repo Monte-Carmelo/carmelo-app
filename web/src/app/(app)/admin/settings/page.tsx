@@ -3,6 +3,7 @@ import { ArrowLeft, AlertTriangle, Settings as SettingsIcon } from 'lucide-react
 import { AdminSettingsForm } from '@/components/admin/AdminSettingsForm';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ScreenHeader } from '@/components/ui/screen-header';
 import { createSupabaseServerClient } from '@/lib/supabase/server-client';
 import { buildSettingsValues, settingsKeys } from '@/lib/validations/settings';
 
@@ -46,22 +47,21 @@ export default async function SettingsPage() {
   const { initialValues, status } = await loadSettingsPageData();
 
   return (
-    <div className="container mx-auto py-8">
-      <div className="mb-6">
+    <div className="space-y-6">
+      <div>
         <Link
           href="/admin"
-          className="mb-4 inline-flex items-center text-primary hover:text-brand-press"
+          className="mb-4 inline-flex items-center text-sm font-medium text-primary transition-colors hover:text-brand-hover"
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
-          Voltar para Admin
+          Voltar para o painel
         </Link>
 
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Configurações do Sistema</h1>
-            <p className="mt-1 text-gray-600">Gerencie as configurações globais da aplicação</p>
-          </div>
-        </div>
+        <ScreenHeader
+          eyebrow="Gestão"
+          title="Configurações do sistema"
+          subtitle="Valores globais que afetam GCs, conversões e relatórios"
+        />
       </div>
 
       <Card className="mb-6">
@@ -74,12 +74,12 @@ export default async function SettingsPage() {
         <CardContent>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             <div>
-              <p className="text-sm text-gray-600">Total de Configurações</p>
-              <p className="text-lg font-semibold">{status.total_configs}</p>
+              <p className="text-sm text-muted-foreground">Total de Configurações</p>
+              <p className="text-lg font-semibold text-foreground">{status.total_configs}</p>
             </div>
             <div>
-              <p className="text-sm text-gray-600">Última Atualização</p>
-              <p className="text-lg font-semibold">
+              <p className="text-sm text-muted-foreground">Última Atualização</p>
+              <p className="text-lg font-semibold text-foreground">
                 {status.last_updated
                   ? new Date(status.last_updated).toLocaleDateString('pt-BR', {
                       day: '2-digit',
@@ -92,8 +92,8 @@ export default async function SettingsPage() {
               </p>
             </div>
             <div>
-              <p className="text-sm text-gray-600">Atualizado por</p>
-              <p className="text-lg font-semibold">{status.updated_by || 'Desconhecido'}</p>
+              <p className="text-sm text-muted-foreground">Atualizado por</p>
+              <p className="text-lg font-semibold text-foreground">{status.updated_by || 'Desconhecido'}</p>
             </div>
           </div>
         </CardContent>

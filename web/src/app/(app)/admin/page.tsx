@@ -1,249 +1,309 @@
 import { Suspense } from 'react';
 import Link from 'next/link';
-import { Users, Building, UserPlus, Calendar, ArrowRight } from 'lucide-react';
+import {
+  CalendarClock,
+  HeartHandshake,
+  Sparkles,
+  TriangleAlert,
+  UserPlus,
+} from 'lucide-react';
 import { createSupabaseServerClient } from '@/lib/supabase/server-client';
-import { AdminMetricsCard } from '@/components/admin/AdminMetricsCard';
-import { AdminBreadcrumbs } from '@/components/admin/AdminBreadcrumbs';
+import { getAuthenticatedUser } from '@/lib/supabase/server-auth';
+import { ScreenHeader } from '@/components/ui/screen-header';
+import { SectionRow } from '@/components/ui/section-row';
+import { ListItem } from '@/components/ui/list-item';
+import { Avatar } from '@/components/ui/avatar';
+import { KpiCard } from '@/components/ui/kpi-card';
 import { Loading } from '@/components/ui/spinner';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 
-type RecentActivity = {
-  id: string;
-  action: string;
-  details: string;
-  createdAt: string;
-};
+const DAY_MS = 24 * 60 * 60 * 1000;
 
-function formatActivityDate(value: string) {
-  return new Date(value).toLocaleString('pt-BR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+function greetingFor(now: Date) {
+  const hour = Number(
+    now.toLocaleString('en-US', {
+      timeZone: 'America/Sao_Paulo',
+      hour: 'numeric',
+      hour12: false,
+    }),
+  );
+  if (hour < 12) return 'Bom dia';
+  if (hour < 18) return 'Boa tarde';
+  return 'Boa noite';
 }
+
+function firstName(fullName: string | null | undefined) {
+  if (!fullName) return null;
+  return fullName.trim().split(/\s+/)[0] ?? null;
+}
+
+function weeksSince(dateIso: string | null, now: Date) {
+  if (!dateIso) return null;
+  const diff = now.getTime() - new Date(dateIso).getTime();
+  return Math.max(0, Math.floor(diff / (7 * DAY_MS)));
+}
+
+function relativeDate(dateIso: string, now: Date) {
+  const diffDays = Math.floor((now.getTime() - new Date(dateIso).getTime()) / DAY_MS);
+  if (diffDays <= 0) return 'hoje';
+  if (diffDays === 1) return 'ontem';
+  if (diffDays < 7) return `há ${diffDays} dias`;
+  return new Date(dateIso).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
+}
+
+async function countMultiplications(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  sinceIso: string,
+): Promise<number | null> {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { count, error } = await (supabase as any)
+      .from('gc_multiplication_events')
+      .select('id', { count: 'exact', head: true })
+      .gte('multiplied_at', sinceIso);
+    if (error) return null;
+    return count ?? 0;
+  } catch {
+    return null;
+  }
+}
+
+type AttentionAlert = {
+  id: string;
+  tone: 'warn' | 'info';
+  title: string;
+  subtitle: string;
+  href: string;
+};
 
 async function AdminDashboardContent() {
   const supabase = await createSupabaseServerClient();
+  const user = await getAuthenticatedUser();
+  const now = new Date();
+  const monthStartIso = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+  const since120Iso = new Date(now.getTime() - 120 * DAY_MS).toISOString();
+  const since90Iso = new Date(now.getTime() - 90 * DAY_MS).toISOString();
 
-  // Fetch metrics in parallel
   const [
-    usersResult,
-    gcsResult,
-    membersResult,
-    visitorsResult,
-    recentUsersResult,
-    recentGcsResult,
+    gcsActiveResult,
+    membersActiveResult,
+    visitorsActiveResult,
+    gcsThisMonthResult,
+    membersThisMonthResult,
+    visitorsThisMonthResult,
+    activeGcsResult,
     recentMeetingsResult,
-    recentVisitorsResult,
-    recentLessonsResult,
-    recentSeriesResult,
+    awaitingVisitorsResult,
+    profileResult,
+    multiplications90,
   ] = await Promise.all([
-    supabase.from('users').select('id', { count: 'exact', head: true }).is('deleted_at', null),
-    supabase
-      .from('growth_groups')
-      .select('id', { count: 'exact', head: true })
-      .eq('status', 'active'),
-    supabase
-      .from('growth_group_participants')
-      .select('id', { count: 'exact', head: true })
-      .eq('status', 'active'),
-    supabase
-      .from('visitors')
-      .select('id', { count: 'exact', head: true })
-      .eq('status', 'active'),
-    supabase
-      .from('users')
-      .select('id, created_at, people(name)')
-      .is('deleted_at', null)
-      .order('created_at', { ascending: false })
-      .limit(5),
-    supabase
-      .from('growth_groups')
-      .select('id, created_at, name')
-      .is('deleted_at', null)
-      .order('created_at', { ascending: false })
-      .limit(5),
+    supabase.from('growth_groups').select('id', { count: 'exact', head: true }).eq('status', 'active').is('deleted_at', null),
+    supabase.from('growth_group_participants').select('id', { count: 'exact', head: true }).eq('status', 'active').is('deleted_at', null),
+    supabase.from('visitors').select('id', { count: 'exact', head: true }).eq('status', 'active'),
+    supabase.from('growth_groups').select('id', { count: 'exact', head: true }).gte('created_at', monthStartIso).is('deleted_at', null),
+    supabase.from('growth_group_participants').select('id', { count: 'exact', head: true }).gte('joined_at', monthStartIso).eq('status', 'active').is('deleted_at', null),
+    supabase.from('visitors').select('id', { count: 'exact', head: true }).gte('created_at', monthStartIso),
+    supabase.from('growth_groups').select('id, name').eq('status', 'active').is('deleted_at', null),
     supabase
       .from('meetings')
-      .select('id, created_at, lesson_title, growth_groups(name)')
+      .select('gc_id, datetime, lesson_title, growth_groups(name)')
+      .gte('datetime', since120Iso)
       .is('deleted_at', null)
-      .order('created_at', { ascending: false })
-      .limit(5),
+      .order('datetime', { ascending: false }),
     supabase
       .from('visitors')
-      .select('id, created_at, people(name), growth_groups(name)')
-      .order('created_at', { ascending: false })
-      .limit(5),
-    supabase
-      .from('lessons')
-      .select('id, created_at, title')
-      .is('deleted_at', null)
-      .order('created_at', { ascending: false })
-      .limit(5),
-    supabase
-      .from('lesson_series')
-      .select('id, created_at, name')
-      .is('deleted_at', null)
-      .order('created_at', { ascending: false })
-      .limit(5),
+      .select('id, people(name)')
+      .eq('status', 'active')
+      .is('gc_id', null)
+      .order('created_at', { ascending: false }),
+    user
+      ? supabase.from('users').select('people(name)').eq('id', user.id).maybeSingle()
+      : Promise.resolve({ data: null }),
+    countMultiplications(supabase, since90Iso),
   ]);
 
   const metrics = {
-    totalUsers: usersResult.count ?? 0,
-    activeGcs: gcsResult.count ?? 0,
-    activeMembers: membersResult.count ?? 0,
-    activeVisitors: visitorsResult.count ?? 0,
+    activeGcs: gcsActiveResult.count ?? 0,
+    activeMembers: membersActiveResult.count ?? 0,
+    activeVisitors: visitorsActiveResult.count ?? 0,
+    newGcs: gcsThisMonthResult.count ?? 0,
+    newMembers: membersThisMonthResult.count ?? 0,
+    newVisitors: visitorsThisMonthResult.count ?? 0,
   };
 
-  const recentActivities: RecentActivity[] = [
-    ...((recentUsersResult.data ?? []).map((user) => ({
-      id: `user-${user.id}`,
-      action: 'Novo usuário cadastrado',
-      details: ((user as { people?: { name?: string } | null }).people?.name ?? 'Usuário sem nome'),
-      createdAt: user.created_at,
-    }))),
-    ...((recentGcsResult.data ?? []).map((gc) => ({
+  const pastorName =
+    firstName((profileResult.data as { people?: { name?: string } | null } | null)?.people?.name) ??
+    null;
+
+  // ── Latest meeting per GC (from the 120-day window) ──────────────────────
+  const recentMeetings = (recentMeetingsResult.data ?? []) as Array<{
+    gc_id: string | null;
+    datetime: string | null;
+    lesson_title: string | null;
+    growth_groups?: { name?: string | null } | null;
+  }>;
+  const lastMeetingByGc = new Map<string, string>();
+  for (const meeting of recentMeetings) {
+    if (meeting.gc_id && meeting.datetime && !lastMeetingByGc.has(meeting.gc_id)) {
+      lastMeetingByGc.set(meeting.gc_id, meeting.datetime);
+    }
+  }
+
+  const activeGcs = (activeGcsResult.data ?? []) as Array<{ id: string; name: string }>;
+  const staleGcs = activeGcs
+    .map((gc) => ({ gc, weeks: weeksSince(lastMeetingByGc.get(gc.id) ?? null, now) }))
+    // weeks === null → no meeting in 120 days (very silent); treat as most stale
+    .map((entry) => ({ ...entry, sortWeeks: entry.weeks ?? 99 }))
+    .filter((entry) => entry.sortWeeks >= 3)
+    .sort((a, b) => b.sortWeeks - a.sortWeeks)
+    .slice(0, 4);
+
+  const awaitingVisitors = (awaitingVisitorsResult.data ?? []) as Array<{
+    id: string;
+    people?: { name?: string | null } | null;
+  }>;
+
+  const alerts: AttentionAlert[] = [];
+  for (const { gc, weeks } of staleGcs) {
+    alerts.push({
       id: `gc-${gc.id}`,
-      action: 'Novo GC criado',
-      details: gc.name,
-      createdAt: gc.created_at,
-    }))),
-    ...((recentMeetingsResult.data ?? []).map((meeting) => ({
-      id: `meeting-${meeting.id}`,
-      action: 'Reunião registrada',
-      details: `${meeting.lesson_title} • ${(meeting as { growth_groups?: { name?: string } | null }).growth_groups?.name ?? 'GC não identificado'}`,
-      createdAt: meeting.created_at,
-    }))),
-    ...((recentVisitorsResult.data ?? []).map((visitor) => ({
-      id: `visitor-${visitor.id}`,
-      action: 'Novo visitante registrado',
-      details: `${(visitor as { people?: { name?: string } | null }).people?.name ?? 'Visitante sem nome'} • ${(visitor as { growth_groups?: { name?: string } | null }).growth_groups?.name ?? 'GC não identificado'}`,
-      createdAt: visitor.created_at,
-    }))),
-    ...((recentLessonsResult.data ?? []).map((lesson) => ({
-      id: `lesson-${lesson.id}`,
-      action: 'Nova lição criada',
-      details: lesson.title,
-      createdAt: lesson.created_at,
-    }))),
-    ...((recentSeriesResult.data ?? []).map((series) => ({
-      id: `series-${series.id}`,
-      action: 'Nova série criada',
-      details: series.name,
-      createdAt: series.created_at,
-    }))),
-  ]
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-    .slice(0, 8);
+      tone: 'warn',
+      title: gc.name,
+      subtitle:
+        weeks === null
+          ? 'Sem encontro registrado nos últimos meses'
+          : `${weeks} ${weeks === 1 ? 'semana' : 'semanas'} sem encontro registrado`,
+      href: `/admin/growth-groups/${gc.id}/edit`,
+    });
+  }
+  if (awaitingVisitors.length > 0) {
+    alerts.push({
+      id: 'awaiting-visitors',
+      tone: 'info',
+      title: `${awaitingVisitors.length} ${awaitingVisitors.length === 1 ? 'visitante aguardando' : 'visitantes aguardando'} designação`,
+      subtitle: 'Conecte cada um a um GC próximo da residência',
+      href: '/visitors',
+    });
+  }
+
+  // ── Recent meetings feed ─────────────────────────────────────────────────
+  const meetingsFeed = recentMeetings.slice(0, 5);
 
   return (
-    <div className="space-y-6">
-      <AdminBreadcrumbs />
+    <div className="space-y-2">
+      <ScreenHeader
+        eyebrow={`${greetingFor(now)}${pastorName ? `, ${pastorName}` : ''}`}
+        title="Sua igreja em um relance"
+        subtitle={`${metrics.activeGcs} GCs ativos · ${metrics.activeMembers} pessoas em comunhão`}
+      />
 
-      <div>
-        <h1 className="text-3xl font-bold text-slate-900">Dashboard Admin</h1>
-        <p className="text-slate-600 mt-1">Visão geral e métricas do sistema</p>
-      </div>
-
-      {/* Metrics Grid */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <AdminMetricsCard
-          title="Total de Usuários"
-          value={metrics.totalUsers}
-          icon={Users}
-          description="Usuários cadastrados no sistema"
-        />
-        <AdminMetricsCard
-          title="GCs Ativos"
+      {/* KPI grid */}
+      <div className="grid grid-cols-2 gap-2.5 pt-4 lg:grid-cols-4">
+        <KpiCard
+          label="GCs ativos"
           value={metrics.activeGcs}
-          icon={Building}
-          description="Grupos de crescimento ativos"
+          delta={metrics.newGcs > 0 ? `+${metrics.newGcs} este mês` : 'estável'}
+          deltaTone={metrics.newGcs > 0 ? 'success' : 'neutral'}
+          deltaDirection={metrics.newGcs > 0 ? 'up' : 'none'}
         />
-        <AdminMetricsCard
-          title="Membros Ativos"
+        <KpiCard
+          label="Pessoas em GCs"
           value={metrics.activeMembers}
-          icon={Users}
-          description="Membros participando de GCs"
+          delta={metrics.newMembers > 0 ? `+${metrics.newMembers} este mês` : 'estável'}
+          deltaTone={metrics.newMembers > 0 ? 'success' : 'neutral'}
+          deltaDirection={metrics.newMembers > 0 ? 'up' : 'none'}
         />
-        <AdminMetricsCard
-          title="Visitantes Ativos"
+        <KpiCard
+          label="Visitantes ativos"
           value={metrics.activeVisitors}
-          icon={UserPlus}
-          description="Visitantes em acompanhamento"
+          delta={metrics.newVisitors > 0 ? `+${metrics.newVisitors} este mês` : 'estável'}
+          deltaTone={metrics.newVisitors > 0 ? 'success' : 'neutral'}
+          deltaDirection={metrics.newVisitors > 0 ? 'up' : 'none'}
+        />
+        <KpiCard
+          label="Multiplicações"
+          value={multiplications90 ?? '—'}
+          delta={multiplications90 != null ? 'em 90 dias' : 'sem registro'}
+          deltaTone="neutral"
+          deltaIcon={multiplications90 ? <Sparkles className="h-3 w-3" aria-hidden /> : undefined}
         />
       </div>
 
-      {/* Quick Actions */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Ações Rápidas</CardTitle>
-          <CardDescription>Acesse rapidamente as funcionalidades mais usadas</CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-          <Link href="/admin/users">
-            <Button variant="outline" className="w-full justify-between">
-              <span className="flex items-center gap-2">
-                <Users className="h-4 w-4" />
-                Gerenciar Usuários
-              </span>
-              <ArrowRight className="h-4 w-4" />
-            </Button>
-          </Link>
-          <Link href="/admin/growth-groups">
-            <Button variant="outline" className="w-full justify-between">
-              <span className="flex items-center gap-2">
-                <Building className="h-4 w-4" />
-                Gerenciar GCs
-              </span>
-              <ArrowRight className="h-4 w-4" />
-            </Button>
-          </Link>
-          <Link href="/admin/lessons">
-            <Button variant="outline" className="w-full justify-between">
-              <span className="flex items-center gap-2">
-                <Calendar className="h-4 w-4" />
-                Gerenciar Lições
-              </span>
-              <ArrowRight className="h-4 w-4" />
-            </Button>
-          </Link>
-        </CardContent>
-      </Card>
+      {/* Attention */}
+      <SectionRow title="Precisa da sua atenção" />
+      {alerts.length === 0 ? (
+        <div className="flex items-center gap-3 rounded-card bg-white px-4 py-4 shadow-sm">
+          <Avatar soft="brand" size="md" aria-hidden>
+            <HeartHandshake className="h-5 w-5" />
+          </Avatar>
+          <div className="min-w-0">
+            <h4 className="text-[14.5px] font-bold leading-tight text-foreground">
+              Tudo em ordem por aqui
+            </h4>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              Nenhum GC silencioso e nenhum visitante esperando. Bom trabalho de cuidado.
+            </p>
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {alerts.map((alert) => (
+            <Link key={alert.id} href={alert.href} className="block">
+              <ListItem
+                className="transition-colors duration-fast ease-out-soft hover:bg-paper-deep/50"
+                leading={
+                  <Avatar soft={alert.tone === 'warn' ? 'warn' : 'brand'} size="md" aria-hidden>
+                    {alert.tone === 'warn' ? (
+                      <TriangleAlert className="h-5 w-5" />
+                    ) : (
+                      <UserPlus className="h-5 w-5" />
+                    )}
+                  </Avatar>
+                }
+                title={alert.title}
+                subtitle={alert.subtitle}
+                caret
+              />
+            </Link>
+          ))}
+        </div>
+      )}
 
-      {/* Recent Activities */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Atividades Recentes</CardTitle>
-          <CardDescription>Últimas ações realizadas no sistema</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {recentActivities.length === 0 ? (
-            <p className="text-sm text-slate-500">Nenhuma atividade recente encontrada.</p>
-          ) : (
-            <ul className="space-y-3">
-              {recentActivities.map((activity) => (
-                <li key={activity.id} className="flex items-start justify-between gap-3 border-b border-slate-100 pb-3 last:border-0 last:pb-0">
-                  <div>
-                    <p className="text-sm font-medium text-slate-900">{activity.action}</p>
-                    <p className="text-sm text-slate-600">{activity.details}</p>
-                  </div>
-                  <span className="text-xs text-slate-500 whitespace-nowrap">{formatActivityDate(activity.createdAt)}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </CardContent>
-      </Card>
+      {/* Recent meetings */}
+      <SectionRow
+        title="Atividade recente"
+        action={<Link href="/admin/reports">Ver relatórios</Link>}
+      />
+      {meetingsFeed.length === 0 ? (
+        <div className="rounded-card bg-white px-4 py-6 text-center text-sm text-muted-foreground shadow-sm">
+          Nenhum encontro registrado nos últimos meses.
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {meetingsFeed.map((meeting, index) => (
+            <ListItem
+              key={`${meeting.gc_id ?? 'gc'}-${index}`}
+              leading={
+                <Avatar soft="paper" size="md" aria-hidden>
+                  <CalendarClock className="h-5 w-5" />
+                </Avatar>
+              }
+              title={meeting.lesson_title ?? 'Encontro registrado'}
+              subtitle={`${meeting.growth_groups?.name ?? 'GC'} · ${
+                meeting.datetime ? relativeDate(meeting.datetime, now) : ''
+              }`}
+            />
+          ))}
+        </div>
+      )}
+
+      <div className="h-4" />
     </div>
   );
 }
 
 export default function AdminPage() {
   return (
-    <Suspense fallback={<Loading message="Carregando dashboard..." />}>
+    <Suspense fallback={<Loading message="Carregando painel…" />}>
       <AdminDashboardContent />
     </Suspense>
   );

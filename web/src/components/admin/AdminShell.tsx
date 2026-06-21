@@ -4,6 +4,7 @@ import { ReactNode, useState } from 'react';
 import { AdminSidebar } from './AdminSidebar';
 import { Menu, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Logo } from '@/components/layout/Logo';
 
 interface AdminShellProps {
   children: ReactNode;
@@ -13,11 +14,11 @@ export function AdminShell({ children }: AdminShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="flex min-h-screen bg-slate-50" data-testid="admin-shell">
+    <div className="flex min-h-screen bg-background" data-testid="admin-shell">
       {/* Mobile sidebar overlay */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/50 md:hidden"
+          className="fixed inset-0 z-40 bg-foreground/45 backdrop-blur-[2px] md:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
@@ -35,19 +36,23 @@ export function AdminShell({ children }: AdminShellProps) {
       {/* Main content */}
       <div className="flex flex-1 flex-col min-w-0">
         {/* Mobile header with hamburger */}
-        <header className="sticky top-0 z-30 flex items-center justify-between border-b border-slate-200 bg-white px-4 py-3 md:hidden">
-          <h1 className="text-lg font-semibold text-slate-900">Admin</h1>
+        <header className="sticky top-0 z-30 flex items-center justify-between border-b border-border bg-white/90 px-4 py-3 shadow-sm backdrop-blur-md md:hidden">
+          <Logo className="h-8" />
           <Button
             variant="ghost"
             size="icon"
             onClick={() => setSidebarOpen(!sidebarOpen)}
+            aria-label={sidebarOpen ? 'Fechar menu' : 'Abrir menu'}
           >
             {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </Button>
         </header>
 
         {/* Page content */}
-        <main className="flex-1 p-4 md:p-6 overflow-x-hidden" data-testid="admin-content">
+        <main
+          className="mx-auto w-full max-w-5xl flex-1 overflow-x-hidden p-4 md:p-8"
+          data-testid="admin-content"
+        >
           {children}
         </main>
       </div>

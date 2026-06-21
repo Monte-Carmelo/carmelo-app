@@ -21,14 +21,12 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
   const reportData = await getAdminReportsDashboardData(supabase, period);
 
   return (
-    <div className="container mx-auto py-8">
-      <AdminReportsDashboard
-        metrics={reportData.metrics}
-        growthData={reportData.growthData}
-        distributionData={reportData.distributionData}
-        topGCsData={reportData.topGCsData}
-        period={period}
-      />
-    </div>
+    <AdminReportsDashboard
+      metrics={reportData.metrics}
+      growthData={reportData.growthData}
+      distributionData={reportData.distributionData}
+      topGCsData={reportData.topGCsData}
+      period={period}
+    />
   );
 }

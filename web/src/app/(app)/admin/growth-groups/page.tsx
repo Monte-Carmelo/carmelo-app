@@ -5,6 +5,7 @@ import { createSupabaseServerClient } from '@/lib/supabase/server-client';
 import { AdminBreadcrumbs } from '@/components/admin/AdminBreadcrumbs';
 import { AdminGrowthGroupList, AdminGrowthGroupSummary } from '@/components/admin/AdminGrowthGroupList';
 import { Button } from '@/components/ui/button';
+import { ScreenHeader } from '@/components/ui/screen-header';
 import { Loading } from '@/components/ui/spinner';
 
 async function AdminGrowthGroupsContent() {
@@ -89,18 +90,19 @@ async function AdminGrowthGroupsContent() {
     <div className="space-y-6">
       <AdminBreadcrumbs />
 
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-900">Grupos de Crescimento</h1>
-          <p className="text-slate-600 mt-1">Gerencie os GCs da igreja</p>
-        </div>
-        <Link href="/admin/growth-groups/new">
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            Novo GC
-          </Button>
-        </Link>
-      </div>
+      <ScreenHeader
+        eyebrow="Gestão"
+        title="Grupos de Crescimento"
+        subtitle="Acompanhe a saúde de cada GC da igreja"
+        action={
+          <Link href="/admin/growth-groups/new">
+            <Button>
+              <Plus className="mr-2 h-4 w-4" />
+              Novo GC
+            </Button>
+          </Link>
+        }
+      />
 
       <AdminGrowthGroupList gcs={gcSummaries} />
     </div>
