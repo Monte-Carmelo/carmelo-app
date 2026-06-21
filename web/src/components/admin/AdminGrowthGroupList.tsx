@@ -150,11 +150,15 @@ export function AdminGrowthGroupList({ gcs }: AdminGrowthGroupListProps) {
               <ListItem
                 key={gc.id}
                 data-testid="gc-card"
+                onClick={() => router.push(`/admin/growth-groups/${gc.id}`)}
                 leading={<Avatar name={gc.name} />}
                 title={gc.name}
                 subtitle={subtitleParts.join(' · ')}
                 trailing={
-                  <div className="flex items-center gap-1.5">
+                  <div
+                    className="flex items-center gap-1.5"
+                    onClick={(event) => event.stopPropagation()}
+                  >
                     {gc.status !== 'active' ? (
                       <Badge variant="neutral">
                         {gc.status === 'inactive'
