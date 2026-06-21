@@ -13,6 +13,7 @@ import {
   X,
   Calendar,
   LogOut,
+  UserCircle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -30,6 +31,7 @@ const navItems = [
   { label: 'Lições', href: '/admin/lessons', icon: BookOpen },
   { label: 'Relatórios', href: '/admin/reports', icon: BarChart3 },
   { label: 'Configurações', href: '/admin/settings', icon: Settings },
+  { label: 'Você', href: '/admin/profile', icon: UserCircle },
 ];
 
 export function AdminSidebar({ onClose }: AdminSidebarProps) {

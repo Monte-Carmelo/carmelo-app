@@ -1,11 +1,18 @@
 'use client';
 
+import { usePathname } from 'next/navigation';
 import { useSession } from '@/lib/auth/session-context';
 import { Header } from './Header';
 import { BottomNav } from './BottomNav';
 
 export function AppShell({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
   const { user, roles } = useSession();
+
+  // A área do admin tem o próprio chrome (AdminShell). Evita navegação dupla.
+  if (pathname?.startsWith('/admin')) {
+    return <>{children}</>;
+  }
 
   const roleBadges: string[] = [];
   if (roles?.is_leader) roleBadges.push('Líder');
