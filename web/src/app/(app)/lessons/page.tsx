@@ -75,43 +75,51 @@ async function LessonsCatalogLoader() {
               ) : (
                 <div className="divide-y divide-divider border-t border-divider">
                   {series.lessons.map((lesson, index) => (
-                    <Link
+                    <div
                       key={lesson.id}
-                      href={`/lessons/${lesson.id}`}
                       className="flex items-center gap-4 px-4 py-3.5 transition-colors duration-fast ease-out-soft hover:bg-paper-deep/50"
                     >
-                      <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-brand-soft text-sm font-semibold text-brand-soft-fg">
-                        {lesson.order_in_series ?? index + 1}
-                      </div>
+                      <Link
+                        href={`/lessons/${lesson.id}`}
+                        className="flex min-w-0 flex-1 items-center gap-4"
+                      >
+                        <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-brand-soft text-sm font-semibold text-brand-soft-fg">
+                          {lesson.order_in_series ?? index + 1}
+                        </div>
 
-                      <div className="min-w-0 flex-1">
-                        <h3 className="text-[14.5px] font-bold leading-tight text-foreground">
-                          {lesson.title}
-                        </h3>
-                        {lesson.description && (
-                          <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                            {lesson.description}
-                          </p>
-                        )}
-                      </div>
+                        <div className="min-w-0 flex-1">
+                          <h3 className="text-[14.5px] font-bold leading-tight text-foreground">
+                            {lesson.title}
+                          </h3>
+                          {lesson.description && (
+                            <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                              {lesson.description}
+                            </p>
+                          )}
+                        </div>
+                      </Link>
 
                       <div className="flex items-center gap-2">
                         {lesson.link && (
-                          <span
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              window.open(lesson.link!, '_blank', 'noopener,noreferrer');
-                            }}
+                          <a
+                            href={lesson.link}
+                            target="_blank"
+                            rel="noopener noreferrer"
                             className="flex items-center gap-1 rounded-full bg-paper-deep px-3 py-1.5 text-xs font-semibold text-slate-700 transition-colors hover:bg-sand"
                           >
                             <ExternalLink className="h-3.5 w-3.5" />
                             <span className="hidden sm:inline">Acessar</span>
-                          </span>
+                          </a>
                         )}
-                        <ChevronRight className="h-4 w-4 text-slate-400" />
+                        <Link
+                          href={`/lessons/${lesson.id}`}
+                          aria-label={`Abrir ${lesson.title}`}
+                          className="text-slate-400 transition-colors hover:text-slate-600"
+                        >
+                          <ChevronRight className="h-4 w-4" />
+                        </Link>
                       </div>
-                    </Link>
+                    </div>
                   ))}
                 </div>
               )}
