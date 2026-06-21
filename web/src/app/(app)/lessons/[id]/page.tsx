@@ -5,8 +5,7 @@ import { createSupabaseServerClient } from '@/lib/supabase/server-client';
 import { getAuthenticatedUser } from '@/lib/supabase/server-auth';
 import { getLessonById } from '@/lib/api/lessons';
 import { Loading } from '@/components/ui/spinner';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { EmptyState } from '@/components/ui/empty-state';
 import { BookOpen, ExternalLink, ChevronLeft } from 'lucide-react';
 
 async function LessonDetailContent({ id }: { id: string }) {
@@ -25,8 +24,11 @@ async function LessonDetailContent({ id }: { id: string }) {
 
   return (
     <div className="mx-auto w-full max-w-3xl space-y-6 px-4 py-8">
-      <div className="flex items-center gap-2 text-sm text-slate-500">
-        <Link href="/lessons" className="flex items-center gap-1 text-primary hover:underline">
+      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <Link
+          href="/lessons"
+          className="flex items-center gap-1 font-semibold text-primary transition-colors hover:text-brand-hover"
+        >
           <ChevronLeft className="h-4 w-4" />
           Catálogo de Lições
         </Link>
@@ -38,30 +40,32 @@ async function LessonDetailContent({ id }: { id: string }) {
         )}
       </div>
 
-      <header className="space-y-3">
+      <header className="rounded-hero bg-white p-6 shadow-sm">
         <div className="flex items-start gap-3">
           {lesson.order_in_series && (
-            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-primary/10 text-lg font-semibold text-primary">
+            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-brand-soft text-lg font-bold text-brand-soft-fg">
               {lesson.order_in_series}
             </div>
           )}
-          <div className="space-y-1">
-            <h1 className="text-2xl font-semibold text-slate-900">{lesson.title}</h1>
-            {lesson.series && (
-              <Badge variant="outline">{lesson.series.name}</Badge>
-            )}
+          <div className="min-w-0">
+            {lesson.series && <span className="eyebrow">{lesson.series.name}</span>}
+            <h1
+              className={`text-2xl font-bold leading-tight tracking-tight text-foreground ${
+                lesson.series ? 'mt-1.5' : ''
+              }`}
+            >
+              {lesson.title}
+            </h1>
           </div>
         </div>
       </header>
 
       {lesson.description && (
-        <Card>
-          <CardContent className="pt-6">
-            <p className="whitespace-pre-line text-sm leading-relaxed text-slate-700">
-              {lesson.description}
-            </p>
-          </CardContent>
-        </Card>
+        <div className="rounded-card bg-white p-5 shadow-sm">
+          <p className="whitespace-pre-line text-sm leading-relaxed text-slate-700">
+            {lesson.description}
+          </p>
+        </div>
       )}
 
       {lesson.link && (
@@ -69,7 +73,7 @@ async function LessonDetailContent({ id }: { id: string }) {
           href={lesson.link}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center justify-center gap-2 rounded-lg border border-primary bg-primary/5 px-4 py-3 text-sm font-medium text-primary transition hover:bg-primary/10"
+          className="flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground shadow-sm transition-colors duration-base ease-out-soft hover:bg-brand-hover"
         >
           <ExternalLink className="h-4 w-4" />
           Acessar conteúdo da lição
@@ -77,14 +81,10 @@ async function LessonDetailContent({ id }: { id: string }) {
       )}
 
       {!lesson.description && !lesson.link && (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <BookOpen className="mb-4 h-12 w-12 text-slate-300" />
-            <p className="text-center text-sm text-slate-500">
-              Esta lição ainda não possui descrição ou link de conteúdo.
-            </p>
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={<BookOpen />}
+          title="Esta lição ainda não possui descrição ou link de conteúdo."
+        />
       )}
     </div>
   );

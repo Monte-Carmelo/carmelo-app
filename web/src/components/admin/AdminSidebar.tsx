@@ -3,57 +3,33 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Shield, Users, Building, BookOpen, BarChart, Settings, X, Calendar, LogOut } from 'lucide-react';
+import {
+  LayoutDashboard,
+  Users,
+  Building,
+  BookOpen,
+  BarChart3,
+  Settings,
+  X,
+  Calendar,
+  LogOut,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { Logo } from '@/components/layout/Logo';
 
 interface AdminSidebarProps {
   onClose?: () => void;
 }
 
 const navItems = [
-  {
-    label: 'Dashboard',
-    href: '/admin',
-    icon: Shield,
-    description: 'Visão geral e métricas',
-  },
-  {
-    label: 'Usuários',
-    href: '/admin/users',
-    icon: Users,
-    description: 'Gerenciar usuários do sistema',
-  },
-  {
-    label: 'Grupos de Crescimento',
-    href: '/admin/growth-groups',
-    icon: Building,
-    description: 'Gerenciar GCs',
-  },
-  {
-    label: 'Eventos',
-    href: '/admin/events',
-    icon: Calendar,
-    description: 'Gerenciar eventos da igreja',
-  },
-  {
-    label: 'Lições',
-    href: '/admin/lessons',
-    icon: BookOpen,
-    description: 'Séries e lições',
-  },
-  {
-    label: 'Relatórios',
-    href: '/admin/reports',
-    icon: BarChart,
-    description: 'Analytics e métricas',
-  },
-  {
-    label: 'Configurações',
-    href: '/admin/settings',
-    icon: Settings,
-    description: 'Configurações do sistema',
-  },
+  { label: 'Painel', href: '/admin', icon: LayoutDashboard },
+  { label: 'Usuários', href: '/admin/users', icon: Users },
+  { label: 'GCs', href: '/admin/growth-groups', icon: Building },
+  { label: 'Eventos', href: '/admin/events', icon: Calendar },
+  { label: 'Lições', href: '/admin/lessons', icon: BookOpen },
+  { label: 'Relatórios', href: '/admin/reports', icon: BarChart3 },
+  { label: 'Configurações', href: '/admin/settings', icon: Settings },
 ];
 
 export function AdminSidebar({ onClose }: AdminSidebarProps) {
@@ -90,12 +66,14 @@ export function AdminSidebar({ onClose }: AdminSidebarProps) {
   };
 
   return (
-    <div className="flex h-full flex-col border-r border-slate-200 bg-white">
+    <div className="flex h-full flex-col border-r border-border bg-white">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
-        <div>
-          <h2 className="text-lg font-semibold text-slate-900">Área Admin</h2>
-          <p className="text-xs text-slate-500">Gestão do sistema</p>
+      <div className="flex items-center justify-between gap-2 border-b border-border px-5 py-4">
+        <div className="min-w-0">
+          <Link href="/admin" onClick={onClose} className="flex items-center">
+            <Logo className="h-8" />
+          </Link>
+          <p className="eyebrow mt-2">Área do pastor</p>
         </div>
         {onClose && (
           <Button
@@ -103,6 +81,7 @@ export function AdminSidebar({ onClose }: AdminSidebarProps) {
             size="icon"
             onClick={onClose}
             className="md:hidden"
+            aria-label="Fechar menu"
           >
             <X className="h-5 w-5" />
           </Button>
@@ -121,47 +100,35 @@ export function AdminSidebar({ onClose }: AdminSidebarProps) {
               href={item.href}
               onClick={onClose}
               className={cn(
-                'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition-colors duration-fast ease-out-soft',
                 active
-                  ? 'bg-primary text-primary-foreground'
-                  : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
+                  ? 'bg-brand-soft text-brand-soft-fg'
+                  : 'text-slate-600 hover:bg-paper-deep hover:text-slate-900',
               )}
             >
-              <Icon className="h-5 w-5 flex-shrink-0" />
-              <div className="flex-1">
-                <div className={cn(active ? 'text-primary-foreground' : 'text-slate-900')}>
-                  {item.label}
-                </div>
-                <div
-                  className={cn(
-                    'text-xs',
-                    active ? 'text-primary-foreground/80' : 'text-slate-500'
-                  )}
-                >
-                  {item.description}
-                </div>
-              </div>
+              <Icon
+                className="h-[18px] w-[18px] flex-shrink-0"
+                strokeWidth={active ? 2.2 : 1.8}
+              />
+              {item.label}
             </Link>
           );
         })}
       </nav>
 
       {/* Footer */}
-      <div className="border-t border-slate-200 px-6 py-4">
+      <div className="border-t border-border px-5 py-4">
         <button
           type="button"
           onClick={handleLogout}
           disabled={isLoggingOut}
-          className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-70"
+          className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold text-slate-600 transition-colors duration-fast ease-out-soft hover:bg-paper-deep hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-70"
         >
-          <LogOut className="h-5 w-5 flex-shrink-0" />
-          <span>{isLoggingOut ? 'Saindo...' : 'Sair'}</span>
+          <LogOut className="h-[18px] w-[18px] flex-shrink-0" strokeWidth={1.8} />
+          <span>{isLoggingOut ? 'Saindo…' : 'Sair'}</span>
         </button>
-        <p className="mt-2 text-xs text-slate-500">
-          Carmelo App Admin
-          <br />
-          v1.0.0
-        </p>
+        <p className="tipograma mt-3 px-3 text-[10px]">Igreja Monte Carmelo</p>
+        <p className="mt-1 px-3 text-[11px] text-muted-foreground">v1.0.0</p>
       </div>
     </div>
   );

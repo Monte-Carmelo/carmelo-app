@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { z } from 'zod';
-import { Calendar, FileText, UserCheck, AlertCircle } from 'lucide-react';
+import { Calendar, FileText, Home, UserCheck, AlertCircle } from 'lucide-react';
 import type { LessonTemplate } from '@/lib/api/lessons';
 import type {
   AttendanceMemberOption,
@@ -20,6 +20,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ScreenHeader } from '@/components/ui/screen-header';
 import { MemberAttendanceList } from '@/components/meetings/attendance/MemberAttendanceList';
 import { VisitorAttendanceList } from '@/components/meetings/attendance/VisitorAttendanceList';
 import { LessonSelector } from '@/components/lessons/lesson-selector';
@@ -288,44 +289,45 @@ export function MeetingForm({
       className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-4 py-8"
       pending={isSubmitting}
     >
-      <div className="space-y-2">
-        <h1 className="text-3xl font-bold tracking-tight">Registrar reunião</h1>
-        <p className="text-muted-foreground">
-          Selecione o grupo, configure a lição e marque presenças de membros e visitantes.
-        </p>
-      </div>
+      <ScreenHeader
+        title="Registrar reunião"
+        subtitle="Selecione o grupo, configure a lição e marque presenças de membros e visitantes."
+      />
 
       {errorMessage && (
         <div
           ref={errorRef}
-          className="flex items-start gap-2 rounded-lg border border-destructive bg-destructive/10 p-3"
+          className="flex items-start gap-2 rounded-card bg-danger-soft px-4 py-3"
         >
-          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
-          <p className="text-sm text-destructive">{errorMessage}</p>
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-danger" />
+          <p className="text-sm font-medium text-danger">{errorMessage}</p>
         </div>
       )}
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calendar className="h-5 w-5" />
+          <CardTitle className="flex items-center gap-2 text-[17px] font-bold">
+            <Calendar className="h-5 w-5 text-brand-soft-fg" />
             Informações básicas
           </CardTitle>
           <CardDescription>Defina o GC, data e horário da reunião</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="gcId">Grupo de Crescimento</Label>
+          <div className="space-y-1.5">
+            <Label htmlFor="gcId" className="text-xs font-semibold text-muted-foreground">Grupo de Crescimento</Label>
             {defaultGcId ? (
               <div className="space-y-1">
-                <Input
-                  id="gcId"
-                  type="text"
-                  value={defaultGcName || ''}
-                  readOnly
-                  disabled
-                  className="bg-muted"
-                />
+                <div className="relative">
+                  <Home className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-soft-fg" />
+                  <Input
+                    id="gcId"
+                    type="text"
+                    value={defaultGcName || ''}
+                    readOnly
+                    disabled
+                    className="rounded-xl border-transparent bg-paper pl-10 font-medium text-foreground shadow-none disabled:cursor-default disabled:opacity-100"
+                  />
+                </div>
                 <p className="text-xs text-muted-foreground">
                   GC pré-selecionado. Para alterar, volte ao dashboard.
                 </p>
@@ -355,8 +357,8 @@ export function MeetingForm({
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="meetingDate">Data</Label>
+            <div className="space-y-1.5">
+              <Label htmlFor="meetingDate" className="text-xs font-semibold text-muted-foreground">Data</Label>
               <Input
                 id="meetingDate"
                 type="date"
@@ -367,8 +369,8 @@ export function MeetingForm({
               )}
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="meetingTime">Horário</Label>
+            <div className="space-y-1.5">
+              <Label htmlFor="meetingTime" className="text-xs font-semibold text-muted-foreground">Horário</Label>
               <Input
                 id="meetingTime"
                 type="time"
@@ -380,8 +382,8 @@ export function MeetingForm({
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="status">Status</Label>
+          <div className="space-y-1.5">
+            <Label htmlFor="status" className="text-xs font-semibold text-muted-foreground">Status</Label>
             <Select
               value={form.watch('status')}
               onValueChange={(value) =>
@@ -405,8 +407,8 @@ export function MeetingForm({
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5" />
+          <CardTitle className="flex items-center gap-2 text-[17px] font-bold">
+            <FileText className="h-5 w-5 text-brand-soft-fg" />
             Lição
           </CardTitle>
           <CardDescription>Escolha uma lição do catálogo ou crie um título personalizado</CardDescription>
@@ -435,8 +437,8 @@ export function MeetingForm({
             }
           />
 
-          <div className="space-y-2">
-            <Label htmlFor="taughtBy">Ministrado por (opcional)</Label>
+          <div className="space-y-1.5">
+            <Label htmlFor="taughtBy" className="text-xs font-semibold text-muted-foreground">Ministrado por (opcional)</Label>
             <Input
               id="taughtBy"
               type="text"
@@ -445,8 +447,8 @@ export function MeetingForm({
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="comments">Comentários (opcional)</Label>
+          <div className="space-y-1.5">
+            <Label htmlFor="comments" className="text-xs font-semibold text-muted-foreground">Comentários (opcional)</Label>
             <Textarea
               id="comments"
               rows={3}
@@ -459,8 +461,8 @@ export function MeetingForm({
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <UserCheck className="h-5 w-5" />
+          <CardTitle className="flex items-center gap-2 text-[17px] font-bold">
+            <UserCheck className="h-5 w-5 text-brand-soft-fg" />
             Presença
           </CardTitle>
           <CardDescription>Marque os membros e visitantes presentes na reunião</CardDescription>

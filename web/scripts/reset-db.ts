@@ -165,9 +165,9 @@ async function verifyStorageBucketListing() {
   }
 }
 
-if (existsSync(configPath)) {
-  args.push('--config', configPath);
-} else if (process.env.SUPABASE_CONFIG_PATH) {
+// O CLI moderno não aceita mais --config; a descoberta padrão a partir do
+// workdir (repoRoot) já encontra supabase/config.toml quando existir.
+if (process.env.SUPABASE_CONFIG_PATH && !existsSync(configPath)) {
   console.warn(
     `⚠️  Arquivo de configuração Supabase não encontrado em ${configPath}. Prosseguindo com defaults do CLI.`,
   );

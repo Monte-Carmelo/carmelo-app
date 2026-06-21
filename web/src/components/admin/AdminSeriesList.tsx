@@ -137,7 +137,7 @@ export function AdminSeriesList({ series, onDelete }: AdminSeriesListProps) {
                       variant="ghost"
                       size="sm"
                       asChild
-                      className="text-blue-600 hover:text-blue-700"
+                      className="text-primary hover:text-brand-hover"
                     >
                       <Link href={`/admin/lessons/new?series=${serie.id}`}>
                         <Plus className="h-4 w-4 mr-1" />

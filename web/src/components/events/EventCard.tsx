@@ -29,17 +29,17 @@ const statusLabels = {
   cancelled: 'Cancelado',
 };
 
-const statusColors = {
-  scheduled: 'bg-blue-100 text-blue-800',
-  completed: 'bg-green-100 text-green-800',
-  cancelled: 'bg-red-100 text-red-800',
-};
+const statusVariants = {
+  scheduled: 'default',
+  completed: 'success',
+  cancelled: 'danger',
+} as const;
 
 export function EventCard({ event }: EventCardProps) {
   const formatEventDate = (dateStr: string, timeStr?: string | null) => {
     const date = new Date(dateStr);
     const formattedDate = format(date, "d 'de' MMMM 'de' yyyy", { locale: ptBR });
-    
+
     if (timeStr) {
       return `${formattedDate} às ${timeStr}`;
     }
@@ -49,7 +49,7 @@ export function EventCard({ event }: EventCardProps) {
   const isPastEvent = new Date(event.event_date) < new Date();
 
   return (
-    <Card className="group overflow-hidden transition-all duration-200 hover:shadow-lg">
+    <Card className="group overflow-hidden shadow-sm transition-all duration-200 hover:shadow-lg">
       <Link href={`/events/${event.id}`}>
         {event.banner_url ? (
           <div className="relative h-48 w-full">
@@ -64,34 +64,33 @@ export function EventCard({ event }: EventCardProps) {
             <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-200" />
           </div>
         ) : (
-          <div className="h-48 w-full bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
-            <Calendar className="h-12 w-12 text-blue-400" />
+          <div className="h-48 w-full bg-gradient-to-br from-brand-soft to-teal-100 flex items-center justify-center">
+            <Calendar className="h-12 w-12 text-teal-300" />
           </div>
         )}
-        
+
         <CardHeader className="pb-3">
           <div className="flex items-start justify-between">
-            <CardTitle className="text-lg leading-tight group-hover:text-blue-600 transition-colors">
+            <CardTitle className="text-lg font-bold leading-tight group-hover:text-brand-hover transition-colors">
               {event.title}
             </CardTitle>
-            <Badge 
-              className={`ml-2 ${statusColors[event.status as keyof typeof statusColors]} ${
-                isPastEvent ? 'opacity-60' : ''
-              }`}
+            <Badge
+              variant={statusVariants[event.status as keyof typeof statusVariants]}
+              className={`ml-2 ${isPastEvent ? 'opacity-60' : ''}`}
             >
               {statusLabels[event.status as keyof typeof statusLabels]}
             </Badge>
           </div>
-          
+
           {event.description && (
-            <p className="text-sm text-slate-600 line-clamp-2">
+            <p className="text-sm text-muted-foreground line-clamp-2">
               {event.description}
             </p>
           )}
         </CardHeader>
 
         <CardContent className="space-y-3">
-          <div className="flex items-center gap-2 text-sm text-slate-600">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Calendar className="h-4 w-4" />
             <span className={isPastEvent ? 'text-slate-400' : ''}>
               {formatEventDate(event.event_date, event.event_time)}
@@ -99,7 +98,7 @@ export function EventCard({ event }: EventCardProps) {
           </div>
 
           {event.location && (
-            <div className="flex items-center gap-2 text-sm text-slate-600">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <MapPin className="h-4 w-4" />
               <span className={isPastEvent ? 'text-slate-400' : ''}>
                 {event.location}

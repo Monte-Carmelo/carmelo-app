@@ -35,9 +35,9 @@ export function ConvertDialog({
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Converter visitante em membro?</AlertDialogTitle>
+          <AlertDialogTitle className="font-bold">Converter visitante em membro?</AlertDialogTitle>
           <AlertDialogDescription>
-            Você está prestes a converter <strong>{visitorName}</strong> em membro ativo deste GC.
+            Você está prestes a converter <strong className="font-semibold text-foreground">{visitorName}</strong> em membro ativo deste GC.
             Esta ação registrará o evento de conversão.
           </AlertDialogDescription>
         </AlertDialogHeader>

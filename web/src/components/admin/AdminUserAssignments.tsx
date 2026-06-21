@@ -111,7 +111,7 @@ export function AdminUserAssignments({ userId, assignments, availableGroups }: A
       </header>
 
       {feedback ? (
-        <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{feedback}</div>
+        <div className="rounded-lg border border-success/30 bg-success-soft px-4 py-3 text-sm text-success">{feedback}</div>
       ) : null}
 
       {errorMessage ? (
@@ -132,7 +132,7 @@ export function AdminUserAssignments({ userId, assignments, availableGroups }: A
                 disabled={pendingAssignmentId === assignment.assignmentId || isRemoving}
                 className={clsx(
                   'inline-flex items-center rounded-full px-3 py-1.5 text-xs font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-70',
-                  'bg-rose-600 hover:brightness-110',
+                  'bg-danger hover:brightness-110',
                 )}
               >
                 {pendingAssignmentId === assignment.assignmentId ? 'Removendo...' : 'Remover'}

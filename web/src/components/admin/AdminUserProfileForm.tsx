@@ -85,7 +85,7 @@ export function AdminUserProfileForm({ userId, initialValues }: AdminUserProfile
         </div>
 
         {feedback ? (
-          <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{feedback}</div>
+          <div className="rounded-lg border border-success/30 bg-success-soft px-4 py-3 text-sm text-success">{feedback}</div>
         ) : null}
 
         {errorMessage ? (

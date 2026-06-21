@@ -19,11 +19,14 @@ export default async function DashboardPage() {
     : getEmptyLeaderDashboardData();
 
   return (
-    <main className="min-h-screen bg-gray-50">
+    <main className="min-h-screen bg-background">
       <div className="mx-auto max-w-7xl px-4 py-8 md:px-6 md:py-12">
-        <h1 className="mb-8 text-2xl font-semibold text-text-dark md:text-3xl">
-          Bem-vindo
-        </h1>
+        <header className="mb-8">
+          <span className="eyebrow">Igreja Monte Carmelo</span>
+          <h1 className="mt-2 text-2xl font-bold tracking-tight text-foreground md:text-3xl">
+            Bem-vindo
+          </h1>
+        </header>
         <DashboardGrid items={navigationItems} />
         <LeaderDashboardOverview data={dashboardData} />
       </div>

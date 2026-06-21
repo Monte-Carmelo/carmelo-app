@@ -1,0 +1,206 @@
+/* ============================================================================
+   Monte Carmelo — Design Tokens
+   Tipografia + Cores + Espaçamento + Sombras + Movimento
+
+   Cores e tipografia obrigatórias derivam do
+   "Manual de Identidade Visual — Igreja Monte Carmelo".
+   Tons estendidos, escala de espaçamento e tokens semânticos foram criados
+   para uso em interfaces digitais (não fazem parte do manual original).
+   ============================================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;500;600;700&display=swap');
+
+:root {
+  /* ── Marca: cores oficiais do manual ─────────────────────────────────────── */
+  --carmelo-teal: #00A499;       /* Pantone 3272 — RGB 0,164,153 */
+  --carmelo-gray: #63666A;       /* Pantone Cool Gray 10 — RGB 99,102,106 */
+
+  /* ── Escala teal (extensão para UI) ──────────────────────────────────────── */
+  --teal-50:  #E6F6F5;
+  --teal-100: #B8E5E1;
+  --teal-200: #8AD4CD;
+  --teal-300: #5BC2BA;
+  --teal-400: #2DB1A6;
+  --teal-500: #00A499;   /* brand */
+  --teal-600: #008F85;
+  --teal-700: #007268;
+  --teal-800: #00554F;
+  --teal-900: #003834;
+
+  /* ── Escala cinza ────────────────────────────────────────────────────────── */
+  --gray-50:  #F6F6F7;
+  --gray-100: #ECECEE;
+  --gray-200: #D6D7D9;
+  --gray-300: #B5B7B9;
+  --gray-400: #8C8E91;
+  --gray-500: #63666A;   /* brand */
+  --gray-600: #4E5054;
+  --gray-700: #3A3C3F;
+  --gray-800: #26282A;
+  --gray-900: #14161A;
+
+  /* ── Apoio: tons quentes/papel (extensão para UI mobile) ─────────────────── */
+  --paper:        #FAF6EF;   /* fundo principal — papel quente */
+  --paper-deep:   #F2EBDD;   /* sunken */
+  --sand:         #F1E7D2;   /* destaque morno */
+  --clay:         #C8896B;   /* clay, uso pontual */
+  --forest:       #1F4A45;   /* verde profundo, ênfase */
+  --sage:         #9CB7A4;   /* chip / fundo morno-frio */
+
+  /* ── Foreground / Background ─────────────────────────────────────────────── */
+  --bg:           var(--paper);
+  --bg-elevated:  #FFFFFF;
+  --bg-sunken:    var(--paper-deep);
+  --bg-overlay:   rgba(21, 22, 26, 0.45);
+
+  --fg:           var(--gray-800);
+  --fg-muted:     var(--gray-500);
+  --fg-subtle:    var(--gray-400);
+  --fg-on-brand:  #FFFFFF;
+  --fg-on-dark:   #FAF6EF;
+
+  /* ── Tokens de marca ─────────────────────────────────────────────────────── */
+  --brand:        var(--teal-500);
+  --brand-hover:  var(--teal-600);
+  --brand-press:  var(--teal-700);
+  --brand-soft:   var(--teal-50);
+  --brand-soft-fg: var(--teal-700);
+  --brand-deep:   var(--forest);
+
+  /* ── Bordas / Divisores ──────────────────────────────────────────────────── */
+  --border:        rgba(99, 102, 106, 0.18);
+  --border-strong: rgba(99, 102, 106, 0.32);
+  --divider:       rgba(99, 102, 106, 0.10);
+
+  /* ── Estados semânticos ──────────────────────────────────────────────────── */
+  --success:       #2E7D5B;
+  --success-soft:  #E1F0E8;
+  --warn:          #C68A2E;
+  --warn-soft:     #FAF0DC;
+  --danger:        #B5453F;
+  --danger-soft:   #FAE5E2;
+  --info:          var(--teal-700);
+  --info-soft:     var(--teal-50);
+
+  /* ── Tipografia ──────────────────────────────────────────────────────────── */
+  --font-sans:    'Open Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'Open Sans', system-ui, sans-serif;
+  --font-mono:    ui-monospace, 'SF Mono', 'Menlo', 'Consolas', monospace;
+
+  --fs-xs:   12px;
+  --fs-sm:   13px;
+  --fs-base: 15px;
+  --fs-md:   16px;
+  --fs-lg:   18px;
+  --fs-xl:   22px;
+  --fs-2xl:  28px;
+  --fs-3xl:  34px;
+  --fs-4xl:  44px;
+  --fs-5xl:  56px;
+
+  --lh-tight: 1.15; /* @kind font */
+  --lh-snug:  1.3;  /* @kind font */
+  --lh-base:  1.5;  /* @kind font */
+  --lh-loose: 1.65; /* @kind font */
+
+  --fw-light:   300; /* @kind font */
+  --fw-regular: 400; /* @kind font */
+  --fw-medium:  600; /* @kind font */
+  --fw-bold:    700; /* @kind font */
+
+  --tracking-tight:  -0.01em;
+  --tracking-normal: 0;
+  --tracking-loose:  0.04em;
+  --tracking-mark:   0.18em;   /* tipograma "IGREJA MONTE CARMELO" */
+
+  /* ── Espaçamento (escala 4px) ────────────────────────────────────────────── */
+  --space-0:  0;
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  20px;
+  --space-6:  24px;
+  --space-8:  32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* ── Cantos ──────────────────────────────────────────────────────────────── */
+  --radius-sm:    6px;
+  --radius-md:    10px;
+  --radius-lg:    14px;
+  --radius-xl:    20px;
+  --radius-2xl:   28px;
+  --radius-pill:  999px;
+  --radius-circle: 50%;
+
+  /* ── Sombras (suaves, calor de papel) ────────────────────────────────────── */
+  --shadow-1: 0 1px 2px rgba(21, 22, 26, 0.05);
+  --shadow-2: 0 2px 8px rgba(21, 22, 26, 0.06), 0 1px 2px rgba(21, 22, 26, 0.04);
+  --shadow-3: 0 8px 24px rgba(21, 22, 26, 0.08), 0 2px 4px rgba(21, 22, 26, 0.04);
+  --shadow-4: 0 18px 40px rgba(21, 22, 26, 0.12), 0 4px 8px rgba(21, 22, 26, 0.06);
+  --shadow-brand: 0 8px 24px rgba(0, 164, 153, 0.22);
+  --shadow-inset: inset 0 0 0 1px var(--border);
+
+  /* ── Movimento ───────────────────────────────────────────────────────────── */
+  --motion-fast:  120ms; /* @kind other */
+  --motion-base:  220ms; /* @kind other */
+  --motion-slow:  360ms; /* @kind other */
+  --ease-out:     cubic-bezier(.2, .7, .25, 1); /* @kind other */
+  --ease-in-out:  cubic-bezier(.5, 0, .25, 1);  /* @kind other */
+  --ease-spring:  cubic-bezier(.34, 1.56, .64, 1); /* @kind other */
+}
+
+/* ── Roles tipográficos semânticos ──────────────────────────────────────────── */
+.h-display {
+  font: var(--fw-bold) var(--fs-5xl) / var(--lh-tight) var(--font-display);
+  letter-spacing: var(--tracking-tight);
+  color: var(--fg);
+}
+.h1 {
+  font: var(--fw-bold) var(--fs-3xl) / var(--lh-tight) var(--font-display);
+  letter-spacing: var(--tracking-tight);
+  color: var(--fg);
+}
+.h2 {
+  font: var(--fw-bold) var(--fs-2xl) / var(--lh-snug) var(--font-sans);
+  color: var(--fg);
+}
+.h3 {
+  font: var(--fw-medium) var(--fs-xl) / var(--lh-snug) var(--font-sans);
+  color: var(--fg);
+}
+.h4 {
+  font: var(--fw-medium) var(--fs-lg) / var(--lh-snug) var(--font-sans);
+  color: var(--fg);
+}
+.body {
+  font: var(--fw-regular) var(--fs-base) / var(--lh-base) var(--font-sans);
+  color: var(--fg);
+}
+.body-sm {
+  font: var(--fw-regular) var(--fs-sm) / var(--lh-base) var(--font-sans);
+  color: var(--gray-700);
+}
+.caption {
+  font: var(--fw-regular) var(--fs-xs) / var(--lh-base) var(--font-sans);
+  color: var(--fg-muted);
+}
+.eyebrow {
+  font: var(--fw-medium) var(--fs-xs) / 1 var(--font-sans);
+  letter-spacing: var(--tracking-mark);
+  text-transform: uppercase;
+  color: var(--brand-soft-fg);
+}
+.tipograma {
+  font: var(--fw-light) var(--fs-base) / 1.1 var(--font-sans);
+  letter-spacing: var(--tracking-mark);
+  text-transform: uppercase;
+  color: var(--gray-500);
+}
+.scripture {
+  font: var(--fw-light) var(--fs-lg) / var(--lh-loose) var(--font-sans);
+  font-style: italic;
+  color: var(--gray-700);
+}

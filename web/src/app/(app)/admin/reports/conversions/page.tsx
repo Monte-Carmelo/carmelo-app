@@ -30,8 +30,8 @@ export default async function ConversionsReportsPage({
   );
 
   const conversionStages = [
-    { name: 'Visitantes', value: metrics.totalVisitors - metrics.convertedVisitors, color: '#f59e0b' },
-    { name: 'Convertidos', value: metrics.convertedVisitors, color: '#10b981' },
+    { name: 'Visitantes', value: metrics.totalVisitors - metrics.convertedVisitors, color: '#C68A2E' },
+    { name: 'Convertidos', value: metrics.convertedVisitors, color: '#2E7D5B' },
   ];
 
   return (
@@ -39,7 +39,7 @@ export default async function ConversionsReportsPage({
       <div className="mb-6">
         <Link
           href="/admin/reports"
-          className="inline-flex items-center text-blue-600 hover:text-blue-800 mb-4"
+          className="inline-flex items-center text-primary hover:text-brand-press mb-4"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
           Voltar para Relatórios
@@ -64,8 +64,8 @@ export default async function ConversionsReportsPage({
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Users className="h-6 w-6 text-blue-600" />
+              <div className="p-2 bg-brand-soft rounded-lg">
+                <Users className="h-6 w-6 text-primary" />
               </div>
               <div className="ml-4">
                 <h3 className="text-lg font-semibold text-gray-900">
@@ -96,8 +96,8 @@ export default async function ConversionsReportsPage({
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center">
-              <div className="p-2 bg-purple-100 rounded-lg">
-                <TrendingUp className="h-6 w-6 text-purple-600" />
+              <div className="p-2 bg-clay/[0.18] rounded-lg">
+                <TrendingUp className="h-6 w-6 text-[#8A4A2C]" />
               </div>
               <div className="ml-4">
                 <h3 className="text-lg font-semibold text-gray-900">
@@ -137,17 +137,17 @@ export default async function ConversionsReportsPage({
               lines={[
                 {
                   dataKey: 'visitors',
-                  stroke: '#3b82f6',
+                  stroke: '#00A499',
                   name: 'Visitantes',
                 },
                 {
                   dataKey: 'conversions',
-                  stroke: '#10b981',
+                  stroke: '#2E7D5B',
                   name: 'Conversões',
                 },
                 {
                   dataKey: 'conversionRate',
-                  stroke: '#f59e0b',
+                  stroke: '#C68A2E',
                   name: 'Taxa (%)',
                 },
               ]}
@@ -165,7 +165,7 @@ export default async function ConversionsReportsPage({
             <PieChart
               data={conversionStages}
               height={250}
-              colors={['#f59e0b', '#10b981']}
+              colors={['#C68A2E', '#2E7D5B']}
             />
           </CardContent>
         </Card>
@@ -181,7 +181,7 @@ export default async function ConversionsReportsPage({
             bars={[
               {
                 dataKey: 'conversionRate',
-                fill: '#10b981',
+                fill: '#2E7D5B',
                 name: 'Taxa de Conversão (%)',
               },
             ]}
@@ -238,7 +238,7 @@ export default async function ConversionsReportsPage({
                     <div className="text-right">
                       <div className={`font-semibold ${
                         gc.conversionRate >= 30 ? 'text-green-600' :
-                        gc.conversionRate >= 20 ? 'text-blue-600' :
+                        gc.conversionRate >= 20 ? 'text-primary' :
                         gc.conversionRate >= 10 ? 'text-yellow-600' : 'text-red-600'
                       }`}>
                         {gc.conversionRate.toFixed(1)}%

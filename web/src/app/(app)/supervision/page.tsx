@@ -3,6 +3,10 @@ import { redirect } from 'next/navigation';
 import { createSupabaseServerClient } from '@/lib/supabase/server-client';
 import { getAuthenticatedUser } from '@/lib/supabase/server-auth';
 import { Loading } from '@/components/ui/spinner';
+import { ScreenHeader } from '@/components/ui/screen-header';
+import { StatTile } from '@/components/ui/stat-tile';
+import { Badge } from '@/components/ui/badge';
+import { EmptyState } from '@/components/ui/empty-state';
 
 interface SearchParams {
   highlight?: string;
@@ -44,31 +48,16 @@ async function SupervisionContent({ searchParams }: { searchParams: SearchParams
 
   return (
     <section className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-10">
-      <header className="flex flex-col gap-2">
-        <h1 className="text-3xl font-semibold text-slate-900">Supervisão</h1>
-        <p className="text-sm text-slate-600">
-          Visão consolidada dos Grupos de Crescimento sob sua supervisão direta ou indireta. Utilize os dados para
-          acompanhar frequência, crescimento e conversões.
-        </p>
-      </header>
+      <ScreenHeader
+        title="Supervisão"
+        subtitle="Visão consolidada dos Grupos de Crescimento sob sua supervisão direta ou indireta. Utilize os dados para acompanhar frequência, crescimento e conversões."
+      />
 
-      <section className="grid gap-4 md:grid-cols-4">
-        <article className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-          <h2 className="text-xs uppercase tracking-wide text-slate-400">Grupos monitorados</h2>
-          <p className="mt-2 text-2xl font-semibold text-slate-900">{totalGroups}</p>
-        </article>
-        <article className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-          <h2 className="text-xs uppercase tracking-wide text-slate-400">Membros ativos</h2>
-          <p className="mt-2 text-2xl font-semibold text-slate-900">{totalMembers}</p>
-        </article>
-        <article className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-          <h2 className="text-xs uppercase tracking-wide text-slate-400">Reuniões este mês</h2>
-          <p className="mt-2 text-2xl font-semibold text-slate-900">{totalMeetingsMonth}</p>
-        </article>
-        <article className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-          <h2 className="text-xs uppercase tracking-wide text-slate-400">Conversões (30 dias)</h2>
-          <p className="mt-2 text-2xl font-semibold text-slate-900">{totalConversions}</p>
-        </article>
+      <section className="grid grid-cols-2 gap-4 md:grid-cols-4">
+        <StatTile value={totalGroups} label="Grupos monitorados" />
+        <StatTile value={totalMembers} label="Membros ativos" />
+        <StatTile value={totalMeetingsMonth} label="Reuniões este mês" />
+        <StatTile value={totalConversions} label="Conversões (30 dias)" />
       </section>
 
       <section className="grid gap-4">
@@ -79,43 +68,43 @@ async function SupervisionContent({ searchParams }: { searchParams: SearchParams
             return (
               <article
                 key={metric.gc_id}
-                className={`rounded-2xl border ${
-                  isHighlighted ? 'border-primary bg-primary/5' : 'border-slate-200'
-                } bg-white p-6 shadow-sm transition`}
+                className={`rounded-card bg-white p-6 shadow-sm transition ${
+                  isHighlighted ? 'ring-2 ring-primary' : ''
+                }`}
               >
                 <header className="flex flex-col gap-1 md:flex-row md:items-center md:justify-between">
                   <div>
-                    <h2 className="text-lg font-semibold text-slate-900">{metric.gc_name}</h2>
-                    <p className="text-xs uppercase tracking-wide text-slate-400">
+                    <h2 className="text-lg font-bold text-foreground">{metric.gc_name}</h2>
+                    <p className="mt-0.5 text-xs text-muted-foreground">
                       {metric.total_active_members ?? 0} membros ativos • {metric.unique_visitors_30d ?? 0} visitantes únicos (30d)
                     </p>
                   </div>
-                  <span className="text-sm font-semibold text-slate-600">
+                  <Badge className="self-start md:self-auto">
                     Conversão: {metric.conversion_rate_pct ?? 0}%
-                  </span>
+                  </Badge>
                 </header>
 
-                <dl className="mt-4 grid grid-cols-2 gap-4 text-sm text-slate-600 md:grid-cols-4">
+                <dl className="mt-4 grid grid-cols-2 gap-4 text-sm md:grid-cols-4">
                   <div>
-                    <dt className="uppercase text-xs tracking-wide text-slate-400">Reuniões no mês</dt>
-                    <dd className="text-sm font-semibold text-slate-800">{metric.meetings_current_month ?? 0}</dd>
+                    <dt className="text-[11px] font-medium text-muted-foreground">Reuniões no mês</dt>
+                    <dd className="mt-0.5 text-sm font-bold text-foreground">{metric.meetings_current_month ?? 0}</dd>
                   </div>
                   <div>
-                    <dt className="uppercase text-xs tracking-wide text-slate-400">Presença média (30d)</dt>
-                    <dd className="text-sm font-semibold text-slate-800">{metric.average_attendance ?? 0}</dd>
+                    <dt className="text-[11px] font-medium text-muted-foreground">Presença média (30d)</dt>
+                    <dd className="mt-0.5 text-sm font-bold text-foreground">{metric.average_attendance ?? 0}</dd>
                   </div>
                   <div>
-                    <dt className="uppercase text-xs tracking-wide text-slate-400">Crescimento (30d)</dt>
-                    <dd className="text-sm font-semibold text-emerald-600">{metric.growth_30d ?? 0}</dd>
+                    <dt className="text-[11px] font-medium text-muted-foreground">Crescimento (30d)</dt>
+                    <dd className="mt-0.5 text-sm font-bold text-success">{metric.growth_30d ?? 0}</dd>
                   </div>
                   <div>
-                    <dt className="uppercase text-xs tracking-wide text-slate-400">Conversões (30d)</dt>
-                    <dd className="text-sm font-semibold text-emerald-600">{metric.conversions_30d ?? 0}</dd>
+                    <dt className="text-[11px] font-medium text-muted-foreground">Conversões (30d)</dt>
+                    <dd className="mt-0.5 text-sm font-bold text-success">{metric.conversions_30d ?? 0}</dd>
                   </div>
                   {metric.conversion_rate_pct !== null ? (
                     <div className="col-span-2 md:col-span-4">
-                      <dt className="uppercase text-xs tracking-wide text-slate-400">Observações</dt>
-                      <dd className="text-sm text-slate-600">
+                      <dt className="text-[11px] font-medium text-muted-foreground">Observações</dt>
+                      <dd className="mt-0.5 text-sm text-muted-foreground">
                         {metric.conversion_rate_pct >= 30
                           ? 'Conversão acima da média — parabenize a equipe.'
                           : metric.conversion_rate_pct === 0
@@ -129,9 +118,10 @@ async function SupervisionContent({ searchParams }: { searchParams: SearchParams
             );
           })
         ) : (
-          <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6 text-sm text-slate-500">
-            Nenhum grupo disponível para supervisão no momento.
-          </div>
+          <EmptyState
+            sunken
+            title="Nenhum grupo disponível para supervisão no momento."
+          />
         )}
       </section>
     </section>

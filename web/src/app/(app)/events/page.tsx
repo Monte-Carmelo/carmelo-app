@@ -1,5 +1,6 @@
 import { createSupabaseServerClient } from '@/lib/supabase/server-client';
 import { EventList } from '@/components/events/EventList';
+import { ScreenHeader } from '@/components/ui/screen-header';
 import { listEvents, listEventYears } from '@/lib/events/queries';
 
 interface EventsPageProps {
@@ -26,15 +27,12 @@ export default async function EventsPage({ searchParams }: EventsPageProps) {
     ]);
 
     return (
-      <div className="p-6">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-slate-900 mb-2">
-            Eventos da Igreja
-          </h1>
-          <p className="text-slate-600">
-            Confira os eventos programados para nossa comunidade
-          </p>
-        </div>
+      <div className="mx-auto w-full max-w-6xl p-6">
+        <ScreenHeader
+          className="mb-8"
+          title="Eventos da Igreja"
+          subtitle="Confira os eventos programados para nossa comunidade"
+        />
 
         <EventList
           events={events}
@@ -50,10 +48,10 @@ export default async function EventsPage({ searchParams }: EventsPageProps) {
     return (
       <div className="p-6">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-red-600 mb-2">
+          <h1 className="mb-2 text-2xl font-bold text-danger">
             Erro ao carregar eventos
           </h1>
-          <p className="text-slate-600">{message}</p>
+          <p className="text-muted-foreground">{message}</p>
         </div>
       </div>
     );

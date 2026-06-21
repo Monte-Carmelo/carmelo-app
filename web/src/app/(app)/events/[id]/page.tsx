@@ -19,7 +19,7 @@ export default async function EventDetailsPage({ params }: EventDetailsPageProps
   }
 
   return (
-    <div className="p-6">
+    <div className="mx-auto w-full max-w-6xl p-6">
       <EventDetail event={event} />
     </div>
   );

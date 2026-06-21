@@ -15,20 +15,43 @@ export default async function LoginPage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-16">
-      <div className="flex w-full max-w-5xl flex-col gap-10 md:flex-row md:items-center">
-        <div className="flex-1 space-y-6">
-          <div className="flex justify-center md:justify-start">
-            <Logo className="h-20 md:h-24" />
-          </div>
-          <h1 className="text-balance text-center text-2xl font-semibold text-text-dark md:text-left md:text-3xl">
-            Bem-vindo
-          </h1>
-          <p className="text-center text-base text-text-light md:text-left">
-            Entre para administrar seus Grupos de Crescimento
-          </p>
+    <main className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-background px-7 py-16">
+      {/* Pattern de montes — telas-marco, opacidade 4-8% */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 top-0 h-48 text-forest opacity-[0.06]"
+        style={{
+          backgroundImage: "url('/logo/pattern-monte.svg')",
+          backgroundRepeat: 'repeat-x',
+          maskImage: 'linear-gradient(to bottom, black, transparent)',
+          WebkitMaskImage: 'linear-gradient(to bottom, black, transparent)',
+        }}
+      />
+
+      <div className="relative flex w-full max-w-sm flex-col">
+        <div className="flex justify-center">
+          <Logo className="h-20" />
         </div>
-        <LoginForm />
+        <span className="tipograma mt-4 block text-center text-[13px]">
+          Igreja Monte Carmelo
+        </span>
+
+        <h1 className="mt-9 text-center text-[26px] font-bold leading-tight text-foreground">
+          Gestão de GCs
+        </h1>
+        <p className="mt-2 text-center text-sm leading-relaxed text-muted-foreground">
+          Cuide do seu grupo: encontros, presença, membros e lições — tudo em
+          um lugar.
+        </p>
+
+        <div className="mt-8">
+          <LoginForm />
+        </div>
+
+        <p className="mt-5 text-center text-xs leading-relaxed text-slate-400">
+          O acesso é liberado pela liderança da igreja para líderes e líderes
+          em treinamento. Não consegue entrar? Fale com seu pastor.
+        </p>
       </div>
     </main>
   );

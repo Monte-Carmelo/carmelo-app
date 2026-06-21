@@ -2,27 +2,17 @@
 
 import { useMemo, useState, useTransition } from 'react';
 import Link from 'next/link';
-import { Ban, Pencil, Users } from 'lucide-react';
+import { Ban, Pencil, GitFork } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { inactivateGrowthGroupAction } from '@/app/(app)/admin/growth-groups/actions';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { Avatar } from '@/components/ui/avatar';
+import { ListItem } from '@/components/ui/list-item';
+import { SearchField } from '@/components/ui/search-field';
+import { FilterChips } from '@/components/ui/filter-chips';
+import { gcHealthFromLastMeeting, GC_HEALTH_META, type GcHealth } from '@/lib/admin/gc-health';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -56,61 +46,62 @@ const modeLabels: Record<string, string> = {
   hybrid: 'Híbrido',
 };
 
-const statusLabels: Record<string, string> = {
-  active: 'Ativo',
-  inactive: 'Inativo',
-  multiplying: 'Multiplicando',
-  multiplied: 'Multiplicado',
-};
+const HEALTH_SEVERITY: Record<GcHealth, number> = { silent: 0, attention: 1, healthy: 2 };
+
+const FILTERS = [
+  { id: 'all', label: 'Todos' },
+  { id: 'healthy', label: 'Saudáveis' },
+  { id: 'attention', label: 'Atenção' },
+  { id: 'silent', label: 'Silenciosos' },
+];
 
 export function AdminGrowthGroupList({ gcs }: AdminGrowthGroupListProps) {
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [modeFilter, setModeFilter] = useState<string>('all');
-  const [sortBy, setSortBy] = useState<'name' | 'created' | 'members'>('name');
+  const [filter, setFilter] = useState('all');
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  const filteredAndSortedGcs = useMemo(() => {
-    let result = [...gcs];
+  const now = useMemo(() => new Date(), []);
 
-    // Filter by search term
+  const decorated = useMemo(
+    () =>
+      gcs.map((gc) => ({
+        ...gc,
+        health: gc.status === 'active' ? gcHealthFromLastMeeting(gc.lastMeetingDate, now) : null,
+      })),
+    [gcs, now],
+  );
+
+  const filtered = useMemo(() => {
+    let result = [...decorated];
+
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
-      result = result.filter((gc) => gc.name.toLowerCase().includes(term));
+      result = result.filter(
+        (gc) =>
+          gc.name.toLowerCase().includes(term) ||
+          gc.leaders.some((leader) => leader.toLowerCase().includes(term)),
+      );
     }
 
-    // Filter by status
-    if (statusFilter !== 'all') {
-      result = result.filter((gc) => gc.status === statusFilter);
+    if (filter !== 'all') {
+      result = result.filter((gc) => gc.health === filter);
     }
 
-    // Filter by mode
-    if (modeFilter !== 'all') {
-      result = result.filter((gc) => gc.mode === modeFilter);
-    }
-
-    // Sort
+    // Atenção/silenciosos primeiro (cuidado pastoral), depois por nome.
     result.sort((a, b) => {
-      if (sortBy === 'name') {
-        return a.name.localeCompare(b.name);
-      } else if (sortBy === 'members') {
-        return b.memberCount - a.memberCount;
-      } else {
-        // Sort by created date would need a createdAt field
-        return a.name.localeCompare(b.name);
-      }
+      const severityA = a.health ? HEALTH_SEVERITY[a.health] : 3;
+      const severityB = b.health ? HEALTH_SEVERITY[b.health] : 3;
+      if (severityA !== severityB) return severityA - severityB;
+      return a.name.localeCompare(b.name);
     });
 
     return result;
-  }, [gcs, searchTerm, statusFilter, modeFilter, sortBy]);
+  }, [decorated, searchTerm, filter]);
 
   const handleInactivate = (gcId: string, gcName: string) => {
-    if (processingId || isPending) {
-      return;
-    }
-
+    if (processingId || isPending) return;
     setProcessingId(gcId);
 
     startTransition(() => {
@@ -133,169 +124,123 @@ export function AdminGrowthGroupList({ gcs }: AdminGrowthGroupListProps) {
   };
 
   return (
-    <div className="space-y-4">
-      {/* Filters */}
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <Input
-          placeholder="Buscar por nome..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="md:w-64"
-        />
-        <div className="flex gap-2">
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[140px]">
-              <SelectValue placeholder="Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos</SelectItem>
-              <SelectItem value="active">Ativo</SelectItem>
-              <SelectItem value="inactive">Inativo</SelectItem>
-              <SelectItem value="multiplying">Multiplicando</SelectItem>
-              <SelectItem value="multiplied">Multiplicado</SelectItem>
-            </SelectContent>
-          </Select>
+    <div className="space-y-3">
+      <SearchField
+        placeholder="Buscar GC ou líder"
+        value={searchTerm}
+        onChange={(event) => setSearchTerm(event.target.value)}
+      />
 
-          <Select value={modeFilter} onValueChange={setModeFilter}>
-            <SelectTrigger className="w-[140px]">
-              <SelectValue placeholder="Modo" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos</SelectItem>
-              <SelectItem value="in_person">Presencial</SelectItem>
-              <SelectItem value="online">Online</SelectItem>
-              <SelectItem value="hybrid">Híbrido</SelectItem>
-            </SelectContent>
-          </Select>
+      <FilterChips options={FILTERS} value={filter} onValueChange={setFilter} />
 
-          <Select value={sortBy} onValueChange={(v) => setSortBy(v as typeof sortBy)}>
-            <SelectTrigger className="w-[140px]">
-              <SelectValue placeholder="Ordenar por" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="name">Nome (A-Z)</SelectItem>
-              <SelectItem value="members">Mais membros</SelectItem>
-              <SelectItem value="created">Mais recentes</SelectItem>
-            </SelectContent>
-          </Select>
+      {filtered.length === 0 ? (
+        <div className="rounded-card bg-white px-4 py-8 text-center text-sm text-muted-foreground shadow-sm">
+          Nenhum GC encontrado.
         </div>
-      </div>
+      ) : (
+        <div className="space-y-2">
+          {filtered.map((gc) => {
+            const subtitleParts = [
+              gc.leaders.length > 0 ? gc.leaders.join(', ') : 'Sem líder',
+              `${gc.memberCount} ${gc.memberCount === 1 ? 'membro' : 'membros'}`,
+              modeLabels[gc.mode],
+            ];
 
-      {/* Table */}
-      <div className="rounded-md border overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Nome</TableHead>
-              <TableHead>Líder(es)</TableHead>
-              <TableHead>Supervisor(es)</TableHead>
-              <TableHead>Modo</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Membros</TableHead>
-              <TableHead>Última Reunião</TableHead>
-              <TableHead className="text-right">Ações</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredAndSortedGcs.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={8} className="text-center text-slate-500">
-                  Nenhum GC encontrado
-                </TableCell>
-              </TableRow>
-            ) : (
-              filteredAndSortedGcs.map((gc) => (
-                <TableRow key={gc.id} data-testid="gc-card">
-                  <TableCell className="font-medium">{gc.name}</TableCell>
-                  <TableCell>
-                    {gc.leaders.length > 0 ? gc.leaders.join(', ') : '-'}
-                  </TableCell>
-                  <TableCell>
-                    {gc.supervisors.length > 0 ? gc.supervisors.join(', ') : '-'}
-                  </TableCell>
-                  <TableCell>{modeLabels[gc.mode]}</TableCell>
-                  <TableCell>
-                    <span
-                      className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
-                        gc.status === 'active'
-                          ? 'bg-green-100 text-green-800'
-                          : gc.status === 'multiplying' || gc.status === 'multiplied'
-                            ? 'bg-blue-100 text-blue-800'
-                            : 'bg-slate-100 text-slate-800'
-                      }`}
-                    >
-                      {statusLabels[gc.status]}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-right">{gc.memberCount}</TableCell>
-                  <TableCell>
-                    {gc.lastMeetingDate
-                      ? new Date(gc.lastMeetingDate).toLocaleDateString('pt-BR')
-                      : '-'}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <Link href={`/admin/growth-groups/${gc.id}/edit`}>
-                        <Button variant="ghost" size="icon">
+            return (
+              <ListItem
+                key={gc.id}
+                data-testid="gc-card"
+                leading={<Avatar name={gc.name} />}
+                title={gc.name}
+                subtitle={subtitleParts.join(' · ')}
+                trailing={
+                  <div className="flex items-center gap-1.5">
+                    {gc.status !== 'active' ? (
+                      <Badge variant="neutral">
+                        {gc.status === 'inactive'
+                          ? 'Inativo'
+                          : gc.status === 'multiplying'
+                            ? 'Multiplicando'
+                            : 'Multiplicado'}
+                      </Badge>
+                    ) : (
+                      gc.health && (
+                        <Badge variant={GC_HEALTH_META[gc.health].variant} dot>
+                          {GC_HEALTH_META[gc.health].label}
+                        </Badge>
+                      )
+                    )}
+
+                    <div className="flex items-center">
+                      <Button variant="ghost" size="icon" asChild className="h-8 w-8">
+                        <Link
+                          href={`/admin/growth-groups/${gc.id}/edit`}
+                          aria-label={`Editar ${gc.name}`}
+                        >
                           <Pencil className="h-4 w-4" />
-                          <span className="sr-only">Editar</span>
-                        </Button>
-                      </Link>
-                      {gc.status === 'active' ? (
-                        <Link href={`/admin/growth-groups/${gc.id}/multiply`}>
-                          <Button variant="ghost" size="icon">
-                            <Users className="h-4 w-4" />
-                            <span className="sr-only">Multiplicar</span>
-                          </Button>
                         </Link>
+                      </Button>
+
+                      {gc.status === 'active' ? (
+                        <Button variant="ghost" size="icon" asChild className="h-8 w-8">
+                          <Link
+                            href={`/admin/growth-groups/${gc.id}/multiply`}
+                            aria-label={`Multiplicar ${gc.name}`}
+                          >
+                            <GitFork className="h-4 w-4" />
+                          </Link>
+                        </Button>
                       ) : (
-                        <Button variant="ghost" size="icon" disabled>
-                          <Users className="h-4 w-4" />
-                          <span className="sr-only">Multiplicar</span>
+                        <Button variant="ghost" size="icon" disabled className="h-8 w-8">
+                          <GitFork className="h-4 w-4" />
                         </Button>
                       )}
+
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
                           <Button
                             variant="ghost"
                             size="icon"
-                            disabled={gc.status !== 'active' || processingId === gc.id || isPending}
+                            className="h-8 w-8"
+                            disabled={
+                              gc.status !== 'active' || processingId === gc.id || isPending
+                            }
+                            aria-label={`Inativar ${gc.name}`}
                           >
-                            <Ban className="h-4 w-4 text-amber-700" />
-                            <span className="sr-only">Inativar</span>
+                            <Ban className="h-4 w-4 text-warn" />
                           </Button>
                         </AlertDialogTrigger>
                         <AlertDialogContent>
                           <AlertDialogHeader>
                             <AlertDialogTitle>Inativar GC?</AlertDialogTitle>
                             <AlertDialogDescription>
-                              O GC <strong>{gc.name}</strong> sairá dos fluxos ativos do sistema, mas seu histórico será preservado.
+                              O GC <strong>{gc.name}</strong> sairá dos fluxos ativos do
+                              sistema, mas seu histórico será preservado.
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
                             <AlertDialogCancel>Cancelar</AlertDialogCancel>
                             <AlertDialogAction
                               onClick={() => handleInactivate(gc.id, gc.name)}
-                              className="bg-amber-700 hover:bg-amber-800"
+                              className="bg-warn text-white hover:bg-warn/90"
                             >
-                              {processingId === gc.id ? 'Inativando...' : 'Inativar'}
+                              {processingId === gc.id ? 'Inativando…' : 'Inativar'}
                             </AlertDialogAction>
                           </AlertDialogFooter>
                         </AlertDialogContent>
                       </AlertDialog>
                     </div>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
+                  </div>
+                }
+              />
+            );
+          })}
+        </div>
+      )}
 
-      {/* Summary */}
-      <div className="text-sm text-slate-600">
-        Mostrando {filteredAndSortedGcs.length} de {gcs.length} GCs
-      </div>
+      <p className="px-1 text-xs text-muted-foreground">
+        Mostrando {filtered.length} de {gcs.length} GCs
+      </p>
     </div>
   );
 }

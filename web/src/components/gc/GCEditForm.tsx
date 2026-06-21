@@ -12,6 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { ScreenHeader } from '@/components/ui/screen-header';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const schema = z.object({
@@ -129,26 +130,25 @@ export function GCEditForm({ gc }: GCEditFormProps) {
       className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-4 py-8"
       pending={isLoading}
     >
-      <div className="flex items-center gap-4">
+      <div className="flex items-start gap-4">
         <Button type="button" variant="outline" size="icon" onClick={() => router.back()}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
-        <div className="flex-1 space-y-2">
-          <h1 className="text-3xl font-bold tracking-tight">Editar Grupo de Crescimento</h1>
-          <p className="text-muted-foreground">
-            Atualize as informações do GC {gc.name}
-          </p>
-        </div>
+        <ScreenHeader
+          className="flex-1"
+          title="Editar Grupo de Crescimento"
+          subtitle={`Atualize as informações do GC ${gc.name}`}
+        />
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Informações Básicas</CardTitle>
+          <CardTitle className="text-[17px] font-bold">Informações Básicas</CardTitle>
           <CardDescription>Configure nome, modo e horário do GC</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="name">Nome do GC</Label>
+          <div className="space-y-1.5">
+            <Label htmlFor="name" className="text-xs font-semibold text-muted-foreground">Nome do GC</Label>
             <Input
               id="name"
               type="text"
@@ -160,8 +160,8 @@ export function GCEditForm({ gc }: GCEditFormProps) {
             )}
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="mode">Modo</Label>
+          <div className="space-y-1.5">
+            <Label htmlFor="mode" className="text-xs font-semibold text-muted-foreground">Modo</Label>
             <Select
               value={form.watch('mode')}
               onValueChange={(value) => form.setValue('mode', value as 'in_person' | 'online' | 'hybrid')}
@@ -183,8 +183,8 @@ export function GCEditForm({ gc }: GCEditFormProps) {
           </div>
 
           {watchMode === 'in_person' && (
-            <div className="space-y-2">
-              <Label htmlFor="address">Endereço</Label>
+            <div className="space-y-1.5">
+              <Label htmlFor="address" className="text-xs font-semibold text-muted-foreground">Endereço</Label>
               <Input
                 id="address"
                 type="text"
@@ -198,8 +198,8 @@ export function GCEditForm({ gc }: GCEditFormProps) {
           )}
 
           <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="weekday">Dia da semana</Label>
+            <div className="space-y-1.5">
+              <Label htmlFor="weekday" className="text-xs font-semibold text-muted-foreground">Dia da semana</Label>
               <Select
                 value={form.watch('weekday')?.toString() ?? 'none'}
                 onValueChange={(value) =>
@@ -223,8 +223,8 @@ export function GCEditForm({ gc }: GCEditFormProps) {
               )}
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="time">Horário</Label>
+            <div className="space-y-1.5">
+              <Label htmlFor="time" className="text-xs font-semibold text-muted-foreground">Horário</Label>
               <Input
                 id="time"
                 type="time"
@@ -236,8 +236,8 @@ export function GCEditForm({ gc }: GCEditFormProps) {
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="status">Status</Label>
+          <div className="space-y-1.5">
+            <Label htmlFor="status" className="text-xs font-semibold text-muted-foreground">Status</Label>
             <Select
               value={form.watch('status')}
               onValueChange={(value) => form.setValue('status', value as 'active' | 'inactive' | 'multiplying')}
@@ -261,23 +261,22 @@ export function GCEditForm({ gc }: GCEditFormProps) {
       </Card>
 
       {errorMessage && (
-        <Card className="border-destructive">
-          <CardContent className="pt-6">
-            <p className="text-sm text-destructive">{errorMessage}</p>
-          </CardContent>
-        </Card>
+        <div className="rounded-card bg-danger-soft px-4 py-3.5 shadow-sm">
+          <p className="text-sm font-medium text-danger">{errorMessage}</p>
+        </div>
       )}
 
-      <div className="flex items-center justify-end gap-3">
+      <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end">
         <Button
           type="button"
           variant="outline"
           onClick={() => router.back()}
           disabled={isLoading}
+          className="w-full sm:w-auto"
         >
           Cancelar
         </Button>
-        <Button type="submit" disabled={isLoading}>
+        <Button type="submit" disabled={isLoading} className="w-full sm:w-auto">
           <Save className="mr-2 h-4 w-4" />
           {isLoading ? 'Salvando...' : 'Salvar alterações'}
         </Button>

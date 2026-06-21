@@ -60,7 +60,7 @@ export default async function ParticipantEditPage({ params }: ParticipantEditPag
   return (
     <div>
       <div className="mx-auto w-full max-w-3xl px-4 py-4">
-        <Link href="/participants" className="text-sm text-primary hover:underline">
+        <Link href="/participants" className="text-sm font-semibold text-primary hover:underline">
           ← Voltar para participantes
         </Link>
       </div>

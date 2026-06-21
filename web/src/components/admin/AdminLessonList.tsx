@@ -85,7 +85,7 @@ function SortableItem({ lesson, index, onDeleteClick, reorderable }: SortableIte
         <div className="w-5 h-5 flex-shrink-0" />
       )}
 
-      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-100 text-blue-700 font-semibold flex items-center justify-center">
+      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-brand-soft text-brand-soft-fg font-semibold flex items-center justify-center">
         {index + 1}
       </div>
 
@@ -99,7 +99,7 @@ function SortableItem({ lesson, index, onDeleteClick, reorderable }: SortableIte
             href={lesson.link}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-sm text-blue-600 hover:text-blue-700 inline-flex items-center gap-1 mt-1"
+            className="text-sm text-primary hover:text-brand-hover inline-flex items-center gap-1 mt-1"
           >
             Ver recurso
             <ExternalLink className="h-3 w-3" />

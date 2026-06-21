@@ -77,7 +77,7 @@ export function AdminLessonEditClient({
       <div className="mb-6">
         <Link
           href="/admin/lessons"
-          className="inline-flex items-center text-blue-600 hover:text-blue-800 mb-4"
+          className="inline-flex items-center text-primary hover:text-brand-press mb-4"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
           Voltar para Lições

@@ -7,9 +7,9 @@ import { getAuthenticatedUser } from '@/lib/supabase/server-auth';
 import type { Database } from '@/lib/supabase/types';
 import { VisitorsList } from '@/components/visitors/VisitorsList';
 import { listVisitors } from '@/lib/api/visitors';
-import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { ScreenHeader } from '@/components/ui/screen-header';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loading } from '@/components/ui/spinner';
 
@@ -30,14 +30,13 @@ async function VisitorsContent({ searchParams }: { searchParams: SearchParams })
 
   return (
     <section className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-10">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div className="space-y-2">
-          <h1 className="text-3xl font-bold tracking-tight">Visitantes</h1>
-          <p className="text-muted-foreground">
-            Gerencie visitantes ativos, acompanhe visitas e realize conversões manuais.
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
+      <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+        <ScreenHeader
+          className="min-w-0"
+          title="Visitantes"
+          subtitle="Gerencie visitantes ativos, acompanhe visitas e realize conversões manuais."
+        />
+        <div className="flex flex-wrap gap-2 md:mt-1 md:shrink-0">
           <Button asChild>
             <Link href="/visitors/new">
               <UserPlus className="mr-2 h-4 w-4" />
@@ -53,29 +52,29 @@ async function VisitorsContent({ searchParams }: { searchParams: SearchParams })
         </div>
       </div>
 
-      <Card>
-        <CardContent className="pt-6">
-          <form className="flex flex-wrap items-end gap-3">
-            <div className="flex-1 space-y-2">
-              <Label htmlFor="status">Filtrar por status</Label>
-              <Select name="status" defaultValue={searchParams.status && searchParams.status !== 'all' ? searchParams.status : 'all'}>
-                <SelectTrigger id="status">
-                  <SelectValue placeholder="Todos" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos</SelectItem>
-                  <SelectItem value="active">Ativos</SelectItem>
-                  <SelectItem value="converted">Convertidos</SelectItem>
-                  <SelectItem value="inactive">Inativos</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <Button type="submit" variant="outline">
-              Aplicar filtro
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+      <div className="rounded-card bg-white p-4 shadow-sm">
+        <form className="flex flex-wrap items-end gap-3">
+          <div className="flex-1 space-y-1.5">
+            <Label htmlFor="status" className="text-xs font-semibold text-muted-foreground">
+              Filtrar por status
+            </Label>
+            <Select name="status" defaultValue={searchParams.status && searchParams.status !== 'all' ? searchParams.status : 'all'}>
+              <SelectTrigger id="status">
+                <SelectValue placeholder="Todos" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                <SelectItem value="active">Ativos</SelectItem>
+                <SelectItem value="converted">Convertidos</SelectItem>
+                <SelectItem value="inactive">Inativos</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <Button type="submit" variant="outline">
+            Aplicar filtro
+          </Button>
+        </form>
+      </div>
 
       <VisitorsList visitors={visitorViews} />
     </section>

@@ -33,7 +33,7 @@ export function Header({ userName, userEmail, roleBadges = [] }: HeaderProps) {
   const [open, setOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-gray-200 bg-white shadow-sm">
+    <header className="sticky top-0 z-50 border-b border-border bg-white/90 shadow-sm backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 md:px-6">
         <div className="flex items-center gap-6">
           {/* Hamburger — mobile only */}
@@ -41,7 +41,7 @@ export function Header({ userName, userEmail, roleBadges = [] }: HeaderProps) {
             <SheetTrigger asChild>
               <button
                 type="button"
-                className="inline-flex items-center justify-center rounded-md p-2 text-slate-600 hover:bg-slate-100 md:hidden"
+                className="inline-flex items-center justify-center rounded-lg p-2 text-slate-600 transition-colors hover:bg-paper-deep md:hidden"
                 aria-label="Abrir menu"
               >
                 <Menu className="h-5 w-5" />
@@ -79,8 +79,8 @@ export function Header({ userName, userEmail, roleBadges = [] }: HeaderProps) {
                       className={cn(
                         'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
                         isActive
-                          ? 'bg-slate-100 text-slate-900'
-                          : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900',
+                          ? 'bg-brand-soft text-brand-soft-fg'
+                          : 'text-slate-600 hover:bg-paper-deep hover:text-slate-900',
                       )}
                     >
                       <Icon className="h-4 w-4" />
@@ -111,10 +111,10 @@ export function Header({ userName, userEmail, roleBadges = [] }: HeaderProps) {
                   key={item.href}
                   href={item.href}
                   className={cn(
-                    'rounded-md px-3 py-2 text-sm font-medium transition-colors',
+                    'rounded-lg px-3 py-2 text-sm font-medium transition-colors',
                     isActive
-                      ? 'bg-slate-100 text-slate-900'
-                      : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900',
+                      ? 'bg-brand-soft text-brand-soft-fg'
+                      : 'text-slate-600 hover:bg-paper-deep hover:text-slate-900',
                   )}
                 >
                   {item.label}

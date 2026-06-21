@@ -6,7 +6,11 @@ import type { GCMember, GCVisitor } from '@/lib/supabase/queries/gc-dashboard';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
+import { EmptyState } from '@/components/ui/empty-state';
 import { Loading } from '@/components/ui/spinner';
+
+const CHECK_SQUARE_CLASSES =
+  'h-[26px] w-[26px] rounded-[7px] border-[1.5px] border-slate-300 bg-white shadow-none transition-colors duration-fast ease-out-soft data-[state=checked]:border-brand data-[state=checked]:bg-brand data-[state=checked]:text-white';
 
 export interface AttendanceListProps {
   members: GCMember[];
@@ -153,15 +157,15 @@ export function AttendanceList({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <UserCheck className="h-5 w-5 text-primary" />
-              <span className="text-sm font-medium">Presença total</span>
+              <span className="text-sm font-semibold text-muted-foreground">Presença total</span>
             </div>
-            <span className="text-2xl font-bold">
+            <span className="text-[22px] font-bold leading-tight text-brand">
               {totalPresent}/{totalPeople}
             </span>
           </div>
-          <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-secondary">
+          <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-paper-deep">
             <div
-              className="h-full bg-primary transition-all duration-300"
+              className="h-full rounded-full bg-primary transition-all duration-300 ease-out-soft"
               style={{ width: `${totalPeople > 0 ? (totalPresent / totalPeople) * 100 : 0}%` }}
             />
           </div>
@@ -173,7 +177,7 @@ export function AttendanceList({
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="flex items-center gap-2">
+              <CardTitle className="flex items-center gap-2 text-[17px] font-bold">
                 <Users className="h-5 w-5" />
                 Membros
               </CardTitle>
@@ -181,48 +185,40 @@ export function AttendanceList({
                 {memberAttendance.size} de {members.length} presentes
               </CardDescription>
             </div>
-            <Badge variant="secondary">
+            <Badge variant="neutral">
               {members.length} {members.length === 1 ? 'membro' : 'membros'}
             </Badge>
           </div>
         </CardHeader>
         <CardContent>
           {members.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-8 text-center">
-              <Users className="mb-2 h-8 w-8 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">Nenhum membro ativo no GC</p>
-            </div>
+            <EmptyState sunken icon={<Users />} title="Nenhum membro ativo no GC" />
           ) : (
-            <div className="space-y-2">
+            <div className="[&>*+*]:border-t [&>*+*]:border-divider">
               {members.map((member) => {
                 const isPresent = memberAttendance.has(member.id);
                 const isSaving = savingStates.has(member.id);
                 const error = errors.get(member.id);
 
                 return (
-                  <div key={member.id} className="space-y-1">
-                    <label
-                      className={`flex cursor-pointer items-center gap-3 rounded-lg border p-4 transition-colors ${
-                        isPresent
-                          ? 'border-primary bg-primary/5'
-                          : 'border-border hover:bg-accent'
-                      }`}
-                    >
+                  <div key={member.id}>
+                    <label className="flex cursor-pointer items-center gap-3 py-3.5 transition-colors duration-fast ease-out-soft hover:bg-paper-deep/40">
                       <Checkbox
                         checked={isPresent}
                         disabled={isSaving}
                         onCheckedChange={() => handleToggleMember(member.id)}
+                        className={CHECK_SQUARE_CLASSES}
                       />
                       <div className="flex-1">
-                        <p className="font-medium">{member.name}</p>
-                        <p className="text-xs text-muted-foreground uppercase tracking-wide">{member.role}</p>
+                        <p className="text-[14.5px] font-bold leading-tight text-foreground">{member.name}</p>
+                        <p className="mt-0.5 text-xs text-muted-foreground uppercase tracking-wide">{member.role}</p>
                       </div>
                       {isSaving && (
                         <span className="text-xs text-muted-foreground">Salvando...</span>
                       )}
                     </label>
                     {error && (
-                      <div className="flex items-center gap-2 px-4 text-sm text-destructive">
+                      <div className="flex items-center gap-2 pb-3 text-sm text-danger">
                         <AlertCircle className="h-4 w-4" />
                         <span>{error}</span>
                       </div>
@@ -240,7 +236,7 @@ export function AttendanceList({
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="flex items-center gap-2">
+              <CardTitle className="flex items-center gap-2 text-[17px] font-bold">
                 <Users className="h-5 w-5" />
                 Visitantes
               </CardTitle>
@@ -248,41 +244,33 @@ export function AttendanceList({
                 {visitorAttendance.size} de {visitors.length} presentes
               </CardDescription>
             </div>
-            <Badge variant="secondary">
+            <Badge variant="neutral">
               {visitors.length} {visitors.length === 1 ? 'visitante' : 'visitantes'}
             </Badge>
           </div>
         </CardHeader>
         <CardContent>
           {visitors.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-8 text-center">
-              <Users className="mb-2 h-8 w-8 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">Nenhum visitante ativo no GC</p>
-            </div>
+            <EmptyState sunken icon={<Users />} title="Nenhum visitante ativo no GC" />
           ) : (
-            <div className="space-y-2">
+            <div className="[&>*+*]:border-t [&>*+*]:border-divider">
               {visitors.map((visitor) => {
                 const isPresent = visitorAttendance.has(visitor.id);
                 const isSaving = savingStates.has(visitor.id);
                 const error = errors.get(visitor.id);
 
                 return (
-                  <div key={visitor.id} className="space-y-1">
-                    <label
-                      className={`flex cursor-pointer items-center gap-3 rounded-lg border p-4 transition-colors ${
-                        isPresent
-                          ? 'border-primary bg-primary/5'
-                          : 'border-border hover:bg-accent'
-                      }`}
-                    >
+                  <div key={visitor.id}>
+                    <label className="flex cursor-pointer items-center gap-3 py-3.5 transition-colors duration-fast ease-out-soft hover:bg-paper-deep/40">
                       <Checkbox
                         checked={isPresent}
                         disabled={isSaving}
                         onCheckedChange={() => handleToggleVisitor(visitor.id)}
+                        className={CHECK_SQUARE_CLASSES}
                       />
                       <div className="flex-1">
-                        <p className="font-medium">{visitor.name}</p>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-[14.5px] font-bold leading-tight text-foreground">{visitor.name}</p>
+                        <p className="mt-0.5 text-xs text-muted-foreground">
                           {visitor.visit_count} {visitor.visit_count === 1 ? 'visita' : 'visitas'}
                         </p>
                       </div>
@@ -291,7 +279,7 @@ export function AttendanceList({
                       )}
                     </label>
                     {error && (
-                      <div className="flex items-center gap-2 px-4 text-sm text-destructive">
+                      <div className="flex items-center gap-2 pb-3 text-sm text-danger">
                         <AlertCircle className="h-4 w-4" />
                         <span>{error}</span>
                       </div>

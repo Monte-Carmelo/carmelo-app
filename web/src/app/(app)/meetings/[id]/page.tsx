@@ -1,10 +1,13 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
-import { BookOpen, ChevronRight, Users, UserPlus } from 'lucide-react';
+import { BookOpen, ChevronRight, Hand, Users, UserPlus } from 'lucide-react';
 import { createSupabaseServerClient } from '@/lib/supabase/server-client';
 import { getAuthenticatedUser } from '@/lib/supabase/server-auth';
 import { translateRole } from '@/lib/role-translations';
+import { Avatar } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { ScreenHeader } from '@/components/ui/screen-header';
 
 interface MeetingDetailProps {
   params: Promise<{ id: string }>;
@@ -69,12 +72,12 @@ async function MeetingDetailContent({ id }: { id: string }) {
   const gcName = meeting.growth_groups?.name ?? 'GC desconhecido';
 
   return (
-    <section className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-4 py-10">
+    <section className="mx-auto flex w-full max-w-4xl flex-col gap-6 bg-background px-4 py-10">
       <header className="flex flex-col gap-3">
         {/* Breadcrumb */}
-        <nav className="flex items-center gap-1.5 text-sm text-slate-500">
+        <nav className="flex items-center gap-1.5 text-sm text-muted-foreground">
           {gcId ? (
-            <Link href={`/gc/${gcId}`} className="text-primary hover:underline">
+            <Link href={`/gc/${gcId}`} className="font-medium text-primary hover:text-brand-hover hover:underline">
               {gcName}
             </Link>
           ) : (
@@ -84,24 +87,27 @@ async function MeetingDetailContent({ id }: { id: string }) {
           <span>Reunião</span>
         </nav>
 
-        <h1 className="text-3xl font-semibold text-slate-900">{meeting.lesson_title}</h1>
-
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-slate-600">
-          <span>{dateLabel}</span>
-          {meeting.taught_by && (
+        <ScreenHeader
+          title={meeting.lesson_title}
+          subtitle={
             <>
-              <span className="text-slate-300">·</span>
-              <span>Ministrado por {meeting.taught_by}</span>
+              <span>{dateLabel}</span>
+              {meeting.taught_by && (
+                <>
+                  <span className="mx-1.5 text-slate-300">·</span>
+                  <span>Ministrado por {meeting.taught_by}</span>
+                </>
+              )}
+              <span className="mx-1.5 text-slate-300">·</span>
+              <span>{totalPresent} {totalPresent === 1 ? 'presente' : 'presentes'}</span>
             </>
-          )}
-          <span className="text-slate-300">·</span>
-          <span>{totalPresent} {totalPresent === 1 ? 'presente' : 'presentes'}</span>
-        </div>
+          }
+        />
 
         {meeting.lesson_template_id && (
           <Link
             href={`/lessons/${meeting.lesson_template_id}`}
-            className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
+            className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary transition-colors duration-fast hover:text-brand-hover hover:underline"
           >
             <BookOpen className="h-4 w-4" />
             Ver lição no catálogo
@@ -110,57 +116,61 @@ async function MeetingDetailContent({ id }: { id: string }) {
       </header>
 
       {meeting.comments ? (
-        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Comentários</h2>
-          <p className="mt-2 whitespace-pre-line text-sm text-slate-700">{meeting.comments}</p>
+        <section className="rounded-card bg-white p-6 shadow-sm">
+          <h2 className="eyebrow">Comentários</h2>
+          <p className="mt-2.5 whitespace-pre-line text-sm leading-relaxed text-slate-700">{meeting.comments}</p>
         </section>
       ) : null}
 
       <section className="grid gap-4 md:grid-cols-2">
-        <article className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <article className="rounded-card bg-white p-6 shadow-sm">
           <header className="flex items-center justify-between">
-            <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-500">
+            <h2 className="eyebrow flex items-center gap-2">
               <Users className="h-4 w-4" />
               Membros
             </h2>
-            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-700">
-              {members.length}
-            </span>
+            <Badge variant="neutral">{members.length}</Badge>
           </header>
-          <ul className="mt-4 space-y-2">
+          <ul className="mt-3 [&>li+li]:border-t [&>li+li]:border-divider">
             {members.length ? (
               members.map((member, index) => (
-                <li key={`${member.name}-${member.email ?? member.phone ?? index}`} className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-                  <p className="text-sm font-semibold text-slate-900">{member.name}</p>
-                  <p className="text-xs text-slate-500">{translateRole(member.role)}</p>
+                <li key={`${member.name}-${member.email ?? member.phone ?? index}`} className="flex items-center gap-3 py-3">
+                  <Avatar name={member.name} size="md" />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[14.5px] font-bold leading-tight text-foreground">{member.name}</p>
+                    <p className="mt-0.5 text-xs leading-snug text-muted-foreground">{translateRole(member.role)}</p>
+                  </div>
                 </li>
               ))
             ) : (
-              <li className="text-sm text-slate-500">Nenhum membro marcado.</li>
+              <li className="rounded-xl bg-paper-deep px-4 py-4 text-sm text-muted-foreground">Nenhum membro marcado.</li>
             )}
           </ul>
         </article>
 
-        <article className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <article className="rounded-card bg-white p-6 shadow-sm">
           <header className="flex items-center justify-between">
-            <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-500">
+            <h2 className="eyebrow flex items-center gap-2">
               <UserPlus className="h-4 w-4" />
               Visitantes
             </h2>
-            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-700">
-              {visitors.length}
-            </span>
+            <Badge variant="neutral">{visitors.length}</Badge>
           </header>
-          <ul className="mt-4 space-y-2">
+          <ul className="mt-3 [&>li+li]:border-t [&>li+li]:border-divider">
             {visitors.length ? (
               visitors.map((visitor, index) => (
-                <li key={`${visitor.name}-${visitor.email ?? visitor.phone ?? index}`} className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-                  <p className="text-sm font-semibold text-slate-900">{visitor.name}</p>
-                  <p className="text-xs text-slate-500">{visitor.visitCount} {visitor.visitCount === 1 ? 'visita' : 'visitas'}</p>
+                <li key={`${visitor.name}-${visitor.email ?? visitor.phone ?? index}`} className="flex items-center gap-3 py-3">
+                  <Avatar soft="sage" size="md">
+                    <Hand className="h-5 w-5" />
+                  </Avatar>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[14.5px] font-bold leading-tight text-foreground">{visitor.name}</p>
+                    <p className="mt-0.5 text-xs leading-snug text-muted-foreground">{visitor.visitCount} {visitor.visitCount === 1 ? 'visita' : 'visitas'}</p>
+                  </div>
                 </li>
               ))
             ) : (
-              <li className="text-sm text-slate-500">Nenhum visitante marcado.</li>
+              <li className="rounded-xl bg-paper-deep px-4 py-4 text-sm text-muted-foreground">Nenhum visitante marcado.</li>
             )}
           </ul>
         </article>
@@ -172,7 +182,7 @@ async function MeetingDetailContent({ id }: { id: string }) {
 export default async function MeetingDetailPage({ params }: MeetingDetailProps) {
   const resolvedParams = await params;
   return (
-    <Suspense fallback={<div className="p-8 text-slate-500">Carregando reunião...</div>}>
+    <Suspense fallback={<div className="p-8 text-muted-foreground">Carregando reunião...</div>}>
       <MeetingDetailContent id={resolvedParams.id} />
     </Suspense>
   );

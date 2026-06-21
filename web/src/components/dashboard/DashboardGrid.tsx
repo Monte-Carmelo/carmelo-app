@@ -14,13 +14,14 @@ export function DashboardGrid({ items }: DashboardGridProps) {
   return (
     <div className="mx-auto max-w-4xl">
       <div className="flex flex-col gap-4 md:grid md:grid-cols-2 md:gap-6">
-        {items.map((item) => (
+        {items.map((item, index) => (
           <NavigationCard
             key={item.href}
             title={item.title}
             icon={item.icon}
             href={item.href}
             description={item.description}
+            toneIndex={index}
           />
         ))}
       </div>

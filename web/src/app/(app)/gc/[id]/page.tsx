@@ -1,19 +1,24 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { Calendar, MapPin, Users, UserCheck, UserPlus } from 'lucide-react';
+import { Calendar, ChevronRight, Crown, MapPin, UserPlus, Users } from 'lucide-react';
 import { createSupabaseServerClient } from '@/lib/supabase/server-client';
 import { getAuthenticatedUser } from '@/lib/supabase/server-auth';
+import { Avatar } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { EmptyState } from '@/components/ui/empty-state';
+import { ListGroup, ListItem } from '@/components/ui/list-item';
+import { ScreenHeader } from '@/components/ui/screen-header';
+import { SectionRow } from '@/components/ui/section-row';
 
 type PageProps = {
   params: Promise<{ id: string }>;
 };
 
-const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
-  scheduled: { label: 'Agendada', className: 'bg-blue-100 text-blue-800 border-blue-200' },
-  completed: { label: 'Realizada', className: 'bg-green-100 text-green-800 border-green-200' },
-  cancelled: { label: 'Cancelada', className: 'bg-red-100 text-red-800 border-red-200' },
+const STATUS_CONFIG: Record<string, { label: string; variant: 'default' | 'success' | 'danger' }> = {
+  scheduled: { label: 'Agendada', variant: 'default' },
+  completed: { label: 'Realizada', variant: 'success' },
+  cancelled: { label: 'Cancelada', variant: 'danger' },
 };
 
 const WEEKDAY_NAMES = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
@@ -75,164 +80,174 @@ export default async function GCDetailPage({ params }: PageProps) {
 
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-10">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="space-y-2">
-          <div className="flex items-center gap-3">
-            <h1 className="text-3xl font-bold tracking-tight">{gc.name}</h1>
-            <Badge variant="outline">{gc.status === 'active' ? 'Ativo' : gc.status}</Badge>
-          </div>
-          <p className="text-sm text-muted-foreground">
-            {MODE_NAMES[gc.mode] ?? gc.mode}
-            {gc.weekday !== null ? ` • ${WEEKDAY_NAMES[gc.weekday]}` : ''}
-            {gc.time ? ` às ${gc.time.slice(0, 5)}` : ''}
-          </p>
+      <div className="flex flex-col gap-3">
+        <ScreenHeader
+          className="flex-col gap-4 sm:flex-row"
+          eyebrow="Seu Grupo de Crescimento"
+          title={gc.name}
+          subtitle={
+            <>
+              {MODE_NAMES[gc.mode] ?? gc.mode}
+              {gc.weekday !== null ? ` • ${WEEKDAY_NAMES[gc.weekday]}` : ''}
+              {gc.time ? ` às ${gc.time.slice(0, 5)}` : ''}
+            </>
+          }
+          action={
+            <Button asChild>
+              <Link href={`/meetings/new?gcId=${gc.id}`}>
+                <Calendar className="mr-2 h-4 w-4" />
+                Registrar reunião
+              </Link>
+            </Button>
+          }
+        />
+        <div className="flex flex-wrap items-center gap-3">
+          <Badge variant={gc.status === 'active' ? 'success' : 'neutral'} dot>
+            {gc.status === 'active' ? 'Ativo' : gc.status}
+          </Badge>
           {gc.address ? (
-            <p className="flex items-center gap-1 text-sm text-muted-foreground">
+            <span className="inline-flex items-center gap-1 text-sm text-muted-foreground">
               <MapPin className="h-4 w-4" />
               <span>{gc.address}</span>
-            </p>
+            </span>
           ) : null}
-        </div>
-        <div className="flex gap-2">
-          <Link
-            href={`/meetings/new?gcId=${gc.id}`}
-            className="inline-flex items-center rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-sm transition hover:brightness-110"
-          >
-            <Calendar className="mr-2 h-4 w-4" />
-            Registrar reunião
-          </Link>
         </div>
       </div>
 
-      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>Modo</CardDescription>
-            <CardTitle className="text-xl">{MODE_NAMES[gc.mode] ?? gc.mode}</CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm text-muted-foreground">
+      <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="flex flex-col gap-1 rounded-card bg-white px-4 py-3.5 shadow-sm">
+          <span className="text-[22px] font-bold leading-tight text-forest">{MODE_NAMES[gc.mode] ?? gc.mode}</span>
+          <span className="text-[11px] font-medium leading-snug text-muted-foreground">Modo</span>
+          <span className="text-[11px] leading-snug text-muted-foreground">
             {gc.weekday !== null ? WEEKDAY_NAMES[gc.weekday] : 'Dia não definido'}
             {gc.time ? ` às ${gc.time.slice(0, 5)}` : ''}
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>Membros ativos</CardDescription>
-            <CardTitle className="text-3xl">{memberCount}</CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm text-muted-foreground">Participantes com status ativo</CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>Visitantes ativos</CardDescription>
-            <CardTitle className="text-3xl">{visitorCount}</CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm text-muted-foreground">Visitantes vinculados ao GC</CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>Reuniões recentes</CardDescription>
-            <CardTitle className="text-3xl">{meetings.length}</CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm text-muted-foreground">Últimas 5 reuniões registradas</CardContent>
-        </Card>
+          </span>
+        </div>
+        <div className="flex flex-col gap-1 rounded-card bg-white px-4 py-3.5 shadow-sm">
+          <span className="text-[22px] font-bold leading-tight text-brand">{memberCount}</span>
+          <span className="text-[11px] font-medium leading-snug text-muted-foreground">Membros ativos</span>
+          <span className="text-[11px] leading-snug text-muted-foreground">Participantes com status ativo</span>
+        </div>
+        <div className="flex flex-col gap-1 rounded-card bg-white px-4 py-3.5 shadow-sm">
+          <span className="text-[22px] font-bold leading-tight text-clay">{visitorCount}</span>
+          <span className="text-[11px] font-medium leading-snug text-muted-foreground">Visitantes ativos</span>
+          <span className="text-[11px] leading-snug text-muted-foreground">Visitantes vinculados ao GC</span>
+        </div>
+        <div className="flex flex-col gap-1 rounded-card bg-white px-4 py-3.5 shadow-sm">
+          <span className="text-[22px] font-bold leading-tight text-forest">{meetings.length}</span>
+          <span className="text-[11px] font-medium leading-snug text-muted-foreground">Reuniões recentes</span>
+          <span className="text-[11px] leading-snug text-muted-foreground">Últimas 5 reuniões registradas</span>
+        </div>
       </section>
 
-      <section className="grid gap-4 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5" />
-              Liderança e supervisão
-            </CardTitle>
-            <CardDescription>Quem lidera e supervisiona este GC</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
+      <section className="grid gap-6 lg:grid-cols-2">
+        <div>
+          <SectionRow title="Liderança e supervisão" />
+          <p className="-mt-1 pb-3 text-[13px] leading-relaxed text-muted-foreground">
+            Quem lidera e supervisiona este GC
+          </p>
+          <div className="space-y-4">
             <div>
-              <p className="text-xs font-semibold uppercase text-muted-foreground">Líderes</p>
-              <div className="mt-2 space-y-2">
+              <p className="eyebrow">Líderes</p>
+              <div className="mt-2">
                 {leaderList.length === 0 ? (
                   <p className="text-sm text-muted-foreground">Nenhum líder registrado.</p>
                 ) : (
-                  leaderList.map((leader) => (
-                    <div key={leader.id} className="rounded-lg border p-3">
-                      <p className="font-medium">{leader.people?.name ?? 'Sem nome'}</p>
-                      <p className="text-xs text-muted-foreground">{leader.people?.email ?? 'Sem email'}</p>
-                    </div>
-                  ))
+                  <ListGroup>
+                    {leaderList.map((leader) => (
+                      <ListItem
+                        key={leader.id}
+                        grouped
+                        leading={<Avatar name={leader.people?.name ?? 'Sem nome'} />}
+                        title={leader.people?.name ?? 'Sem nome'}
+                        subtitle={leader.people?.email ?? 'Sem email'}
+                        trailing={
+                          <Badge variant="sage">
+                            <Crown className="h-3 w-3" />
+                            Líder
+                          </Badge>
+                        }
+                      />
+                    ))}
+                  </ListGroup>
                 )}
               </div>
             </div>
             <div>
-              <p className="text-xs font-semibold uppercase text-muted-foreground">Supervisores</p>
-              <div className="mt-2 space-y-2">
+              <p className="eyebrow">Supervisores</p>
+              <div className="mt-2">
                 {supervisorList.length === 0 ? (
                   <p className="text-sm text-muted-foreground">Nenhum supervisor registrado.</p>
                 ) : (
-                  supervisorList.map((sup) => (
-                    <div key={sup.id} className="rounded-lg border p-3">
-                      <p className="font-medium">{sup.people?.name ?? 'Sem nome'}</p>
-                      <p className="text-xs text-muted-foreground">{sup.people?.email ?? 'Sem email'}</p>
-                    </div>
-                  ))
+                  <ListGroup>
+                    {supervisorList.map((sup) => (
+                      <ListItem
+                        key={sup.id}
+                        grouped
+                        leading={<Avatar name={sup.people?.name ?? 'Sem nome'} />}
+                        title={sup.people?.name ?? 'Sem nome'}
+                        subtitle={sup.people?.email ?? 'Sem email'}
+                        trailing={<Badge variant="clay">Supervisor</Badge>}
+                      />
+                    ))}
+                  </ListGroup>
                 )}
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <UserCheck className="h-5 w-5" />
-              Membros
-            </CardTitle>
-            <CardDescription>Participantes ativos deste GC</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {memberList.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Nenhum membro ativo cadastrado.</p>
-            ) : (
-              memberList.map((member) => (
-                <div key={member.id} className="rounded-lg border p-3">
-                  <p className="font-medium">{member.people?.name ?? 'Sem nome'}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {member.people?.email ?? 'Sem email'} • {member.people?.phone ?? 'Sem telefone'}
-                  </p>
-                </div>
-              ))
-            )}
-          </CardContent>
-        </Card>
+        <div>
+          <SectionRow title="Membros" />
+          <p className="-mt-1 pb-3 text-[13px] leading-relaxed text-muted-foreground">
+            Participantes ativos deste GC
+          </p>
+          {memberList.length === 0 ? (
+            <EmptyState sunken icon={<Users />} title="Nenhum membro ativo cadastrado." />
+          ) : (
+            <ListGroup>
+              {memberList.map((member) => (
+                <ListItem
+                  key={member.id}
+                  grouped
+                  leading={<Avatar name={member.people?.name ?? 'Sem nome'} />}
+                  title={member.people?.name ?? 'Sem nome'}
+                  subtitle={
+                    <>
+                      {member.people?.email ?? 'Sem email'} • {member.people?.phone ?? 'Sem telefone'}
+                    </>
+                  }
+                />
+              ))}
+            </ListGroup>
+          )}
+        </div>
       </section>
 
-      <section className="grid gap-4 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <UserPlus className="h-5 w-5" />
-              Visitantes
-            </CardTitle>
-            <CardDescription>Consulte visitantes em /visitors para adicionar ou converter</CardDescription>
-          </CardHeader>
-          <CardContent className="text-sm text-muted-foreground">
-            A gestão de visitantes é feita na lista geral; este card mostra apenas a contagem ativa ({visitorCount}).
-          </CardContent>
-        </Card>
+      <section className="grid gap-6 lg:grid-cols-2">
+        <div>
+          <SectionRow title="Visitantes" />
+          <p className="-mt-1 pb-3 text-[13px] leading-relaxed text-muted-foreground">
+            Consulte visitantes em /visitors para adicionar ou converter
+          </p>
+          <div className="flex items-start gap-2.5 rounded-card bg-paper-deep px-4 py-3.5 text-sm leading-relaxed text-muted-foreground">
+            <UserPlus className="mt-0.5 h-4 w-4 shrink-0 text-forest" />
+            <p>
+              A gestão de visitantes é feita na lista geral; este card mostra apenas a contagem ativa ({visitorCount}).
+            </p>
+          </div>
+        </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Calendar className="h-5 w-5" />
-              Últimas reuniões
-            </CardTitle>
-            <CardDescription>Histórico recente com presenças</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {meetings.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Nenhuma reunião registrada.</p>
-            ) : (
-              meetings.map((meeting) => {
+        <div>
+          <SectionRow title="Últimas reuniões" />
+          <p className="-mt-1 pb-3 text-[13px] leading-relaxed text-muted-foreground">
+            Histórico recente com presenças
+          </p>
+          {meetings.length === 0 ? (
+            <EmptyState sunken icon={<Calendar />} title="Nenhuma reunião registrada." />
+          ) : (
+            <ListGroup>
+              {meetings.map((meeting) => {
                 const memberAttendance = Array.isArray(meeting.meeting_member_attendance)
                   ? meeting.meeting_member_attendance.length
                   : 0;
@@ -244,35 +259,39 @@ export default async function GCDetailPage({ params }: PageProps) {
                   <Link
                     key={meeting.id}
                     href={`/meetings/${meeting.id}/edit`}
-                    className="block rounded-lg border p-3 transition hover:bg-muted/50 hover:border-primary/50"
+                    className="flex items-center gap-3 px-4 py-3.5 transition-colors duration-fast ease-out-soft hover:bg-paper-deep/50"
                   >
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm font-semibold text-foreground">
-                        {meeting.lesson_title || 'Reunião'}
+                    <Avatar soft="paper">
+                      <Calendar className="h-5 w-5" />
+                    </Avatar>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="truncate text-[14.5px] font-bold leading-tight text-foreground">
+                          {meeting.lesson_title || 'Reunião'}
+                        </p>
+                        <Badge variant={statusCfg.variant}>{statusCfg.label}</Badge>
+                      </div>
+                      <p className="mt-0.5 text-xs text-muted-foreground">
+                        {new Date(meeting.datetime).toLocaleString('pt-BR', {
+                          day: '2-digit',
+                          month: 'short',
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
                       </p>
-                      <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold ${statusCfg.className}`}>
-                        {statusCfg.label}
-                      </span>
+                      <div className="mt-1 flex gap-4 text-xs text-muted-foreground">
+                        <span>Membros: {memberAttendance}</span>
+                        <span>Visitantes: {visitorAttendance}</span>
+                      </div>
                     </div>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {new Date(meeting.datetime).toLocaleString('pt-BR', {
-                        day: '2-digit',
-                        month: 'short',
-                        year: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
-                    </p>
-                    <div className="flex gap-4 text-xs text-muted-foreground mt-2 pt-2 border-t">
-                      <span>Membros: {memberAttendance}</span>
-                      <span>Visitantes: {visitorAttendance}</span>
-                    </div>
+                    <ChevronRight className="h-5 w-5 shrink-0 text-slate-400" />
                   </Link>
                 );
-              })
-            )}
-          </CardContent>
-        </Card>
+              })}
+            </ListGroup>
+          )}
+        </div>
       </section>
     </main>
   );
