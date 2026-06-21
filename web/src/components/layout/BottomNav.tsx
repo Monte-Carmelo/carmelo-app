@@ -2,14 +2,15 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Users, BookOpen, CalendarPlus } from 'lucide-react';
+import { Home, CalendarDays, BookOpen, Users, UserCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const items = [
-  { href: '/dashboard', label: 'Início', icon: LayoutDashboard },
-  { href: '/gc', label: 'GC', icon: Users },
-  { href: '/meetings/new', label: 'Reunião', icon: CalendarPlus, highlight: true },
+  { href: '/dashboard', label: 'Início', icon: Home },
+  { href: '/meetings', label: 'Encontros', icon: CalendarDays },
   { href: '/lessons', label: 'Lições', icon: BookOpen },
+  { href: '/gc', label: 'Membros', icon: Users },
+  { href: '/profile', label: 'Você', icon: UserCircle },
 ];
 
 export function BottomNav() {
@@ -31,7 +32,7 @@ export function BottomNav() {
               href={item.href}
               className={cn(
                 'flex flex-1 flex-col items-center gap-1 py-2.5 text-[11px] font-semibold transition-colors duration-fast ease-out-soft active:scale-95',
-                isActive || item.highlight ? 'text-primary' : 'text-slate-500',
+                isActive ? 'text-primary' : 'text-slate-500',
               )}
             >
               <Icon className="h-[22px] w-[22px]" strokeWidth={isActive ? 2.2 : 1.7} />

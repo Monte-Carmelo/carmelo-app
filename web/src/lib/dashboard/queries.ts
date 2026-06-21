@@ -204,3 +204,144 @@ export async function getLeaderDashboardData(
     metrics,
   };
 }
+
+export type LeaderHomeData = {
+  leaderName: string | null;
+  nextMeeting: {
+    id: string;
+    gcId: string;
+    gcName: string;
+    lessonTitle: string;
+    datetime: string;
+    weekday: number | null;
+    time: string | null;
+    address: string | null;
+    memberCount: number;
+  } | null;
+  /** Nomes (até 6) dos membros do GC do próximo encontro, para a pilha de avatares */
+  memberNames: string[];
+  currentSeries: {
+    name: string;
+    currentOrder: number;
+    totalLessons: number;
+    nextLessonTitle: string | null;
+  } | null;
+};
+
+/**
+ * Dados da Home do líder no layout do kit (claude design): hero do próximo
+ * encontro + pilha de avatares + progresso da série atual.
+ */
+export async function getLeaderHomeData(
+  supabase: SupabaseClient<Database>,
+  userId: string,
+): Promise<LeaderHomeData> {
+  const personId = await getCurrentPersonId(supabase, userId);
+
+  let leaderName: string | null = null;
+  if (personId) {
+    const { data: person } = await supabase
+      .from('people')
+      .select('name')
+      .eq('id', personId)
+      .maybeSingle();
+    leaderName = person?.name ?? null;
+  }
+
+  const empty: LeaderHomeData = {
+    leaderName,
+    nextMeeting: null,
+    memberNames: [],
+    currentSeries: null,
+  };
+
+  if (!personId) return empty;
+
+  const { data: participations } = await supabase
+    .from('growth_group_participants')
+    .select('gc_id')
+    .eq('person_id', personId)
+    .eq('status', 'active')
+    .is('deleted_at', null);
+
+  const gcIds = (participations ?? []).map((row) => row.gc_id);
+  if (gcIds.length === 0) return empty;
+
+  const { data: meetingRows } = await supabase
+    .from('meetings')
+    .select('id, gc_id, lesson_title, lesson_template_id, datetime, growth_groups(name, weekday, time, address)')
+    .in('gc_id', gcIds)
+    .is('deleted_at', null)
+    .eq('status', 'scheduled')
+    .gte('datetime', new Date().toISOString())
+    .order('datetime', { ascending: true })
+    .limit(1);
+
+  const meeting = meetingRows?.[0];
+  if (!meeting) return empty;
+
+  const gc = (meeting.growth_groups ?? null) as {
+    name?: string | null;
+    weekday?: number | null;
+    time?: string | null;
+    address?: string | null;
+  } | null;
+
+  const { data: memberRows, count: memberCount } = await supabase
+    .from('growth_group_participants')
+    .select('people(name)', { count: 'exact' })
+    .eq('gc_id', meeting.gc_id)
+    .eq('status', 'active')
+    .is('deleted_at', null)
+    .limit(6);
+
+  const memberNames = ((memberRows ?? []) as Array<{ people?: { name?: string | null } | null }>)
+    .map((row) => row.people?.name ?? null)
+    .filter((name): name is string => Boolean(name));
+
+  let currentSeries: LeaderHomeData['currentSeries'] = null;
+  if (meeting.lesson_template_id) {
+    const { data: lesson } = await supabase
+      .from('lessons')
+      .select('series_id, order_in_series, lesson_series(name)')
+      .eq('id', meeting.lesson_template_id)
+      .maybeSingle();
+
+    const seriesId = (lesson as { series_id?: string | null } | null)?.series_id ?? null;
+    if (seriesId) {
+      const { count: totalLessons } = await supabase
+        .from('lessons')
+        .select('id', { count: 'exact', head: true })
+        .eq('series_id', seriesId)
+        .is('deleted_at', null);
+
+      const seriesRel = (lesson as { lesson_series?: { name?: string | null } | null } | null)
+        ?.lesson_series;
+
+      currentSeries = {
+        name: seriesRel?.name ?? 'Série atual',
+        currentOrder:
+          (lesson as { order_in_series?: number | null } | null)?.order_in_series ?? 1,
+        totalLessons: totalLessons ?? 0,
+        nextLessonTitle: meeting.lesson_title,
+      };
+    }
+  }
+
+  return {
+    leaderName,
+    nextMeeting: {
+      id: meeting.id,
+      gcId: meeting.gc_id,
+      gcName: gc?.name ?? 'GC',
+      lessonTitle: meeting.lesson_title,
+      datetime: meeting.datetime,
+      weekday: gc?.weekday ?? null,
+      time: gc?.time ?? null,
+      address: gc?.address ?? null,
+      memberCount: memberCount ?? memberNames.length,
+    },
+    memberNames,
+    currentSeries,
+  };
+}

@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
-import { Menu, Users, BookOpen, UserPlus, UserCheck } from 'lucide-react';
+import { Menu, Home, Users, BookOpen, UserPlus, UserCheck } from 'lucide-react';
 import { Logo } from './Logo';
 import { LogoutButton } from '@/components/auth/LogoutButton';
 import {
@@ -22,6 +22,7 @@ interface HeaderProps {
 }
 
 const navItems = [
+  { href: '/dashboard', label: 'Início', icon: Home },
   { href: '/gc', label: 'GC', icon: Users },
   { href: '/participants', label: 'Participantes', icon: UserCheck },
   { href: '/visitors', label: 'Visitantes', icon: UserPlus },
@@ -56,14 +57,18 @@ export function Header({ userName, userEmail, roleBadges = [] }: HeaderProps) {
               </SheetHeader>
 
               {/* User info */}
-              <div className="border-b px-6 py-3">
+              <Link
+                href="/profile"
+                onClick={() => setOpen(false)}
+                className="block border-b px-6 py-3 transition-colors hover:bg-paper-deep"
+              >
                 <p className="text-sm font-semibold text-slate-800">
                   {userName ?? userEmail}
                 </p>
                 <p className="text-xs text-slate-500">
-                  {roleBadges.length ? roleBadges.join(' · ') : 'Acesso autenticado'}
+                  {roleBadges.length ? roleBadges.join(' · ') : 'Ver perfil'}
                 </p>
-              </div>
+              </Link>
 
               {/* Nav links */}
               <nav className="flex flex-col gap-1 px-3 py-3">
@@ -126,14 +131,17 @@ export function Header({ userName, userEmail, roleBadges = [] }: HeaderProps) {
 
         {/* Desktop user info + logout */}
         <div className="flex items-center gap-3">
-          <div className="hidden flex-col items-end md:flex">
+          <Link
+            href="/profile"
+            className="hidden flex-col items-end rounded-lg px-2 py-1 transition-colors hover:bg-paper-deep md:flex"
+          >
             <span className="text-sm font-semibold text-slate-800">
               {userName ?? userEmail}
             </span>
             <span className="text-xs text-slate-500">
-              {roleBadges.length ? roleBadges.join(' · ') : 'Acesso autenticado'}
+              {roleBadges.length ? roleBadges.join(' · ') : 'Ver perfil'}
             </span>
-          </div>
+          </Link>
           <div className="hidden md:block">
             <LogoutButton />
           </div>
