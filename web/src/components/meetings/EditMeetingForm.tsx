@@ -512,16 +512,28 @@ export function EditMeetingForm({ meeting, lessonTemplates }: EditMeetingFormPro
         </CardContent>
       </Card>
 
-      <div className="flex items-center justify-between gap-3">
-        <Button type="button" variant="destructive" onClick={handleDelete} disabled={isLoading}>
+      <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <Button
+          type="button"
+          variant="destructive"
+          onClick={handleDelete}
+          disabled={isLoading}
+          className="w-full sm:w-auto"
+        >
           <Trash2 className="mr-2 h-4 w-4" />
           Excluir reunião
         </Button>
-        <div className="flex gap-3">
-          <Button type="button" variant="outline" onClick={() => router.back()} disabled={isLoading}>
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => router.back()}
+            disabled={isLoading}
+            className="w-full sm:w-auto"
+          >
             Cancelar
           </Button>
-          <Button type="submit" disabled={isLoading}>
+          <Button type="submit" disabled={isLoading} className="w-full sm:w-auto">
             <Calendar className="mr-2 h-4 w-4" />
             {isLoading ? 'Salvando...' : 'Salvar alterações'}
           </Button>
