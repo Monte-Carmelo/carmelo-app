@@ -674,24 +674,26 @@ export function GCMultiplicationWizard({
       </Card>
 
       {/* Navigation Buttons */}
-      <div className="flex justify-between">
-        <div>
+      <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="w-full sm:w-auto">
           {currentStep > 1 && (
-            <Button variant="outline" onClick={handleBack}>
+            <Button variant="outline" onClick={handleBack} className="w-full sm:w-auto">
               Voltar
             </Button>
           )}
           {currentStep === 1 && (
-            <Button variant="outline" onClick={onCancel}>
+            <Button variant="outline" onClick={onCancel} className="w-full sm:w-auto">
               Cancelar
             </Button>
           )}
         </div>
-        <div>
+        <div className="w-full sm:w-auto">
           {currentStep < totalSteps ? (
-            <Button onClick={handleNext}>Próximo</Button>
+            <Button onClick={handleNext} className="w-full sm:w-auto">
+              Próximo
+            </Button>
           ) : (
-            <Button onClick={handleComplete} disabled={isSubmitting}>
+            <Button onClick={handleComplete} disabled={isSubmitting} className="w-full sm:w-auto">
               {isSubmitting ? 'Confirmando...' : 'Confirmar Multiplicação'}
             </Button>
           )}
