@@ -19,8 +19,8 @@ export const metadata: Metadata = {
     canonical: '/',
   },
   icons: {
-    icon: '/icon.svg',
-    apple: '/apple-icon',
+    icon: '/icon-192.png',
+    apple: '/apple-icon.png',
   },
   appleWebApp: {
     capable: true,
