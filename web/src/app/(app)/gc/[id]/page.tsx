@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { Calendar, ChevronRight, Crown, MapPin, UserPlus, Users } from 'lucide-react';
+import { Calendar, ChevronRight, Crown, HandHeart, MapPin, Pencil, UserPlus, Users } from 'lucide-react';
 import { createSupabaseServerClient } from '@/lib/supabase/server-client';
 import { getAuthenticatedUser } from '@/lib/supabase/server-auth';
 import { Avatar } from '@/components/ui/avatar';
@@ -33,7 +33,7 @@ export default async function GCDetailPage({ params }: PageProps) {
   const supabase = await createSupabaseServerClient();
   const { id: gcId } = await params;
 
-  const [{ data: gc }, { data: participants }, meetingsResult, memberCountRes, visitorCountRes] = await Promise.all([
+  const [{ data: gc }, { data: participants }, meetingsResult, memberCountRes, visitorsRes] = await Promise.all([
     supabase
       .from('growth_groups')
       .select('id, name, mode, address, weekday, time, status')
@@ -61,22 +61,33 @@ export default async function GCDetailPage({ params }: PageProps) {
       .eq('status', 'active'),
     supabase
       .from('visitors')
-      .select('*', { count: 'exact', head: true })
+      .select('id, visit_count, status, people:person_id ( name )')
       .eq('gc_id', gcId)
-      .eq('status', 'active'),
+      .eq('status', 'active')
+      .order('created_at', { ascending: false }),
   ]);
 
   if (!gc) {
     redirect('/gc');
   }
 
-  const leaderList = (participants ?? []).filter((p) => p.role === 'leader' || p.role === 'co_leader');
+  const leaderList = (participants ?? []).filter((p) => p.role === 'leader');
   const supervisorList = (participants ?? []).filter((p) => p.role === 'supervisor');
   const memberList = (participants ?? []).filter((p) => p.role === 'member');
 
   const meetings = meetingsResult.data ?? [];
   const memberCount = memberCountRes.count ?? memberList.length;
-  const visitorCount = visitorCountRes.count ?? 0;
+  const visitors = (visitorsRes.data ?? []) as Array<{
+    id: string;
+    visit_count: number | null;
+    people?: { name?: string | null } | null;
+  }>;
+  const visitorCount = visitors.length;
+
+  const newMeetingHref = `/meetings/new?gcId=${gc.id}`;
+  const addMemberHref = `/participants/new?gcId=${gc.id}`;
+  const allParticipantsHref = `/participants?gcId=${gc.id}`;
+  const addVisitorHref = `/visitors/new?gcId=${gc.id}`;
 
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-10">
@@ -93,12 +104,20 @@ export default async function GCDetailPage({ params }: PageProps) {
             </>
           }
           action={
-            <Button asChild>
-              <Link href={`/meetings/new?gcId=${gc.id}`}>
-                <Calendar className="mr-2 h-4 w-4" />
-                Registrar reunião
-              </Link>
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button asChild>
+                <Link href={newMeetingHref}>
+                  <Calendar className="h-4 w-4" />
+                  Registrar reunião
+                </Link>
+              </Button>
+              <Button asChild variant="outline">
+                <Link href={`/gc/${gc.id}/edit`}>
+                  <Pencil className="h-4 w-4" />
+                  Editar GC
+                </Link>
+              </Button>
+            </div>
           }
         />
         <div className="flex flex-wrap items-center gap-3">
@@ -113,6 +132,33 @@ export default async function GCDetailPage({ params }: PageProps) {
           ) : null}
         </div>
       </div>
+
+      {/* Quick actions */}
+      <section className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
+        {[
+          { href: newMeetingHref, icon: Calendar, label: 'Registrar reunião', sub: 'Marcar data e tema', tile: 'bg-brand-soft text-brand-soft-fg' },
+          { href: addMemberHref, icon: Users, label: 'Adicionar membro', sub: 'Vincular pessoa ao GC', tile: 'bg-sage/35 text-forest' },
+          { href: addVisitorHref, icon: UserPlus, label: 'Adicionar visitante', sub: 'Registrar quem chegou', tile: 'bg-clay/[0.18] text-[#8A4A2C]' },
+        ].map((a) => {
+          const Icon = a.icon;
+          return (
+            <Link
+              key={a.label}
+              href={a.href}
+              className="flex items-center gap-3 rounded-card bg-white p-4 shadow-sm transition-colors duration-fast ease-out-soft hover:bg-paper-deep/50"
+            >
+              <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${a.tile}`}>
+                <Icon className="h-5 w-5" />
+              </span>
+              <span className="min-w-0">
+                <span className="block text-[14px] font-bold leading-tight text-foreground">{a.label}</span>
+                <span className="mt-0.5 block text-xs leading-snug text-muted-foreground">{a.sub}</span>
+              </span>
+              <ChevronRight className="ml-auto h-5 w-5 shrink-0 text-slate-400" />
+            </Link>
+          );
+        })}
+      </section>
 
       <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <div className="flex flex-col gap-1 rounded-card bg-white px-4 py-3.5 shadow-sm">
@@ -198,12 +244,24 @@ export default async function GCDetailPage({ params }: PageProps) {
         </div>
 
         <div>
-          <SectionRow title="Membros" />
+          <SectionRow title="Membros" action={<Link href={addMemberHref}>+ Adicionar</Link>} />
           <p className="-mt-1 pb-3 text-[13px] leading-relaxed text-muted-foreground">
             Participantes ativos deste GC
           </p>
           {memberList.length === 0 ? (
-            <EmptyState sunken icon={<Users />} title="Nenhum membro ativo cadastrado." />
+            <EmptyState
+              sunken
+              icon={<Users />}
+              title="Nenhum membro ativo cadastrado."
+              action={
+                <Button asChild size="sm">
+                  <Link href={addMemberHref}>
+                    <Users className="h-4 w-4" />
+                    Adicionar membro
+                  </Link>
+                </Button>
+              }
+            />
           ) : (
             <ListGroup>
               {memberList.map((member) => (
@@ -221,30 +279,85 @@ export default async function GCDetailPage({ params }: PageProps) {
               ))}
             </ListGroup>
           )}
+          <Link
+            href={allParticipantsHref}
+            className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-primary transition-colors duration-fast hover:text-brand-hover"
+          >
+            Gerir todos os participantes
+            <ChevronRight className="h-4 w-4" />
+          </Link>
         </div>
       </section>
 
       <section className="grid gap-6 lg:grid-cols-2">
         <div>
-          <SectionRow title="Visitantes" />
+          <SectionRow title="Visitantes" action={<Link href={addVisitorHref}>+ Adicionar</Link>} />
           <p className="-mt-1 pb-3 text-[13px] leading-relaxed text-muted-foreground">
-            Consulte visitantes em /visitors para adicionar ou converter
+            Visitantes ativos vinculados a este GC
           </p>
-          <div className="flex items-start gap-2.5 rounded-card bg-paper-deep px-4 py-3.5 text-sm leading-relaxed text-muted-foreground">
-            <UserPlus className="mt-0.5 h-4 w-4 shrink-0 text-forest" />
-            <p>
-              A gestão de visitantes é feita na lista geral; este card mostra apenas a contagem ativa ({visitorCount}).
-            </p>
-          </div>
+          {visitors.length === 0 ? (
+            <EmptyState
+              sunken
+              icon={<UserPlus />}
+              title="Nenhum visitante ativo."
+              text="Quando alguém novo chegar a um encontro, registre aqui."
+              action={
+                <Button asChild size="sm">
+                  <Link href={addVisitorHref}>
+                    <UserPlus className="h-4 w-4" />
+                    Adicionar visitante
+                  </Link>
+                </Button>
+              }
+            />
+          ) : (
+            <>
+              <ListGroup>
+                {visitors.slice(0, 8).map((visitor) => (
+                  <ListItem
+                    key={visitor.id}
+                    grouped
+                    leading={
+                      <Avatar soft="sage" aria-hidden>
+                        <HandHeart className="h-5 w-5" />
+                      </Avatar>
+                    }
+                    title={visitor.people?.name ?? 'Sem nome'}
+                    subtitle={`${visitor.visit_count ?? 0} ${(visitor.visit_count ?? 0) === 1 ? 'visita' : 'visitas'}`}
+                    trailing={<Badge variant="sage">Visitante</Badge>}
+                  />
+                ))}
+              </ListGroup>
+              <Link
+                href="/visitors"
+                className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-primary transition-colors duration-fast hover:text-brand-hover"
+              >
+                Gerir visitantes e conversões
+                <ChevronRight className="h-4 w-4" />
+              </Link>
+            </>
+          )}
         </div>
 
         <div>
-          <SectionRow title="Últimas reuniões" />
+          <SectionRow title="Últimas reuniões" action={<Link href={`/meetings?gcId=${gc.id}`}>Ver todas</Link>} />
           <p className="-mt-1 pb-3 text-[13px] leading-relaxed text-muted-foreground">
             Histórico recente com presenças
           </p>
           {meetings.length === 0 ? (
-            <EmptyState sunken icon={<Calendar />} title="Nenhuma reunião registrada." />
+            <EmptyState
+              sunken
+              icon={<Calendar />}
+              title="Nenhuma reunião registrada."
+              action={
+                <Button asChild size="sm">
+                  <Link href={newMeetingHref}>
+                    <Calendar className="h-4 w-4" />
+                    Registrar reunião
+                  </Link>
+                </Button>
+              }
+            />
           ) : (
             <ListGroup>
               {meetings.map((meeting) => {
@@ -258,7 +371,7 @@ export default async function GCDetailPage({ params }: PageProps) {
                 return (
                   <Link
                     key={meeting.id}
-                    href={`/meetings/${meeting.id}/edit`}
+                    href={`/meetings/${meeting.id}`}
                     className="flex items-center gap-3 px-4 py-3.5 transition-colors duration-fast ease-out-soft hover:bg-paper-deep/50"
                   >
                     <Avatar soft="paper">
