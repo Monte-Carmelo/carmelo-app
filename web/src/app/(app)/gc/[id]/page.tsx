@@ -187,7 +187,7 @@ export default async function GCDetailPage({ params }: PageProps) {
       </section>
 
       <section className="grid gap-6 lg:grid-cols-2">
-        <div>
+        <div className="min-w-0">
           <SectionRow title="Liderança e supervisão" />
           <p className="-mt-1 pb-3 text-[13px] leading-relaxed text-muted-foreground">
             Quem lidera e supervisiona este GC
@@ -243,7 +243,7 @@ export default async function GCDetailPage({ params }: PageProps) {
           </div>
         </div>
 
-        <div>
+        <div className="min-w-0">
           <SectionRow title="Membros" action={<Link href={addMemberHref}>+ Adicionar</Link>} />
           <p className="-mt-1 pb-3 text-[13px] leading-relaxed text-muted-foreground">
             Participantes ativos deste GC
@@ -290,7 +290,7 @@ export default async function GCDetailPage({ params }: PageProps) {
       </section>
 
       <section className="grid gap-6 lg:grid-cols-2">
-        <div>
+        <div className="min-w-0">
           <SectionRow title="Visitantes" action={<Link href={addVisitorHref}>+ Adicionar</Link>} />
           <p className="-mt-1 pb-3 text-[13px] leading-relaxed text-muted-foreground">
             Visitantes ativos vinculados a este GC
@@ -339,7 +339,7 @@ export default async function GCDetailPage({ params }: PageProps) {
           )}
         </div>
 
-        <div>
+        <div className="min-w-0">
           <SectionRow title="Últimas reuniões" action={<Link href={`/meetings?gcId=${gc.id}`}>Ver todas</Link>} />
           <p className="-mt-1 pb-3 text-[13px] leading-relaxed text-muted-foreground">
             Histórico recente com presenças
