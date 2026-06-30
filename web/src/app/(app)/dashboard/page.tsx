@@ -145,12 +145,12 @@ export default async function DashboardPage() {
   const supabase = await createSupabaseServerClient();
   const home: LeaderHomeData = user
     ? await getLeaderHomeData(supabase, user.id)
-    : { leaderName: null, ledGcs: [], nextMeeting: null, memberNames: [], currentSeries: null };
+    : { leaderName: null, managedGcs: [], nextMeeting: null, memberNames: [], currentSeries: null };
 
   const now = new Date();
   const name = firstName(home.leaderName);
-  const { nextMeeting, ledGcs, currentSeries: series } = home;
-  const primaryGc = ledGcs[0] ?? null;
+  const { nextMeeting, managedGcs, currentSeries: series } = home;
+  const primaryGc = managedGcs[0] ?? null;
   const progress =
     series && series.totalLessons > 0
       ? Math.min(100, Math.round((series.currentOrder / series.totalLessons) * 100))
@@ -158,7 +158,7 @@ export default async function DashboardPage() {
 
   const title = nextMeeting
     ? 'Seu próximo encontro está chegando'
-    : ledGcs.length > 0
+    : managedGcs.length > 0
       ? 'Cuide do seu GC'
       : 'Bem-vindo';
 
@@ -180,11 +180,11 @@ export default async function DashboardPage() {
         </div>
       )}
 
-      {ledGcs.length > 0 && (
+      {managedGcs.length > 0 && (
         <>
-          <SectionRow title={ledGcs.length === 1 ? 'Meu GC' : 'Meus GCs'} />
+          <SectionRow title={managedGcs.length === 1 ? 'Meu GC' : 'Meus GCs'} />
           <div className="space-y-2.5">
-            {ledGcs.map((gc) => (
+            {managedGcs.map((gc) => (
               <GcCard key={gc.id} gc={gc} />
             ))}
           </div>
@@ -237,7 +237,7 @@ export default async function DashboardPage() {
         </>
       )}
 
-      {ledGcs.length === 0 && !nextMeeting && (
+      {managedGcs.length === 0 && !nextMeeting && (
         <div className="pt-4">
           <EmptyState
             icon={<Users />}

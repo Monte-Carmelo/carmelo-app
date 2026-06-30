@@ -217,8 +217,8 @@ export type LeaderHomeGc = {
 
 export type LeaderHomeData = {
   leaderName: string | null;
-  /** GCs que a pessoa lidera (role=leader) — para administração direta na Home */
-  ledGcs: LeaderHomeGc[];
+  /** GCs que a pessoa administra (lidera ou supervisiona) — para administração direta na Home */
+  managedGcs: LeaderHomeGc[];
   nextMeeting: {
     id: string;
     gcId: string;
@@ -262,7 +262,7 @@ export async function getLeaderHomeData(
 
   const empty: LeaderHomeData = {
     leaderName,
-    ledGcs: [],
+    managedGcs: [],
     nextMeeting: null,
     memberNames: [],
     currentSeries: null,
@@ -280,19 +280,25 @@ export async function getLeaderHomeData(
   const gcIds = (participations ?? []).map((row) => row.gc_id);
   if (gcIds.length === 0) return empty;
 
-  // GCs que a pessoa lidera (role=leader) — para administração direta na Home
-  const ledGcIds = Array.from(
-    new Set((participations ?? []).filter((row) => row.role === 'leader').map((row) => row.gc_id)),
+  // GCs que a pessoa administra — lidera OU supervisiona (mesma regra do resto do app:
+  // getParticipantManagementScope usa role in ['leader','supervisor'] e a edição de GC
+  // também é liberada a supervisores).
+  const managedGcIds = Array.from(
+    new Set(
+      (participations ?? [])
+        .filter((row) => row.role === 'leader' || row.role === 'supervisor')
+        .map((row) => row.gc_id),
+    ),
   );
-  let ledGcs: LeaderHomeGc[] = [];
-  if (ledGcIds.length > 0) {
+  let managedGcs: LeaderHomeGc[] = [];
+  if (managedGcIds.length > 0) {
     const { data: gcRows } = await supabase
       .from('growth_groups')
       .select('id, name, mode, weekday, time, status')
-      .in('id', ledGcIds)
+      .in('id', managedGcIds)
       .neq('status', 'inactive')
       .order('name', { ascending: true });
-    ledGcs = await Promise.all(
+    managedGcs = await Promise.all(
       (
         (gcRows ?? []) as Array<{
           id: string;
@@ -339,7 +345,7 @@ export async function getLeaderHomeData(
     .limit(1);
 
   const meeting = meetingRows?.[0];
-  if (!meeting) return { ...empty, ledGcs };
+  if (!meeting) return { ...empty, managedGcs };
 
   const gc = (meeting.growth_groups ?? null) as {
     name?: string | null;
@@ -391,7 +397,7 @@ export async function getLeaderHomeData(
 
   return {
     leaderName,
-    ledGcs,
+    managedGcs,
     nextMeeting: {
       id: meeting.id,
       gcId: meeting.gc_id,
