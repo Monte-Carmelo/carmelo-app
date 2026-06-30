@@ -1,21 +1,15 @@
 import Link from 'next/link';
-import {
-  BookOpen,
-  ClipboardList,
-  Mountain,
-  PlusCircle,
-  Share2,
-  UserPlus,
-  Users,
-} from 'lucide-react';
+import { BookOpen, CalendarPlus, ChevronRight, ClipboardList, Mountain, Share2, Users } from 'lucide-react';
 import { createSupabaseServerClient } from '@/lib/supabase/server-client';
 import { getAuthenticatedUser } from '@/lib/supabase/server-auth';
-import { getLeaderHomeData, type LeaderHomeData } from '@/lib/dashboard/queries';
+import { getLeaderHomeData, type LeaderHomeData, type LeaderHomeGc } from '@/lib/dashboard/queries';
 import { Avatar, AvatarStack } from '@/components/ui/avatar';
 import { SectionRow } from '@/components/ui/section-row';
+import { EmptyState } from '@/components/ui/empty-state';
 import { Button } from '@/components/ui/button';
 
 const WEEKDAY_NAMES = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+const MODE_NAMES: Record<string, string> = { in_person: 'Presencial', online: 'Online', hybrid: 'Híbrido' };
 
 function greetingFor(now: Date) {
   const hour = Number(
@@ -45,60 +39,18 @@ function formatMeetingDate(iso: string) {
     .replace(/\./g, '');
 }
 
-const SHORTCUTS = [
-  {
-    href: '/meetings/new',
-    icon: PlusCircle,
-    label: 'Novo encontro',
-    sub: 'Marcar data e tema',
-    tile: 'bg-brand-soft text-brand-soft-fg',
-  },
-  {
-    href: '/visitors/new',
-    icon: UserPlus,
-    label: 'Visitante novo',
-    sub: 'Registrar quem chegou',
-    tile: 'bg-sage/35 text-forest',
-  },
-  {
-    href: '/lessons',
-    icon: BookOpen,
-    label: 'Catálogo de lições',
-    sub: 'Séries aprovadas',
-    tile: 'bg-clay/[0.18] text-[#8A4A2C]',
-  },
-  {
-    href: '/gc',
-    icon: Users,
-    label: 'Meu GC',
-    sub: 'Membros e saúde',
-    tile: 'bg-brand-soft text-brand-soft-fg',
-  },
-] as const;
+function scheduleLabel(gc: LeaderHomeGc) {
+  const bits = [
+    gc.weekday !== null ? WEEKDAY_NAMES[gc.weekday] : null,
+    gc.time ? `às ${gc.time.slice(0, 5)}` : null,
+  ].filter(Boolean);
+  return bits.length > 0 ? bits.join(' ') : (MODE_NAMES[gc.mode] ?? gc.mode);
+}
 
-function Hero({ nextMeeting, memberNames }: Pick<LeaderHomeData, 'nextMeeting' | 'memberNames'>) {
-  if (!nextMeeting) {
-    return (
-      <div className="relative overflow-hidden rounded-hero bg-white p-6 shadow-md">
-        <span className="eyebrow">Seu GC</span>
-        <h2 className="mt-2 text-[22px] font-bold leading-snug text-foreground">
-          Nenhum encontro marcado ainda
-        </h2>
-        <p className="mt-1.5 text-[13.5px] leading-relaxed text-muted-foreground">
-          Marque o primeiro encontro pra começar a registrar presença e visitantes.
-        </p>
-        <Button asChild className="mt-4">
-          <Link href="/meetings/new">
-            <PlusCircle className="h-4 w-4" />
-            Marcar encontro
-          </Link>
-        </Button>
-      </div>
-    );
-  }
+type NextMeeting = NonNullable<LeaderHomeData['nextMeeting']>;
 
-  const weekday =
-    nextMeeting.weekday !== null ? WEEKDAY_NAMES[nextMeeting.weekday] : null;
+function Hero({ nextMeeting, memberNames }: { nextMeeting: NextMeeting; memberNames: string[] }) {
+  const weekday = nextMeeting.weekday !== null ? WEEKDAY_NAMES[nextMeeting.weekday] : null;
   const overflow = nextMeeting.memberCount - memberNames.length;
   const shareText = encodeURIComponent(
     `Encontro do ${nextMeeting.gcName}: ${nextMeeting.lessonTitle} — ${formatMeetingDate(nextMeeting.datetime)}`,
@@ -116,7 +68,9 @@ function Hero({ nextMeeting, memberNames }: Pick<LeaderHomeData, 'nextMeeting' |
         {nextMeeting.lessonTitle}
       </h2>
       <p className="mt-1.5 text-[13.5px] font-medium leading-relaxed text-slate-700">
-        {nextMeeting.gcName}
+        <Link href={`/gc/${nextMeeting.gcId}`} className="hover:text-brand-hover hover:underline">
+          {nextMeeting.gcName}
+        </Link>
         {weekday ? ` · ${weekday}` : ''} · {formatMeetingDate(nextMeeting.datetime)}
       </p>
       <p className="mt-0.5 text-[13px] leading-relaxed text-muted-foreground">
@@ -145,11 +99,7 @@ function Hero({ nextMeeting, memberNames }: Pick<LeaderHomeData, 'nextMeeting' |
           </Link>
         </Button>
         <Button asChild variant="outline" size="icon" aria-label="Compartilhar convite no WhatsApp">
-          <a
-            href={`https://wa.me/?text=${shareText}`}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
+          <a href={`https://wa.me/?text=${shareText}`} target="_blank" rel="noopener noreferrer">
             <Share2 className="h-4 w-4" />
           </a>
         </Button>
@@ -158,20 +108,59 @@ function Hero({ nextMeeting, memberNames }: Pick<LeaderHomeData, 'nextMeeting' |
   );
 }
 
+function GcCard({ gc }: { gc: LeaderHomeGc }) {
+  return (
+    <Link
+      href={`/gc/${gc.id}`}
+      className="block rounded-card bg-white p-4 shadow-sm transition-colors duration-fast ease-out-soft hover:bg-paper-deep/40"
+    >
+      <div className="flex items-center gap-3.5">
+        <Avatar soft="brand" size="md" aria-hidden>
+          <Users className="h-5 w-5" />
+        </Avatar>
+        <div className="min-w-0 flex-1">
+          <h3 className="truncate text-[15px] font-bold leading-tight text-foreground">{gc.name}</h3>
+          <p className="mt-0.5 truncate text-xs text-muted-foreground">{scheduleLabel(gc)}</p>
+        </div>
+        <ChevronRight className="h-5 w-5 shrink-0 text-slate-400" />
+      </div>
+      <div className="mt-3 flex items-center gap-4 border-t border-divider pt-3 text-xs text-muted-foreground">
+        <span>
+          <strong className="text-foreground">{gc.memberCount}</strong> membros
+        </span>
+        <span>
+          <strong className="text-foreground">{gc.visitorCount}</strong> visitantes
+        </span>
+        <span className="ml-auto inline-flex items-center gap-0.5 font-semibold text-primary">
+          Administrar
+          <ChevronRight className="h-3.5 w-3.5" />
+        </span>
+      </div>
+    </Link>
+  );
+}
+
 export default async function DashboardPage() {
   const user = await getAuthenticatedUser();
   const supabase = await createSupabaseServerClient();
   const home: LeaderHomeData = user
     ? await getLeaderHomeData(supabase, user.id)
-    : { leaderName: null, nextMeeting: null, memberNames: [], currentSeries: null };
+    : { leaderName: null, ledGcs: [], nextMeeting: null, memberNames: [], currentSeries: null };
 
   const now = new Date();
   const name = firstName(home.leaderName);
-  const series = home.currentSeries;
+  const { nextMeeting, ledGcs, currentSeries: series } = home;
+  const primaryGc = ledGcs[0] ?? null;
   const progress =
     series && series.totalLessons > 0
       ? Math.min(100, Math.round((series.currentOrder / series.totalLessons) * 100))
       : 0;
+
+  const title = nextMeeting
+    ? 'Seu próximo encontro está chegando'
+    : ledGcs.length > 0
+      ? 'Cuide do seu GC'
+      : 'Bem-vindo';
 
   return (
     <div className="mx-auto w-full max-w-2xl space-y-1 px-4 py-8">
@@ -181,48 +170,52 @@ export default async function DashboardPage() {
           {name ? `, ${name}` : ''}
         </span>
         <h1 className="mt-1.5 text-[26px] font-bold leading-tight tracking-tight text-foreground md:text-[28px]">
-          {home.nextMeeting ? 'Seu próximo encontro está chegando' : 'Cuide do seu GC'}
+          {title}
         </h1>
       </header>
 
-      <div className="pt-4">
-        <Hero nextMeeting={home.nextMeeting} memberNames={home.memberNames} />
-      </div>
+      {nextMeeting && (
+        <div className="pt-4">
+          <Hero nextMeeting={nextMeeting} memberNames={home.memberNames} />
+        </div>
+      )}
 
-      <SectionRow title="Atalhos do líder" />
-      <div className="grid grid-cols-2 gap-2.5">
-        {SHORTCUTS.map((shortcut) => {
-          const Icon = shortcut.icon;
-          return (
-            <Link
-              key={shortcut.href}
-              href={shortcut.href}
-              className="flex flex-col items-start gap-2.5 rounded-card bg-white p-3.5 text-left shadow-sm transition-colors duration-fast ease-out-soft hover:bg-paper-deep/50"
-            >
-              <span
-                className={`flex h-9 w-9 items-center justify-center rounded-lg ${shortcut.tile}`}
-              >
-                <Icon className="h-5 w-5" />
-              </span>
-              <span>
-                <span className="block text-[13.5px] font-bold leading-tight text-foreground">
-                  {shortcut.label}
-                </span>
-                <span className="mt-0.5 block text-[11.5px] leading-snug text-muted-foreground">
-                  {shortcut.sub}
-                </span>
-              </span>
-            </Link>
-          );
-        })}
-      </div>
+      {ledGcs.length > 0 && (
+        <>
+          <SectionRow title={ledGcs.length === 1 ? 'Meu GC' : 'Meus GCs'} />
+          <div className="space-y-2.5">
+            {ledGcs.map((gc) => (
+              <GcCard key={gc.id} gc={gc} />
+            ))}
+          </div>
+        </>
+      )}
+
+      {!nextMeeting && primaryGc && (
+        <>
+          <SectionRow title="Próximo encontro" />
+          <div className="flex flex-col gap-3 rounded-card bg-white p-4 shadow-sm sm:flex-row sm:items-center">
+            <div className="min-w-0 flex-1">
+              <p className="text-[14.5px] font-bold leading-tight text-foreground">
+                Nenhum encontro marcado
+              </p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Marque o próximo encontro de {primaryGc.name}.
+              </p>
+            </div>
+            <Button asChild className="w-full sm:w-auto">
+              <Link href={`/meetings/new?gcId=${primaryGc.id}`}>
+                <CalendarPlus className="h-4 w-4" />
+                Marcar encontro
+              </Link>
+            </Button>
+          </div>
+        </>
+      )}
 
       {series && (
         <>
-          <SectionRow
-            title="Série atual"
-            action={<Link href="/lessons">Ver lições</Link>}
-          />
+          <SectionRow title="Série atual" action={<Link href="/lessons">Ver lições</Link>} />
           <div className="flex items-center gap-3.5 rounded-card bg-white p-4 shadow-sm">
             <Avatar soft="paper" size="md" aria-hidden>
               <BookOpen className="h-5 w-5" />
@@ -242,6 +235,16 @@ export default async function DashboardPage() {
             </div>
           </div>
         </>
+      )}
+
+      {ledGcs.length === 0 && !nextMeeting && (
+        <div className="pt-4">
+          <EmptyState
+            icon={<Users />}
+            title="Você ainda não administra um GC"
+            text="Quando a liderança te vincular a um Grupo de Crescimento, ele aparece aqui pra você administrar."
+          />
+        </div>
       )}
     </div>
   );

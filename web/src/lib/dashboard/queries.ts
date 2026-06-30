@@ -205,8 +205,20 @@ export async function getLeaderDashboardData(
   };
 }
 
+export type LeaderHomeGc = {
+  id: string;
+  name: string;
+  mode: string;
+  weekday: number | null;
+  time: string | null;
+  memberCount: number;
+  visitorCount: number;
+};
+
 export type LeaderHomeData = {
   leaderName: string | null;
+  /** GCs que a pessoa lidera (role=leader) — para administração direta na Home */
+  ledGcs: LeaderHomeGc[];
   nextMeeting: {
     id: string;
     gcId: string;
@@ -250,6 +262,7 @@ export async function getLeaderHomeData(
 
   const empty: LeaderHomeData = {
     leaderName,
+    ledGcs: [],
     nextMeeting: null,
     memberNames: [],
     currentSeries: null,
@@ -259,13 +272,61 @@ export async function getLeaderHomeData(
 
   const { data: participations } = await supabase
     .from('growth_group_participants')
-    .select('gc_id')
+    .select('gc_id, role')
     .eq('person_id', personId)
     .eq('status', 'active')
     .is('deleted_at', null);
 
   const gcIds = (participations ?? []).map((row) => row.gc_id);
   if (gcIds.length === 0) return empty;
+
+  // GCs que a pessoa lidera (role=leader) — para administração direta na Home
+  const ledGcIds = Array.from(
+    new Set((participations ?? []).filter((row) => row.role === 'leader').map((row) => row.gc_id)),
+  );
+  let ledGcs: LeaderHomeGc[] = [];
+  if (ledGcIds.length > 0) {
+    const { data: gcRows } = await supabase
+      .from('growth_groups')
+      .select('id, name, mode, weekday, time, status')
+      .in('id', ledGcIds)
+      .neq('status', 'inactive')
+      .order('name', { ascending: true });
+    ledGcs = await Promise.all(
+      (
+        (gcRows ?? []) as Array<{
+          id: string;
+          name: string;
+          mode: string;
+          weekday: number | null;
+          time: string | null;
+        }>
+      ).map(async (g) => {
+        const [{ count: memberCount }, { count: visitorCount }] = await Promise.all([
+          supabase
+            .from('growth_group_participants')
+            .select('*', { count: 'exact', head: true })
+            .eq('gc_id', g.id)
+            .eq('status', 'active')
+            .is('deleted_at', null),
+          supabase
+            .from('visitors')
+            .select('*', { count: 'exact', head: true })
+            .eq('gc_id', g.id)
+            .eq('status', 'active'),
+        ]);
+        return {
+          id: g.id,
+          name: g.name,
+          mode: g.mode,
+          weekday: g.weekday,
+          time: g.time,
+          memberCount: memberCount ?? 0,
+          visitorCount: visitorCount ?? 0,
+        };
+      }),
+    );
+  }
 
   const { data: meetingRows } = await supabase
     .from('meetings')
@@ -278,7 +339,7 @@ export async function getLeaderHomeData(
     .limit(1);
 
   const meeting = meetingRows?.[0];
-  if (!meeting) return empty;
+  if (!meeting) return { ...empty, ledGcs };
 
   const gc = (meeting.growth_groups ?? null) as {
     name?: string | null;
@@ -330,6 +391,7 @@ export async function getLeaderHomeData(
 
   return {
     leaderName,
+    ledGcs,
     nextMeeting: {
       id: meeting.id,
       gcId: meeting.gc_id,
