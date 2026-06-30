@@ -1,15 +1,14 @@
 import { Suspense } from 'react';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { Calendar, Check, House, NotebookPen, Plus } from 'lucide-react';
+import { Calendar, House, Plus } from 'lucide-react';
 import { createSupabaseServerClient } from '@/lib/supabase/server-client';
 import { getAuthenticatedUser } from '@/lib/supabase/server-auth';
+import { getParticipantManagementScope, listGrowthGroups } from '@/lib/api/participants';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Avatar } from '@/components/ui/avatar';
-import { ListItem } from '@/components/ui/list-item';
 import { SectionRow } from '@/components/ui/section-row';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ScreenHeader } from '@/components/ui/screen-header';
@@ -17,7 +16,7 @@ import { Loading } from '@/components/ui/spinner';
 
 type SearchParams = { gcId?: string };
 
-type MeetingRow = {
+type Meeting = {
   id: string;
   gc_id: string | null;
   datetime: string;
@@ -25,12 +24,11 @@ type MeetingRow = {
   status: string;
   growth_groups?: { name?: string | null } | null;
   meeting_member_attendance?: { id: string }[] | null;
-  meeting_visitor_attendance?: { id: string }[] | null;
 };
 
 const SP = 'America/Sao_Paulo';
 
-function presentCount(m: MeetingRow) {
+function presentCount(m: Meeting) {
   return Array.isArray(m.meeting_member_attendance) ? m.meeting_member_attendance.length : 0;
 }
 
@@ -41,67 +39,64 @@ function parts(iso: string) {
     day: d.toLocaleDateString('pt-BR', { day: '2-digit', timeZone: SP }),
     month: d.toLocaleDateString('pt-BR', { month: 'short', timeZone: SP }).replace('.', ''),
     time: d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: SP }),
-    shortDate: d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', timeZone: SP }).replace('.', ''),
   };
 }
 
-function UpcomingRow({ meeting, isNext }: { meeting: MeetingRow; isNext: boolean }) {
+function MeetingRow({
+  meeting,
+  tone,
+  showGc,
+}: {
+  meeting: Meeting;
+  tone: 'next' | 'upcoming' | 'past';
+  showGc: boolean;
+}) {
   const p = parts(meeting.datetime);
+  const present = presentCount(meeting);
+  const registered = present > 0 || meeting.status === 'completed';
+  const chipClass =
+    tone === 'next'
+      ? 'bg-brand text-white shadow-brand'
+      : tone === 'upcoming'
+        ? 'bg-brand-soft text-brand-soft-fg'
+        : 'bg-paper-deep text-slate-500';
+
   return (
     <Link href={`/meetings/${meeting.id}`} className="flex items-stretch gap-3.5">
       <div
-        className={`flex w-14 shrink-0 flex-col items-center justify-center rounded-xl py-2 ${
-          isNext ? 'bg-brand text-white shadow-brand' : 'bg-brand-soft text-brand-soft-fg'
-        }`}
+        className={`flex w-14 shrink-0 flex-col items-center justify-center rounded-xl py-2 ${chipClass}`}
       >
-        <span className="text-[9.5px] font-semibold uppercase leading-none tracking-[0.14em] opacity-75">
+        <span className="text-[9.5px] font-semibold uppercase leading-none tracking-[0.14em] opacity-80">
           {p.weekday}
         </span>
         <span className="my-1 text-[22px] font-bold leading-none">{p.day}</span>
-        <span className="text-[9.5px] font-semibold uppercase leading-none tracking-[0.14em] opacity-75">
+        <span className="text-[9.5px] font-semibold uppercase leading-none tracking-[0.14em] opacity-80">
           {p.month}
         </span>
       </div>
       <div className="min-w-0 flex-1 rounded-card bg-white px-4 py-3 shadow-sm transition-colors duration-fast ease-out-soft hover:bg-paper-deep/40">
         <div className="mb-1 flex items-center justify-between gap-2">
           <span className="text-[11.5px] font-medium leading-none text-muted-foreground">{p.time}</span>
-          {isNext && <Badge variant="info">É o próximo</Badge>}
+          {tone === 'next' && <Badge variant="info">É o próximo</Badge>}
+          {tone === 'past' &&
+            (registered ? (
+              <Badge variant="success">
+                {present} {present === 1 ? 'presente' : 'presentes'}
+              </Badge>
+            ) : (
+              <Badge variant="warn">Registrar presença</Badge>
+            ))}
         </div>
         <h4 className="truncate text-[14.5px] font-bold leading-tight text-foreground">
           {meeting.lesson_title}
         </h4>
-        <p className="mt-1 flex items-center gap-1 truncate text-xs text-muted-foreground">
-          <House className="h-3 w-3 shrink-0" />
-          {meeting.growth_groups?.name ?? 'GC'}
-        </p>
+        {showGc && (
+          <p className="mt-1 flex items-center gap-1 truncate text-xs text-muted-foreground">
+            <House className="h-3 w-3 shrink-0" />
+            {meeting.growth_groups?.name ?? 'GC'}
+          </p>
+        )}
       </div>
-    </Link>
-  );
-}
-
-function PastRow({ meeting }: { meeting: MeetingRow }) {
-  const p = parts(meeting.datetime);
-  const present = presentCount(meeting);
-  const registered = present > 0 || meeting.status === 'completed';
-  return (
-    <Link href={`/meetings/${meeting.id}`} className="block">
-      <ListItem
-        className="transition-colors duration-fast ease-out-soft hover:bg-paper-deep/50"
-        leading={
-          <Avatar soft={registered ? 'paper' : 'warn'} size="md" aria-hidden>
-            {registered ? <Check className="h-5 w-5" /> : <NotebookPen className="h-5 w-5" />}
-          </Avatar>
-        }
-        title={meeting.lesson_title}
-        subtitle={`${meeting.growth_groups?.name ?? 'GC'} · ${p.shortDate}`}
-        trailing={
-          registered ? (
-            <Badge variant="success">{present} {present === 1 ? 'presente' : 'presentes'}</Badge>
-          ) : (
-            <Badge variant="warn">Registrar presença</Badge>
-          )
-        }
-      />
     </Link>
   );
 }
@@ -114,55 +109,85 @@ async function MeetingsContent({ searchParams }: { searchParams: SearchParams })
 
   const supabase = await createSupabaseServerClient();
   const nowIso = new Date().toISOString();
-  const gcFilter = searchParams.gcId && searchParams.gcId !== 'all' ? searchParams.gcId : null;
 
-  const baseSelect =
-    'id, gc_id, datetime, lesson_title, status, growth_groups ( name ), meeting_member_attendance ( id ), meeting_visitor_attendance ( id )';
+  // Escopo de permissão: admin vê tudo; demais veem só os GCs que gerenciam
+  // (líder ou supervisor) — mesma regra de getParticipantManagementScope.
+  const scope = await getParticipantManagementScope(supabase, user.id);
+  const groups = scope.isAdmin
+    ? await listGrowthGroups(supabase)
+    : await listGrowthGroups(supabase, { gcIds: scope.managedGcIds });
 
-  const upcomingQuery = supabase
-    .from('meetings')
-    .select(baseSelect)
-    .is('deleted_at', null)
-    .eq('status', 'scheduled')
-    .gte('datetime', nowIso)
-    .order('datetime', { ascending: true })
-    .limit(10);
-
-  const pastQuery = supabase
-    .from('meetings')
-    .select(baseSelect)
-    .is('deleted_at', null)
-    .lt('datetime', nowIso)
-    .order('datetime', { ascending: false })
-    .limit(15);
-
-  if (gcFilter) {
-    upcomingQuery.eq('gc_id', gcFilter);
-    pastQuery.eq('gc_id', gcFilter);
+  const accessible = new Set(groups.map((g) => g.id));
+  const requested = searchParams.gcId;
+  let selectedGcId: string | null;
+  if (requested && requested !== 'all' && accessible.has(requested)) {
+    selectedGcId = requested;
+  } else if (requested === 'all') {
+    selectedGcId = null;
+  } else {
+    // Sem parâmetro (ex.: vindo da tab bar): abre no GC do usuário quando há só um.
+    selectedGcId = groups.length === 1 ? groups[0].id : null;
   }
 
-  const [groupsResult, upcomingResult, pastResult] = await Promise.all([
-    supabase.from('growth_groups').select('id, name').order('name', { ascending: true }),
-    upcomingQuery,
-    pastQuery,
-  ]);
+  const hasScope = scope.isAdmin || groups.length > 0;
 
-  if (upcomingResult.error) throw upcomingResult.error;
-  if (pastResult.error) throw pastResult.error;
+  let upcoming: Meeting[] = [];
+  let past: Meeting[] = [];
+  if (hasScope) {
+    const baseSelect =
+      'id, gc_id, datetime, lesson_title, status, growth_groups ( name ), meeting_member_attendance ( id )';
 
-  const upcoming = (upcomingResult.data ?? []) as MeetingRow[];
-  const past = (pastResult.data ?? []) as MeetingRow[];
+    const upcomingQuery = supabase
+      .from('meetings')
+      .select(baseSelect)
+      .is('deleted_at', null)
+      .eq('status', 'scheduled')
+      .gte('datetime', nowIso)
+      .order('datetime', { ascending: true })
+      .limit(10);
+    const pastQuery = supabase
+      .from('meetings')
+      .select(baseSelect)
+      .is('deleted_at', null)
+      .lt('datetime', nowIso)
+      .order('datetime', { ascending: false })
+      .limit(15);
+
+    // Escopo aplicado em ambas as queries (admin sem escopo vê tudo)
+    if (selectedGcId) {
+      upcomingQuery.eq('gc_id', selectedGcId);
+      pastQuery.eq('gc_id', selectedGcId);
+    } else if (!scope.isAdmin) {
+      upcomingQuery.in('gc_id', scope.managedGcIds);
+      pastQuery.in('gc_id', scope.managedGcIds);
+    }
+
+    const [upcomingResult, pastResult] = await Promise.all([upcomingQuery, pastQuery]);
+
+    if (upcomingResult.error) throw upcomingResult.error;
+    if (pastResult.error) throw pastResult.error;
+    upcoming = (upcomingResult.data ?? []) as Meeting[];
+    past = (pastResult.data ?? []) as Meeting[];
+  }
+
+  const selectedGroup = selectedGcId ? (groups.find((g) => g.id === selectedGcId) ?? null) : null;
+  const showGc = selectedGcId === null && groups.length > 1;
+  const eyebrow =
+    selectedGroup?.name ??
+    (groups.length === 1 ? groups[0].name : scope.isAdmin ? 'Todos os GCs' : 'Seus GCs');
+  const allLabel = scope.isAdmin ? 'Todos os GCs' : 'Todos os meus GCs';
+  const newMeetingHref = selectedGcId ? `/meetings/new?gcId=${selectedGcId}` : '/meetings/new';
   const isEmpty = upcoming.length === 0 && past.length === 0;
 
   return (
     <section className="mx-auto flex w-full max-w-3xl flex-col gap-2 px-4 py-8">
       <ScreenHeader
-        eyebrow="Seu GC"
+        eyebrow={eyebrow}
         title="Encontros"
         subtitle="Próximos encontros e o histórico de presença."
         action={
           <Button asChild>
-            <Link href="/meetings/new">
+            <Link href={newMeetingHref}>
               <Plus className="h-4 w-4" />
               Novo encontro
             </Link>
@@ -170,19 +195,19 @@ async function MeetingsContent({ searchParams }: { searchParams: SearchParams })
         }
       />
 
-      {(groupsResult.data?.length ?? 0) > 1 && (
+      {groups.length > 1 && (
         <form className="mt-2 flex flex-wrap items-end gap-3 rounded-card bg-white p-4 shadow-sm">
           <div className="flex-1 space-y-1.5">
             <Label htmlFor="gcId" className="text-xs font-semibold text-muted-foreground">
               Filtrar por GC
             </Label>
-            <Select name="gcId" defaultValue={searchParams.gcId ?? 'all'}>
+            <Select name="gcId" defaultValue={selectedGcId ?? 'all'}>
               <SelectTrigger id="gcId">
-                <SelectValue placeholder="Todos" />
+                <SelectValue placeholder={allLabel} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todos</SelectItem>
-                {(groupsResult.data ?? []).map((group) => (
+                <SelectItem value="all">{allLabel}</SelectItem>
+                {groups.map((group) => (
                   <SelectItem key={group.id} value={group.id}>
                     {group.name}
                   </SelectItem>
@@ -196,14 +221,22 @@ async function MeetingsContent({ searchParams }: { searchParams: SearchParams })
         </form>
       )}
 
-      {isEmpty ? (
+      {!hasScope ? (
+        <div className="pt-4">
+          <EmptyState
+            icon={<Calendar />}
+            title="Você ainda não administra encontros"
+            text="Quando a liderança te vincular a um GC como líder ou supervisor, os encontros aparecem aqui."
+          />
+        </div>
+      ) : isEmpty ? (
         <EmptyState
           icon={<Calendar />}
           title="Nenhum encontro ainda"
           text="Marque o primeiro encontro pra começar a registrar presença e visitantes."
           action={
             <Button asChild>
-              <Link href="/meetings/new">
+              <Link href={newMeetingHref}>
                 <Plus className="h-4 w-4" />
                 Novo encontro
               </Link>
@@ -217,7 +250,12 @@ async function MeetingsContent({ searchParams }: { searchParams: SearchParams })
               <SectionRow title="Próximos" />
               <div className="space-y-3">
                 {upcoming.map((meeting, index) => (
-                  <UpcomingRow key={meeting.id} meeting={meeting} isNext={index === 0} />
+                  <MeetingRow
+                    key={meeting.id}
+                    meeting={meeting}
+                    tone={index === 0 ? 'next' : 'upcoming'}
+                    showGc={showGc}
+                  />
                 ))}
               </div>
             </>
@@ -229,9 +267,9 @@ async function MeetingsContent({ searchParams }: { searchParams: SearchParams })
               Nenhum encontro anterior registrado.
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-3">
               {past.map((meeting) => (
-                <PastRow key={meeting.id} meeting={meeting} />
+                <MeetingRow key={meeting.id} meeting={meeting} tone="past" showGc={showGc} />
               ))}
             </div>
           )}
